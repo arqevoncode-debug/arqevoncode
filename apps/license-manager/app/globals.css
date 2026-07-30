@@ -168,7 +168,8 @@ input:focus, select:focus {
   -webkit-text-fill-color: transparent;
 }
 .hero > div > p:last-child { max-width: 610px; margin: 0; color: #a9b6c8; font-size: 16px; }
-.stats { display: grid; grid-template-columns: repeat(3, minmax(125px, 1fr)); gap: 9px; }
+/* Quatro indicadores em duas colunas: com três colunas o quarto ficava órfão numa linha só dele. */
+.stats { display: grid; grid-template-columns: repeat(2, minmax(125px, 1fr)); gap: 9px; }
 .stats div {
   min-width: 138px;
   padding: 16px 18px;
@@ -360,6 +361,52 @@ input:focus, select:focus {
 .loading { padding: 40px; color: var(--muted); text-align: center; }
 .load-error { margin-bottom: 18px; }
 
+/* Navegação entre as seções do painel: licenças e feedbacks. */
+.view-tabs { display: flex; gap: 8px; margin-bottom: 22px; }
+.view-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 9px 20px;
+  color: #cdd8e8;
+  border: 1px solid rgba(255, 255, 255, .16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .06);
+  font-size: 14px;
+  font-weight: 800;
+}
+.view-tabs button.selected { color: var(--ink); border-color: transparent; background: #fff; box-shadow: 0 6px 18px rgba(7, 17, 31, .22); }
+.view-tabs .badge { min-width: 20px; padding: 2px 7px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 900; }
+.view-tabs button.selected .badge { background: var(--danger); }
+
+.feedback-grid { display: grid; gap: 15px; }
+.feedback-card {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .98);
+}
+.feedback-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--blue); }
+.feedback-card.lido::before { background: #9aa7bb; }
+.feedback-card.arquivado::before { background: var(--line); }
+.feedback-card.arquivado { opacity: .72; }
+.feedback-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.feedback-head h3 { font-size: 15px; }
+.feedback-head p { margin: 0; color: var(--muted); font-size: 12px; }
+.feedback-tag { padding: 5px 11px; border-radius: 999px; background: var(--surface-soft); color: #4a5768; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.feedback-tag.problema { background: var(--danger-soft); color: var(--danger); }
+.feedback-tag.sugestao { background: #eef1ff; color: var(--blue-dark); }
+.feedback-tag.elogio { background: var(--good-soft); color: var(--good); }
+.feedback-tag.duvida { background: var(--warning-soft); color: var(--warning); }
+/* O texto vem do cliente: preserva as quebras de linha sem deixar uma palavra longa estourar o cartão. */
+.feedback-message { margin: 0 0 14px; padding: 13px 15px; border-radius: 12px; background: var(--surface-soft); color: #29364a; font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.feedback-meta .alerta { color: var(--warning); }
+.feedback-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
 @media (max-width: 960px) {
   body { background: linear-gradient(var(--navy) 0 485px, #f2f5f9 485px); }
   .hero { grid-template-columns: 1fr; gap: 25px; }
@@ -375,13 +422,15 @@ input:focus, select:focus {
   .dashboard-shell { width: min(100% - 28px, 1180px); padding-top: 16px; }
   .hero { min-height: 0; padding: 42px 0 34px; }
   .hero h1 { font-size: 40px; }
-  .stats { grid-template-columns: repeat(3, 1fr); }
+  .stats { grid-template-columns: repeat(2, 1fr); }
   .stats div { min-width: 0; padding: 13px; }
   .license-grid { grid-template-columns: 1fr; }
   .list-head { align-items: stretch; flex-direction: column; }
   .search { width: 100%; }
   .status-tabs { overflow-x: auto; }
   .status-tabs button { flex: 0 0 auto; }
+  .view-tabs button { flex: 1 1 0; justify-content: center; padding: 9px 12px; }
+  .feedback-head { flex-direction: column; }
 }
 
 @media (max-width: 540px) {

@@ -25,6 +25,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202607290001_license_manager.sql`: tabelas `licenses` e `activations`, RLS e funções de ativação.
    - `202607290002_optional_email_device_limit.sql`: e-mail opcional e limite de 1 a 5 dispositivos.
    - `202607290003_admin_login_rate_limit.sql`: freio de força bruta no login administrativo.
+   - `202607290004_customer_feedback.sql`: tabela `feedbacks` e a função `submit_feedback`.
 
    Um ambiente novo que receba apenas a primeira migração aceita licenças com até 20 dispositivos
    e deixa o login sem freio. Ao adicionar uma migração, inclua-a nesta lista.
@@ -36,6 +37,12 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
 - `POST /api/v1/licenses/activate`: ativa a chave em um dispositivo.
 - `POST /api/v1/licenses/validate`: consulta o estado atual da licença e renova o comprovante por 30 dias.
 - `POST /api/v1/licenses/deactivate`: libera o dispositivo atual.
+- `POST /api/v1/feedback`: registra um feedback do cliente.
+
+O feedback é vinculado à licença pelo próprio comprovante assinado, não por um campo enviado
+pelo aplicativo: o cliente não escolhe a qual licença a mensagem pertence. A tabela aceita de 10
+a 2000 caracteres e a função limita 5 envios por licença por hora. O painel lista os feedbacks
+na aba **Feedbacks**, onde cada mensagem pode ser marcada como lida, arquivada ou reaberta.
 
 O desktop consulta o endpoint de validação em toda abertura, a cada 24 horas enquanto estiver aberto e quando a conexão voltar. Um comprovante Ed25519 válido permite até 30 dias de tolerância quando o servidor ou a internet estiverem indisponíveis.
 

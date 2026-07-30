@@ -47,6 +47,14 @@ const desktopMarkup = `
   .app-dialog-campo { display:grid;gap:5px;margin-top:12px;font-size:12px;font-weight:700;color:var(--ink-2); }.app-dialog-campo input { font:inherit;color:var(--ink);background:var(--page);border:1px solid var(--border);border-radius:10px;padding:11px 12px;width:100%; }.app-dialog-erro { color:var(--bad)!important;background:var(--bad-bg);padding:9px 11px;border-radius:9px;margin:12px 0 0!important;font-size:13px; }
   #appToast { position:fixed;z-index:7000;right:22px;bottom:22px;max-width:min(420px,calc(100vw - 44px));padding:13px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--border);box-shadow:0 16px 40px rgba(0,0,0,.28);color:var(--ink);font-size:13px;font-weight:650; } #appToast.erro { color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--border)); }
   .lic-acoes { display:flex;justify-content:flex-end;gap:8px;margin-top:18px; }
+  dialog#feedbackModal { border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--ink);padding:24px;width:min(480px,calc(100vw - 40px));box-shadow:0 24px 70px rgba(0,0,0,.3); }
+  dialog#feedbackModal::backdrop { background:rgba(0,0,0,.5);backdrop-filter:blur(3px); }
+  dialog#feedbackModal h2 { margin:0 0 5px; } dialog#feedbackModal > p { color:var(--muted);margin:0 0 16px; }
+  .fb-campo { display:grid;gap:5px;margin-top:12px;font-size:12px;font-weight:700;color:var(--ink-2); }
+  .fb-campo select,.fb-campo textarea { font:inherit;color:var(--ink);background:var(--page);border:1px solid var(--border);border-radius:10px;padding:11px 12px;width:100%; }
+  .fb-campo textarea { min-height:132px;resize:vertical;line-height:1.5; }
+  .fb-contador { color:var(--muted);font-size:11px;font-weight:600;text-align:right; }
+  .fb-erro { color:var(--bad)!important;background:var(--bad-bg);padding:9px 11px;border-radius:9px;margin:12px 0 0!important;font-size:13px; }
 </style>
 <div id="licencaTela">
   <div class="lic-caixa">
@@ -58,6 +66,27 @@ const desktopMarkup = `
 </div>
 <dialog id="licencaModal"><h2>Licença do Arqevon Finance</h2><p id="licencaResumo">Este computador está autorizado.</p><div class="lic-acoes"><button class="botao cancelar" id="licencaFechar">Fechar</button><button class="botao cancelar" id="licencaDesativar">Desativar dispositivo</button></div></dialog>
 <dialog id="appDialog"><h2 id="appDialogTitulo">Confirmar ação</h2><p id="appDialogMensagem"></p><label class="app-dialog-campo" id="appDialogSenhaWrap" hidden><span>Senha</span><input id="appDialogSenha" type="password" autocomplete="current-password"></label><label class="app-dialog-campo" id="appDialogConfirmacaoWrap" hidden><span>Confirme a senha</span><input id="appDialogConfirmacao" type="password" autocomplete="new-password"></label><p class="app-dialog-erro" id="appDialogErro" hidden></p><div class="lic-acoes"><button class="botao cancelar" type="button" id="appDialogCancelar">Cancelar</button><button class="botao" type="button" id="appDialogAceitar">Continuar</button></div></dialog>
+<dialog id="feedbackModal">
+  <h2>Enviar feedback</h2>
+  <p>Sua mensagem chega direto para a equipe da Arqevon Code, junto com a sua licença. Nenhum dado financeiro é enviado.</p>
+  <label class="fb-campo"><span>Assunto</span>
+    <select id="feedbackCategoria">
+      <option value="sugestao">Sugestão de melhoria</option>
+      <option value="problema">Relatar um problema</option>
+      <option value="duvida">Dúvida</option>
+      <option value="elogio">Elogio</option>
+    </select>
+  </label>
+  <label class="fb-campo"><span>Mensagem</span>
+    <textarea id="feedbackMensagem" maxlength="2000" placeholder="Conte o que aconteceu ou o que você gostaria de ver no aplicativo."></textarea>
+  </label>
+  <p class="fb-contador" id="feedbackContador">0 / 2000</p>
+  <p class="fb-erro" id="feedbackErro" hidden></p>
+  <div class="lic-acoes">
+    <button class="botao cancelar" type="button" id="feedbackCancelar">Cancelar</button>
+    <button class="botao" type="button" id="feedbackEnviar">Enviar</button>
+  </div>
+</dialog>
 <div id="appToast" role="status" aria-live="polite" hidden></div>
 <script type="module" src="./desktop.js"><\/script>`;
 

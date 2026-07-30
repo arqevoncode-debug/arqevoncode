@@ -2,10 +2,13 @@ const API_BASE = __LICENSE_API_BASE__;
 const PUBLIC_KEY_PEM = __LICENSE_PUBLIC_KEY__;
 const RECEIPT_KEY = "myfinance-license-receipt-v1";
 const DEVICE_KEY = "myfinance-device-id-v1";
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.6";
 const MAX_OFFLINE_MS = 30 * 86400000;
 const DAILY_CHECK_MS = 24 * 60 * 60 * 1000;
 const DENIAL_CODES = ["ACTIVATION_REVOKED", "LICENSE_INACTIVE", "LICENSE_EXPIRED", "TOKEN_INVALID"];
+// Mesmos limites da check constraint da tabela e do validador do servidor.
+const FEEDBACK_MIN = 10;
+const FEEDBACK_MAX = 2000;
 let validationTimer = null;
 let validationInFlight = null;
 
@@ -60,7 +63,7 @@ function unlock(payload) {
   document.documentElement.classList.remove("desktop-bloqueado");
   $("#licencaTela").hidden = true;
   $("#licencaResumo").textContent = `${payload.customerName || "Cliente"} · plano ${payload.plan || "individual"} · dispositivo autorizado.`;
-  installLicenseButton(); installPortableBackup();
+  installLicenseButton(); installFeedbackButton(); installPortableBackup();
   startValidationSchedule();
 }
 
@@ -147,6 +150,52 @@ function installLicenseButton() {
   button.onclick = () => $("#licencaModal").showModal();
   const resetButton = $("#btnResetar");
   if (resetButton?.parentElement === footer) footer.insertBefore(button, resetButton); else footer.appendChild(button);
+}
+
+function installFeedbackButton() {
+  if ($("#btnEnviarFeedback")) return;
+  const footer = $(".rodape-acoes") || $(".rodape-dados"); if (!footer) return;
+  const button = document.createElement("button"); button.id = "btnEnviarFeedback"; button.textContent = "Enviar feedback";
+  button.onclick = openFeedback;
+  const licenseButton = $("#btnGerenciarLicenca");
+  if (licenseButton?.parentElement === footer) footer.insertBefore(button, licenseButton); else footer.appendChild(button);
+}
+
+function openFeedback() {
+  const message = $("#feedbackMensagem");
+  message.value = ""; $("#feedbackCategoria").value = "sugestao";
+  $("#feedbackErro").hidden = true;
+  updateFeedbackCounter();
+  $("#feedbackModal").showModal();
+  setTimeout(() => message.focus(), 30);
+}
+
+function updateFeedbackCounter() {
+  $("#feedbackContador").textContent = `${$("#feedbackMensagem").value.length} / ${FEEDBACK_MAX}`;
+}
+
+async function sendFeedback() {
+  const button = $("#feedbackEnviar"), error = $("#feedbackErro");
+  const message = $("#feedbackMensagem").value.trim();
+  if (message.length < FEEDBACK_MIN) {
+    error.textContent = `Escreva pelo menos ${FEEDBACK_MIN} caracteres para enviarmos seu feedback.`;
+    error.hidden = false; $("#feedbackMensagem").focus(); return;
+  }
+  const token = localStorage.getItem(RECEIPT_KEY);
+  if (!token) { error.textContent = "Nenhuma licença ativa neste computador."; error.hidden = false; return; }
+
+  button.disabled = true; button.textContent = "Enviando…"; error.hidden = true;
+  try {
+    await post("/api/v1/feedback", { token, message, category: $("#feedbackCategoria").value, appVersion: APP_VERSION });
+    $("#feedbackModal").close();
+    showAppToast("Feedback enviado. Obrigado por ajudar a melhorar o aplicativo.");
+  } catch (err) {
+    // Sem fila offline: o envio exige conexão e a mensagem permanece na caixa para nova tentativa.
+    error.textContent = err.name === "AbortError"
+      ? "O servidor demorou para responder. Verifique sua internet e tente novamente."
+      : err.message;
+    error.hidden = false;
+  } finally { button.disabled = false; button.textContent = "Enviar"; }
 }
 
 let toastTimer = null;
@@ -277,6 +326,9 @@ function installPortableBackup() {
 $("#licencaForm").addEventListener("submit", activate);
 $("#licencaFechar").onclick = () => $("#licencaModal").close();
 $("#licencaDesativar").onclick = deactivate;
+$("#feedbackCancelar").onclick = () => $("#feedbackModal").close();
+$("#feedbackEnviar").onclick = sendFeedback;
+$("#feedbackMensagem").addEventListener("input", updateFeedbackCounter);
 
 const receipt = localStorage.getItem(RECEIPT_KEY);
 const payload = await verifyReceipt(receipt);

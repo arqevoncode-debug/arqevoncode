@@ -19,6 +19,20 @@ test("gera frontend autocontido com licenciamento configurado", async () => {
   assert.match(desktop, /BEGIN PUBLIC KEY/);
 });
 
+test("inclui o envio de feedback vinculado à licença", async () => {
+  const [html, desktop] = await Promise.all([
+    readFile(new URL("dist/index.html", root), "utf8"),
+    readFile(new URL("dist/desktop.js", root), "utf8"),
+  ]);
+
+  assert.match(html, /id="feedbackModal"/);
+  assert.match(html, /id="feedbackMensagem"/);
+  assert.match(html, /id="feedbackCategoria"/);
+  // O feedback viaja com o comprovante assinado: é ele que define a licença de origem.
+  assert.match(desktop, /"\/api\/v1\/feedback"/);
+  assert.match(desktop, /installFeedbackButton/);
+});
+
 test("mantém o CSP restrito à origem da API de licenças", async () => {
   const csp = JSON.parse(await readFile(new URL("src-tauri/tauri.conf.json", root), "utf8")).app.security.csp;
   const connectSrc = csp.split(";").map(d => d.trim()).find(d => d.startsWith("connect-src"));

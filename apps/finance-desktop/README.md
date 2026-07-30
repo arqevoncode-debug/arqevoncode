@@ -29,6 +29,9 @@ npm run build
 - Licenças suspensas, canceladas, expiradas ou com a ativação revogada são bloqueadas antes de os dados aparecerem na próxima abertura online.
 - Backups `.myfinance` usam PBKDF2-SHA256 e AES-256-GCM com uma senha escolhida pelo usuário.
 - O backup nunca inclui a licença.
+- **Enviar feedback** manda assunto e mensagem para `/api/v1/feedback` junto com o comprovante
+  assinado, que é o que vincula a mensagem à licença. Nenhum dado financeiro é enviado. O envio
+  exige conexão: sem rede a mensagem permanece na janela para nova tentativa, sem fila local.
 
 ## Assinatura
 

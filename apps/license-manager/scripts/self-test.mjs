@@ -26,4 +26,26 @@ assert.equal(payload.activationId, source.activation_id);
 assert.equal(payload.deviceId, source.device_id);
 assert.equal(payload.aud, "myfinance-desktop");
 assert.equal(payload.exp - payload.iat, 30 * 24 * 60 * 60);
-console.log("Self-test de licenças concluído com sucesso.");
+
+const { normalizeFeedback, MESSAGE_MIN, MESSAGE_MAX } = await import("../lib/feedback.js");
+
+// Categoria desconhecida cai no padrão em vez de violar a check constraint da tabela.
+const padrao = normalizeFeedback({ message: "x".repeat(MESSAGE_MIN), category: "inventada" });
+assert.equal(padrao.ok, true);
+assert.equal(padrao.value.category, "sugestao");
+
+const valido = normalizeFeedback({ message: "  O gráfico por categoria ajudaria muito.  ", category: "problema", appVersion: "1.0.6" });
+assert.equal(valido.ok, true);
+assert.equal(valido.value.category, "problema");
+assert.equal(valido.value.message, "O gráfico por categoria ajudaria muito.");
+assert.equal(valido.value.appVersion, "1.0.6");
+
+// O trim acontece antes da checagem de tamanho: espaços não valem como conteúdo.
+assert.equal(normalizeFeedback({ message: `${" ".repeat(40)}curto` }).ok, false);
+assert.equal(normalizeFeedback({ message: "x".repeat(MESSAGE_MIN - 1) }).ok, false);
+assert.equal(normalizeFeedback({ message: "x".repeat(MESSAGE_MAX + 1) }).ok, false);
+assert.equal(normalizeFeedback({}).ok, false);
+assert.equal(normalizeFeedback({ message: "x".repeat(MESSAGE_MAX) }).ok, true);
+assert.equal(normalizeFeedback({ message: "x".repeat(MESSAGE_MIN), appVersion: "" }).value.appVersion, null);
+
+console.log("Self-test de licenças e feedback concluído com sucesso.");

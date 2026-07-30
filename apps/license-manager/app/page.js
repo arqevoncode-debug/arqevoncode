@@ -19,10 +19,25 @@ const STATUS_GROUPS = [
   { id: "cancelled", title: "Licenças canceladas", description: "Registros mantidos apenas para consulta." },
 ];
 const INITIAL_FORM = { customerName: "", email: "", plan: "individual", maxDevices: 1, notes: "" };
+const FEEDBACK_LABELS = {
+  sugestao: "Sugestão",
+  problema: "Problema",
+  duvida: "Dúvida",
+  elogio: "Elogio",
+};
+const FEEDBACK_FILTERS = [
+  { id: "novo", label: "Novos" },
+  { id: "lido", label: "Lidos" },
+  { id: "arquivado", label: "Arquivados" },
+  { id: "all", label: "Todos" },
+];
 
 const fmtData = value => value
   ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value))
   : "Sem vencimento";
+const fmtDataHora = value => value
+  ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value))
+  : "—";
 
 function Brand({ compact = false }) {
   return <div className={`brand ${compact ? "compact" : ""}`}>
@@ -215,6 +230,79 @@ function LicenseCard({ item, onChanged }) {
   </article>;
 }
 
+function FeedbackCard({ item, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const cliente = item.licenses;
+
+  async function setStatus(status) {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(`/api/admin/feedbacks/${item.id}`, {
+        method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Não foi possível atualizar o feedback.");
+      await onChanged();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return <article className={`feedback-card ${item.status}`}>
+    <div className="feedback-head">
+      <div className="customer">
+        <span className="customer-avatar">{(cliente?.customer_name || "?").slice(0, 1).toUpperCase()}</span>
+        <div>
+          <h3>{cliente?.customer_name || "Cliente removido"}</h3>
+          <p>{cliente?.email || "Sem e-mail cadastrado"}</p>
+        </div>
+      </div>
+      <span className={`feedback-tag ${item.category}`}>{FEEDBACK_LABELS[item.category] || item.category}</span>
+    </div>
+    <p className="feedback-message">{item.message}</p>
+    <div className="feedback-meta">
+      <span>{fmtDataHora(item.created_at)}</span>
+      <span>versão {item.app_version || "—"}</span>
+      {cliente?.plan && <span>plano {PLAN_LABELS[cliente.plan] || cliente.plan}</span>}
+      {cliente?.status && cliente.status !== "active" && <span className="alerta">licença {STATUS_LABELS[cliente.status] || cliente.status}</span>}
+    </div>
+    {error && <p className="error card-error">{error}</p>}
+    <div className="feedback-actions">
+      {item.status !== "lido" && <button type="button" className="secondary" disabled={busy} onClick={() => setStatus("lido")}>Marcar como lido</button>}
+      {item.status !== "arquivado" && <button type="button" className="text" disabled={busy} onClick={() => setStatus("arquivado")}>Arquivar</button>}
+      {item.status !== "novo" && <button type="button" className="text" disabled={busy} onClick={() => setStatus("novo")}>Reabrir</button>}
+    </div>
+  </article>;
+}
+
+function Feedbacks({ items, loading, loadError, onChanged }) {
+  const [filter, setFilter] = useState("novo");
+
+  const counts = useMemo(() => ({
+    all: items.length,
+    novo: items.filter(item => item.status === "novo").length,
+    lido: items.filter(item => item.status === "lido").length,
+    arquivado: items.filter(item => item.status === "arquivado").length,
+  }), [items]);
+
+  const filtered = useMemo(() => filter === "all" ? items : items.filter(item => item.status === filter), [items, filter]);
+
+  return <section className="licenses-area">
+    <div className="list-head">
+      <div><p className="eyebrow">VOZ DO CLIENTE</p><h2>Feedbacks recebidos</h2></div>
+    </div>
+    <div className="status-tabs" role="tablist" aria-label="Agrupar feedbacks por situação">
+      {FEEDBACK_FILTERS.map(tab =>
+        <button type="button" role="tab" aria-selected={filter === tab.id} className={filter === tab.id ? "selected" : ""}
+          key={tab.id} onClick={() => setFilter(tab.id)}>{tab.label}<span>{counts[tab.id]}</span></button>)}
+    </div>
+    {loadError && <p className="error load-error">{loadError}</p>}
+    {loading ? <p className="loading">Carregando feedbacks…</p> : filtered.length
+      ? <div className="feedback-grid">{filtered.map(item => <FeedbackCard key={item.id} item={item} onChanged={onChanged} />)}</div>
+      : <p className="empty panel">Nenhum feedback neste grupo.</p>}
+  </section>;
+}
+
 function Dashboard({ onLogout }) {
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -222,6 +310,10 @@ function Dashboard({ onLogout }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [newKey, setNewKey] = useState(null);
   const [loadError, setLoadError] = useState("");
+  const [view, setView] = useState("licencas");
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [feedbacksLoading, setFeedbacksLoading] = useState(true);
+  const [feedbacksError, setFeedbacksError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -234,7 +326,20 @@ function Dashboard({ onLogout }) {
     finally { setLoading(false); }
   }, [onLogout]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadFeedbacks = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/feedbacks", { cache: "no-store" });
+      if (response.status === 401) return onLogout();
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível carregar os feedbacks.");
+      setFeedbacks(result.feedbacks || []); setFeedbacksError("");
+    } catch (err) { setFeedbacksError(err.message); }
+    finally { setFeedbacksLoading(false); }
+  }, [onLogout]);
+
+  useEffect(() => { load(); loadFeedbacks(); }, [load, loadFeedbacks]);
+
+  const novosFeedbacks = feedbacks.filter(item => item.status === "novo").length;
 
   const counts = useMemo(() => ({
     all: licenses.length,
@@ -272,8 +377,18 @@ function Dashboard({ onLogout }) {
         <div><small>TOTAL</small><b>{licenses.length}</b><span>licenças emitidas</span></div>
         <div className="good"><small>ATIVAS</small><b>{counts.active}</b><span>acessos liberados</span></div>
         <div><small>DISPOSITIVOS</small><b>{activeDevices}</b><span>em uso agora</span></div>
+        <div><small>FEEDBACKS</small><b>{novosFeedbacks}</b><span>aguardando leitura</span></div>
       </div>
     </section>
+    <nav className="view-tabs" role="tablist" aria-label="Seções do painel">
+      <button type="button" role="tab" aria-selected={view === "licencas"} className={view === "licencas" ? "selected" : ""}
+        onClick={() => setView("licencas")}>Licenças</button>
+      <button type="button" role="tab" aria-selected={view === "feedbacks"} className={view === "feedbacks" ? "selected" : ""}
+        onClick={() => setView("feedbacks")}>Feedbacks{novosFeedbacks > 0 && <span className="badge">{novosFeedbacks}</span>}</button>
+    </nav>
+    {view === "feedbacks"
+      ? <Feedbacks items={feedbacks} loading={feedbacksLoading} loadError={feedbacksError} onChanged={loadFeedbacks} />
+      : <>
     <NewLicense onCreated={result => { setNewKey(result); load(); }} />
     {newKey && <CreatedKeyModal result={newKey} onClose={() => setNewKey(null)} />}
     <section className="licenses-area">
@@ -293,6 +408,7 @@ function Dashboard({ onLogout }) {
         </section>)
         : <p className="empty panel">Nenhuma licença encontrada neste grupo.</p>}
     </section>
+      </>}
   </main>;
 }
 
