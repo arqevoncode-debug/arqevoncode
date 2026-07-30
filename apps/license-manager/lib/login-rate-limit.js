@@ -18,13 +18,21 @@ function clientHash(request) {
  */
 export async function loginGate(request) {
   const hash = clientHash(request);
-  const { data, error } = await supabaseAdmin().rpc("admin_login_gate", {
-    p_client_hash: hash,
-    p_max_attempts: MAX_ATTEMPTS,
-    p_window_seconds: WINDOW_SECONDS,
-  });
-  if (error) return { hash, unavailable: true };
-  return { hash, blocked: !!data?.blocked, retryAfter: Number(data?.retry_after_seconds) || WINDOW_SECONDS };
+  try {
+    const { data, error } = await supabaseAdmin().rpc("admin_login_gate", {
+      p_client_hash: hash,
+      p_max_attempts: MAX_ATTEMPTS,
+      p_window_seconds: WINDOW_SECONDS,
+    });
+    if (error) throw new Error(error.message);
+    return { hash, blocked: !!data?.blocked, retryAfter: Number(data?.retry_after_seconds) || WINDOW_SECONDS };
+  } catch (erro) {
+    // Falha fechado deixa o painel inacessível: registre a causa, senão o sintoma
+    // (503 no login) não distingue banco fora do ar, Supabase sem configuração
+    // e migração 202607290003 não aplicada.
+    console.error("Freio de login indisponível:", erro.message);
+    return { hash, unavailable: true };
+  }
 }
 
 export async function recordLoginAttempt(hash, success) {
