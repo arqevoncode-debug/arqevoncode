@@ -46,7 +46,11 @@ function Login({ onSuccess }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      if (!response.ok) throw new Error("E-mail ou senha incorretos.");
+      if (!response.ok) {
+        // O servidor distingue credencial inválida de bloqueio por tentativas; preserve a razão real.
+        const corpo = await response.json().catch(() => ({}));
+        throw new Error(corpo.error || "E-mail ou senha incorretos.");
+      }
       onSuccess();
     } catch (err) {
       setError(err.message || "Não foi possível entrar.");

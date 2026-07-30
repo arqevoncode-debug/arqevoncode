@@ -596,13 +596,15 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
 <dialog id="modalSeg">
   <h2>Segurança</h2>
   <p class="hint">Defina uma senha para proteger seus dados. Ela é usada tanto na criptografia quanto no bloqueio de tela.</p>
+  <p class="hint" id="sgConvite" hidden><b>Recomendado:</b> ative a criptografia agora. Sem ela, seus lançamentos ficam
+    legíveis em texto puro neste computador. Você pode seguir sem senha e ativar depois no ícone de segurança.</p>
 
   <div class="sec-bloco" id="blocoAtual" hidden>
     <label for="sgAtual">Senha atual</label>
     <input id="sgAtual" type="password" autocomplete="current-password" placeholder="obrigatória para alterar">
   </div>
   <div class="sec-bloco">
-    <label for="sgNova"><span id="lblNova">Nova senha</span> (mín. 4 caracteres)</label>
+    <label for="sgNova"><span id="lblNova">Nova senha</span> (mín. 6 caracteres)</label>
     <input id="sgNova" type="password" autocomplete="new-password" placeholder="••••••">
     <input id="sgConf" type="password" autocomplete="new-password" placeholder="confirme a senha" style="margin-top:6px">
   </div>
@@ -1471,6 +1473,8 @@ function renderObjetivos() {
 }
 
 /* ================= Segurança: senha, criptografia e bloqueio ================= */
+// Mesmo mínimo exigido no backup portátil, para não haver senha forte no arquivo e fraca na chave AES local.
+const SENHA_MINIMA = 6;
 let chaveSessao = null; // CryptoKey derivada da senha, mantida em memória
 let bloqueado = false;
 let timerIdle = null;
@@ -1478,10 +1482,12 @@ let timerIdle = null;
 let seg = (() => {
   try {
     const s = JSON.parse(localStorage.getItem(CHAVE + "-seg"));
+    // "convite" registra que a criptografia já foi oferecida; instalações antigas
+    // não têm o campo e recebem o convite uma única vez na próxima abertura.
     if (s && typeof s === "object") return { salt: s.salt || null, verif: s.verif || null,
-      cripto: !!s.cripto, bloqueio: !!s.bloqueio, minutos: s.minutos || 5 };
+      cripto: !!s.cripto, bloqueio: !!s.bloqueio, minutos: s.minutos || 5, convite: !!s.convite };
   } catch (e) {}
-  return { salt: null, verif: null, cripto: false, bloqueio: false, minutos: 5 };
+  return { salt: null, verif: null, cripto: false, bloqueio: false, minutos: 5, convite: false };
 })();
 function salvarSeg() { localStorage.setItem(CHAVE + "-seg", JSON.stringify(seg)); }
 
@@ -1576,18 +1582,42 @@ function atualizarBotoesSeg() {
   $("#btnBloqueio").classList.toggle("ativo", seg.bloqueio);
   $("#bloqueioEstado").textContent = seg.bloqueio ? `${seg.minutos} min` : "Desativado";
 }
-function abrirModalSeg() {
+function abrirModalSeg(convidando = false) {
   $("#blocoAtual").hidden = !seg.salt;
   $("#lblNova").textContent = seg.salt ? "Nova senha (deixe em branco para manter)" : "Criar senha";
   $("#sgAtual").value = ""; $("#sgNova").value = ""; $("#sgConf").value = "";
-  $("#sgCripto").checked = seg.cripto;
+  // No convite a criptografia já vem marcada: proteger passa a ser o caminho padrão, recusar é a exceção.
+  $("#sgCripto").checked = convidando ? true : seg.cripto;
   $("#sgBloqueio").checked = seg.bloqueio;
   $("#sgMinutos").value = String(seg.minutos);
+  $("#sgConvite").hidden = !convidando;
   $("#sgErro").hidden = true;
   $("#modalSeg").showModal();
+  if (convidando) $("#sgNova").focus();
 }
-$("#btnCripto").onclick = abrirModalSeg;
-$("#btnBloqueio").onclick = abrirModalSeg;
+$("#btnCripto").onclick = () => abrirModalSeg();
+$("#btnBloqueio").onclick = () => abrirModalSeg();
+
+// Convite único para ativar a criptografia. Registrado antes de abrir para que uma recusa
+// (ou fechar a janela) não faça o convite reaparecer nas próximas aberturas.
+function convidarCriptografia() {
+  if (seg.convite || seg.cripto || blobPendente) return;
+  seg.convite = true;
+  salvarSeg();
+  abrirModalSeg(true);
+}
+// No desktop o convite espera a liberação da tela de licença; no navegador abre direto.
+function agendarConviteCriptografia() {
+  if (seg.convite || seg.cripto || blobPendente) return;
+  const raiz = document.documentElement;
+  if (!raiz.classList.contains("desktop-bloqueado")) { convidarCriptografia(); return; }
+  const obs = new MutationObserver(() => {
+    if (raiz.classList.contains("desktop-bloqueado")) return;
+    obs.disconnect();
+    convidarCriptografia();
+  });
+  obs.observe(raiz, { attributes: true, attributeFilter: ["class"] });
+}
 $("#sgCancelar").onclick = () => $("#modalSeg").close();
 
 function erroSeg(msg) { const el = $("#sgErro"); el.textContent = msg; el.hidden = false; }
@@ -1611,7 +1641,7 @@ $("#sgSalvar").onclick = async () => {
     if (!nova && (querCripto || querBloqueio))
       return erroSeg("Defina uma senha para ativar a proteção.");
     if (nova) {
-      if (nova.length < 4) return erroSeg("A senha deve ter pelo menos 4 caracteres.");
+      if (nova.length < SENHA_MINIMA) return erroSeg(`A senha deve ter pelo menos ${SENHA_MINIMA} caracteres.`);
       if (nova !== conf) return erroSeg("As senhas não conferem.");
       const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
       const chaveNova = await derivarChave(nova, salt);
@@ -1847,6 +1877,8 @@ reiniciarIdle();
 if (blobPendente) {
   bloquearTela();
   $("#tbMsg").textContent = "Seus dados estão criptografados. Digite a senha para abrir.";
+} else {
+  agendarConviteCriptografia();
 }
 </script>
 

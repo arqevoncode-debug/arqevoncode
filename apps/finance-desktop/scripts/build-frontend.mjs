@@ -11,6 +11,22 @@ if (!publicKey) {
   catch { /* O build continua, mas a ativação avisará que a chave pública não está configurada. */ }
 }
 
+// O CSP do Tauri é declarativo e não conhece o LICENSE_API_BASE do build. Sem esta checagem
+// um build apontado para outra origem compilaria normalmente e só falharia na ativação, em runtime.
+await conferirCspDaApi(apiBase);
+async function conferirCspDaApi(base) {
+  const conf = resolve(root, "src-tauri/tauri.conf.json");
+  const csp = JSON.parse(await readFile(conf, "utf8")).app?.security?.csp || "";
+  const connectSrc = csp.split(";").map(d => d.trim()).find(d => d.startsWith("connect-src"));
+  if (!connectSrc) throw new Error(`connect-src ausente no CSP de ${conf}.`);
+  const origem = new URL(base).origin;
+  const liberado = connectSrc.split(/\s+/).slice(1).some(fonte => fonte === origem
+    || (fonte.includes("*") && new RegExp(`^${fonte.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*")}$`).test(origem)));
+  if (!liberado) throw new Error(
+    `LICENSE_API_BASE (${origem}) não é permitido pelo connect-src do CSP.\n`
+    + `Inclua a origem em app.security.csp de ${conf} antes de gerar o build.`);
+}
+
 await mkdir(output, { recursive: true });
 let html = await readFile(sourceHtml, "utf8");
 const desktopMarkup = `
