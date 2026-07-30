@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="520" viewBox="0 0 1900 520" role="img" aria-labelledby="title desc">
+  <title id="title">Arqevon Code</title>
+  <desc id="desc">Sistemas construídos para evoluir</desc>
+  <defs>
+    <linearGradient id="brand" x1="85" y1="390" x2="430" y2="95" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5B6FFF"/><stop offset=".52" stop-color="#31BDF4"/><stop offset="1" stop-color="#3FE7C0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1900" height="520" rx="68" fill="#07111F"/>
+  <g fill="none" stroke="url(#brand)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M92 382 254 100l112 194" stroke-width="66"/>
+    <path d="M106 385h142l83-142" stroke-width="66"/>
+    <path d="M372 325h68l34 60H335" stroke-width="54"/>
+    <path d="m315 370 74-128" stroke-width="24"/>
+  </g>
+  <circle cx="396" cy="230" r="19" fill="#F5FFFC" stroke="#3FE7C0" stroke-width="11"/>
+  <text x="555" y="288" fill="#F5F7FB" font-family="Inter,Arial,sans-serif" font-size="142" font-weight="830" letter-spacing="-7">ARQEVON</text>
+  <text x="1375" y="288" fill="#3FE7C0" font-family="Inter,Arial,sans-serif" font-size="142" font-weight="800" letter-spacing="-6">CODE</text>
+  <text x="566" y="365" fill="#91A1B9" font-family="Inter,Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="8">SISTEMAS CONSTRUÍDOS PARA EVOLUIR</text>
+</svg>

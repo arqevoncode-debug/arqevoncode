@@ -1,0 +1,13 @@
+node_modules
+.next
+.vercel
+.env
+.env.local
+.license-*.pem
+.admin-session-secret
+.admin-password
+.supabase-db-password
+.DS_Store
+npm-debug.log*
+.env*
+!.env.example

@@ -1,0 +1,45 @@
+name: Compilar Arqevon Finance
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: arqevon-finance-macos
+            paths: |
+              apps/finance-desktop/src-tauri/target/release/bundle/dmg/*.dmg
+              apps/finance-desktop/src-tauri/target/release/bundle/macos/*.app
+          - os: windows-latest
+            artifact: arqevon-finance-windows
+            paths: |
+              apps/finance-desktop/src-tauri/target/release/bundle/msi/*.msi
+              apps/finance-desktop/src-tauri/target/release/bundle/nsis/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/finance-desktop/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Instalar dependências
+        working-directory: apps/finance-desktop
+        run: npm ci
+      - name: Compilar aplicativo
+        working-directory: apps/finance-desktop
+        env:
+          LICENSE_API_BASE: https://myfinance-license-manager.vercel.app
+        run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error

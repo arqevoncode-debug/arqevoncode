@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="halo" cx="78%" cy="18%" r="72%">
+      <stop stop-color="#425ff5" stop-opacity=".92"/>
+      <stop offset=".62" stop-color="#14284a" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#07111f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mint" x1="112" y1="238" x2="402" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20cda6"/>
+      <stop offset="1" stop-color="#62f2d1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#07111f"/>
+  <rect width="512" height="512" rx="116" fill="url(#halo)"/>
+  <rect x="88" y="88" width="336" height="336" rx="88" fill="none" stroke="#6b84ff" stroke-opacity=".32" stroke-width="8"/>
+  <path d="M142 363V286M226 363V232M310 363V176" fill="none" stroke="#f5f7fb" stroke-width="34" stroke-linecap="round"/>
+  <path d="m126 223 93-77 70 40L398 78" fill="none" stroke="url(#mint)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M342 78h56v56" fill="none" stroke="#62f2d1" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

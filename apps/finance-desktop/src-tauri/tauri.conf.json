@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Arqevon Finance",
+  "version": "1.0.5",
+  "identifier": "com.myfinance.desktop",
+  "build": {
+    "beforeDevCommand": "npm run build:web",
+    "beforeBuildCommand": "npm run build:web",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Arqevon Finance",
+        "width": 1180,
+        "height": 780,
+        "minWidth": 820,
+        "minHeight": 620,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https: http://localhost:*; img-src 'self' asset: data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Finance",
+    "shortDescription": "Gestão financeira pessoal privada da Arqevon Code",
+    "longDescription": "Controle receitas, despesas, parcelas e objetivos com clareza e dados armazenados localmente.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

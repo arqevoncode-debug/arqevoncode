@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-label="Símbolo Arqevon Code">
+  <defs><linearGradient id="g" x1="250" y1="800" x2="830" y2="230"><stop stop-color="#5B6FFF"/><stop offset=".5" stop-color="#31BDF4"/><stop offset="1" stop-color="#3FE7C0"/></linearGradient></defs>
+  <rect width="1080" height="1080" rx="180" fill="#07111F"/>
+  <g fill="none" stroke="url(#g)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M255 760 520 298l183 316" stroke-width="108"/>
+    <path d="M278 766h232l137-235" stroke-width="108"/>
+    <path d="M709 666h112l55 98H648" stroke-width="88"/>
+    <path d="m615 739 122-210" stroke-width="39"/>
+  </g>
+  <circle cx="749" cy="510" r="31" fill="#F5FFFC" stroke="#3FE7C0" stroke-width="17"/>
+</svg>
