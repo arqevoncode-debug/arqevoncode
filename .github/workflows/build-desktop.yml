@@ -62,6 +62,34 @@ jobs:
         working-directory: apps/finance-desktop
         run: npm ci
 
+      # Um secret ausente chega como variável definida e vazia, e o bundler do Tauri
+      # decide assinar pela presença da variável, não pelo conteúdo: passá-la vazia
+      # faz o `security import` abortar o build inteiro. Por isso as credenciais só
+      # entram no ambiente quando existem de fato.
+      - name: Configurar assinatura do macOS
+        if: runner.os == 'macOS' && steps.cred.outputs.assinar == 'true'
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          {
+            echo "APPLE_CERTIFICATE=$APPLE_CERTIFICATE"
+            echo "APPLE_CERTIFICATE_PASSWORD=$APPLE_CERTIFICATE_PASSWORD"
+            echo "APPLE_SIGNING_IDENTITY=$APPLE_SIGNING_IDENTITY"
+          } >> "$GITHUB_ENV"
+          if [ "${{ steps.cred.outputs.notarizar }}" = true ]; then
+            {
+              echo "APPLE_ID=$APPLE_ID"
+              echo "APPLE_PASSWORD=$APPLE_PASSWORD"
+              echo "APPLE_TEAM_ID=$APPLE_TEAM_ID"
+            } >> "$GITHUB_ENV"
+          fi
+
       - name: Configurar assinatura do Windows
         if: runner.os == 'Windows' && steps.cred.outputs.assinar == 'true'
         shell: pwsh
@@ -82,14 +110,8 @@ jobs:
         working-directory: apps/finance-desktop
         env:
           LICENSE_API_BASE: https://myfinance-license-manager.vercel.app
-          # O Tauri assina o app e o DMG quando estas variáveis existem, e notariza
-          # automaticamente quando as credenciais da Apple também estão presentes.
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        # As credenciais da Apple chegam pelo GITHUB_ENV do passo anterior, e só existem
+        # quando foram realmente cadastradas. O Tauri assina e notariza a partir delas.
         run: npm run build
 
       - name: Conferir assinatura do macOS
