@@ -39,9 +39,12 @@ yarn-error.log*
 .cache/
 tmp/
 
-# Artefatos locais de build. Os dois instaladores publicados na landing page
-# são intencionalmente versionados como baseline da versão 1.0.5.
+# Artefatos locais de build. Somente os instaladores efetivamente publicados na
+# landing page são versionados, um por linha, para que nenhum binário entre no
+# repositório por acidente.
 *.exe
 *.dmg
 !apps/site/public/downloads/Arqevon-Finance-1.0.5-Windows-x64-Setup-v3.exe
 !apps/site/public/downloads/Arqevon-Finance-1.0.5-macOS-Apple-Silicon.dmg
+!apps/site/public/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe
+!apps/site/public/downloads/Arqevon-Finance-1.0.6-macOS-Apple-Silicon.dmg

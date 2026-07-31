@@ -1,6 +1,6 @@
-# Baseline de produção — Arqevon Finance 1.0.5
+# Baseline de produção — Arqevon Finance 1.0.6
 
-Este documento registra a versão anunciada antes do início das refatorações.
+Este documento registra a versão anunciada na landing page.
 
 ## Serviços
 
@@ -10,10 +10,27 @@ Este documento registra a versão anunciada antes do início das refatorações.
 
 ## Artefatos publicados
 
+Gerados pela tag `v1.0.6`.
+
 | Plataforma | Arquivo | SHA-256 |
 | --- | --- | --- |
-| Windows x64 | `apps/site/public/downloads/Arqevon-Finance-1.0.5-Windows-x64-Setup-v3.exe` | `c51bbc9d8b0b96bef3d15a2f06b2002178db92aab70968e28d0cceb214d8ce48` |
-| macOS Apple Silicon | `apps/site/public/downloads/Arqevon-Finance-1.0.5-macOS-Apple-Silicon.dmg` | `b44b34502cff2a7117032a250c3ae3ad56b80733045831411c8138f937a160ff` |
+| Windows x64 | `apps/site/public/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe` | `053b83ab64a7befc9385a81c6e815a8940b4c93c2e27301c1b929204ddd0d079` |
+| macOS Apple Silicon | `apps/site/public/downloads/Arqevon-Finance-1.0.6-macOS-Apple-Silicon.dmg` | `05d2a99f95aab6f1f673c895e47d9ef652a8efba8f153b1a48ceb7482a3ec16a` |
+
+> **Estes artefatos não estão assinados.** No macOS o Gatekeeper os recusa com a mensagem de
+> aplicativo danificado; no Windows o SmartScreen alerta antes de permitir a instalação. Enquanto os
+> certificados descritos em `ASSINATURA_INSTALADORES.md` não existirem, o download do macOS não abre
+> na máquina do cliente. O nome dos artefatos no CI sai com o sufixo `-NAO-ASSINADO-NAO-PUBLICAR`.
+
+### Versão anterior
+
+A 1.0.5 continua hospedada para não quebrar links já enviados, e é o ponto de retorno da tag
+`production-v1.0.5`.
+
+| Plataforma | Arquivo | SHA-256 |
+| --- | --- | --- |
+| Windows x64 | `Arqevon-Finance-1.0.5-Windows-x64-Setup-v3.exe` | `c51bbc9d8b0b96bef3d15a2f06b2002178db92aab70968e28d0cceb214d8ce48` |
+| macOS Apple Silicon | `Arqevon-Finance-1.0.5-macOS-Apple-Silicon.dmg` | `b44b34502cff2a7117032a250c3ae3ad56b80733045831411c8138f937a160ff` |
 
 ## Fluxos que não podem regredir
 
@@ -26,6 +43,7 @@ Este documento registra a versão anunciada antes do início das refatorações.
 - Tema claro e escuro.
 - Exportar e importar backup atual e backups legados protegidos por senha.
 - Resetar todos os dados mediante confirmação.
+- Enviar feedback vinculado à licença, com o comprovante assinado definindo a origem.
 
 ### Licenciamento
 

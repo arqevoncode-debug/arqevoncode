@@ -1,9 +1,9 @@
 import Image from "next/image";
 
 const macDownloadPath =
-  "/downloads/Arqevon-Finance-1.0.5-macOS-Apple-Silicon.dmg";
+  "/downloads/Arqevon-Finance-1.0.6-macOS-Apple-Silicon.dmg";
 const windowsDownloadPath =
-  "/downloads/Arqevon-Finance-1.0.5-Windows-x64-Setup-v3.exe";
+  "/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe";
 
 const financeFeatures = [
   "Receitas, despesas e parcelas em um só lugar",
@@ -159,7 +159,7 @@ export default function Home() {
                 <span><small>BAIXAR PARA</small>Windows 10/11 · 64 bits</span>
                 <b aria-hidden="true">↓</b>
               </a>
-              <span className="version">Versão 1.0.5 · requer licença</span>
+              <span className="version">Versão 1.0.6 · requer licença</span>
             </div>
           </div>
 
