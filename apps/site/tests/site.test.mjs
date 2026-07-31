@@ -16,8 +16,18 @@ test("mantém marca, projeto e links de download publicados", async () => {
   assert.match(page, /Arqevon Code/);
   assert.match(page, /Arqevon Finance/);
   assert.match(page, /Arqevon-Finance-1\.0\.6-Windows-x64-Setup\.exe/);
-  assert.match(page, /Arqevon-Finance-1\.0\.6-macOS-Apple-Silicon\.dmg/);
   assert.match(page, /Versão 1\.0\.6/);
+});
+
+// Enquanto não houver instalador assinado, oferecer o .dmg leva o cliente a um
+// aplicativo que o macOS recusa como danificado.
+test("não oferece download de macOS sem instalador assinado", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+
+  assert.match(page, /Em breve/);
+  assert.match(page, /aria-disabled="true"/);
+  const linkDoDmg = /href=\{?["']?[^"'}]*macOS-Apple-Silicon\.dmg/;
+  assert.doesNotMatch(page, linkDoDmg, "o .dmg não deve estar linkado na página");
 });
 
 test("preserva os instaladores exatos do baseline 1.0.6", async () => {

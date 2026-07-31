@@ -132,6 +132,20 @@ main { overflow: hidden; }
 .button.download b { margin-left: auto; color: var(--mint); }
 .platform-mark { width: 22px; height: 22px; color: #fff!important; font-size: 15px; }
 .windows-mark { font-size: 20px; line-height: 1; }
+/* Plataforma ainda sem instalador assinado: mantém o mesmo formato dos demais botões,
+   mas sem aparência clicável nem reação ao ponteiro. */
+.button.download.indisponivel {
+  border: 1px dashed rgba(255, 255, 255, .22);
+  background: rgba(255, 255, 255, .04);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+.button.download.indisponivel > span:not(.platform-mark) { color: rgba(255, 255, 255, .58); }
+.button.download.indisponivel .platform-mark { color: rgba(255, 255, 255, .5)!important; }
+.button.download.indisponivel small { color: rgba(255, 255, 255, .38); }
+.button.download.indisponivel b { color: rgba(255, 255, 255, .42); font-size: 12px; }
+.button.download.indisponivel:hover { transform: none; }
+
 .download-actions .version { flex-basis: 100%; }
 .version { color: var(--muted); font: 620 9px/1.3 var(--font-geist-mono), monospace; }
 

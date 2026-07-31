@@ -1,9 +1,10 @@
 import Image from "next/image";
 
-const macDownloadPath =
-  "/downloads/Arqevon-Finance-1.0.6-macOS-Apple-Silicon.dmg";
 const windowsDownloadPath =
   "/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe";
+// O .dmg da 1.0.6 continua hospedado em /downloads para links já enviados, mas não é
+// oferecido na página: sem certificado Developer ID o macOS o recusa como danificado.
+// Ao publicar um instalador assinado, restaure o botão e aponte para o arquivo novo.
 
 const financeFeatures = [
   "Receitas, despesas e parcelas em um só lugar",
@@ -149,17 +150,19 @@ export default function Home() {
               ))}
             </ul>
             <div className="download-actions">
-              <a className="button primary download" href={macDownloadPath} download>
-                <span className="platform-mark" aria-hidden="true">●</span>
-                <span><small>BAIXAR PARA</small>macOS Apple Silicon</span>
-                <b aria-hidden="true">↓</b>
-              </a>
-              <a className="button secondary download" href={windowsDownloadPath} download>
+              <a className="button primary download" href={windowsDownloadPath} download>
                 <span className="platform-mark windows-mark" aria-hidden="true">⊞</span>
                 <span><small>BAIXAR PARA</small>Windows 10/11 · 64 bits</span>
                 <b aria-hidden="true">↓</b>
               </a>
-              <span className="version">Versão 1.0.6 · requer licença</span>
+              {/* Sem certificado Developer ID o macOS recusa o download como danificado.
+                  O botão fica inerte até haver instalador assinado. */}
+              <span className="button download indisponivel" role="link" aria-disabled="true">
+                <span className="platform-mark" aria-hidden="true">●</span>
+                <span><small>MACOS APPLE SILICON</small>Em breve</span>
+                <b aria-hidden="true">⏳</b>
+              </span>
+              <span className="version">Versão 1.0.6 · requer licença · versão para macOS em preparação</span>
             </div>
           </div>
 
