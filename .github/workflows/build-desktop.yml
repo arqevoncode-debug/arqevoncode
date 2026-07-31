@@ -30,16 +30,119 @@ jobs:
           cache: npm
           cache-dependency-path: apps/finance-desktop/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
+
+      # Um build sem credenciais continua permitido para teste interno, mas precisa sair
+      # rotulado: foi assim que um instalador sem assinatura chegou aos clientes e o
+      # macOS o classificou como "damaged".
+      - name: Detectar credenciais de assinatura
+        id: cred
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+        run: |
+          assinar=false; notarizar=false
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            [ -n "$APPLE_CERTIFICATE" ] && assinar=true
+            [ -n "$APPLE_ID" ] && notarizar=true
+          else
+            [ -n "$WINDOWS_CERTIFICATE" ] && assinar=true
+          fi
+          echo "assinar=$assinar" >> "$GITHUB_OUTPUT"
+          echo "notarizar=$notarizar" >> "$GITHUB_OUTPUT"
+          if [ "$assinar" = true ]; then
+            echo "sufixo=" >> "$GITHUB_OUTPUT"
+          else
+            echo "sufixo=-NAO-ASSINADO-NAO-PUBLICAR" >> "$GITHUB_OUTPUT"
+            echo "::warning::Sem credenciais de assinatura: o artefato serve apenas para teste interno e não deve ser publicado."
+          fi
+
       - name: Instalar dependências
         working-directory: apps/finance-desktop
         run: npm ci
+
+      - name: Configurar assinatura do Windows
+        if: runner.os == 'Windows' && steps.cred.outputs.assinar == 'true'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_TIMESTAMP_URL: ${{ vars.WINDOWS_TIMESTAMP_URL }}
+        run: |
+          $pfx = Join-Path $env:RUNNER_TEMP 'assinatura.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $senha = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $senha
+          Remove-Item $pfx -Force
+          $env:WINDOWS_CERTIFICATE_THUMBPRINT = $cert.Thumbprint
+          node apps/finance-desktop/scripts/set-windows-signing.mjs
+
       - name: Compilar aplicativo
         working-directory: apps/finance-desktop
         env:
           LICENSE_API_BASE: https://myfinance-license-manager.vercel.app
+          # O Tauri assina o app e o DMG quando estas variáveis existem, e notariza
+          # automaticamente quando as credenciais da Apple também estão presentes.
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run build
+
+      - name: Conferir assinatura do macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          app=$(ls -d apps/finance-desktop/src-tauri/target/release/bundle/macos/*.app | head -1)
+          dmg=$(ls apps/finance-desktop/src-tauri/target/release/bundle/dmg/*.dmg | head -1)
+          echo "Aplicativo: $app"; echo "Imagem: $dmg"
+          codesign -dvv "$app" 2>&1 | sed 's/^/  /' || true
+
+          if [ "${{ steps.cred.outputs.assinar }}" != true ]; then
+            echo "::warning::Build sem Developer ID. Ao baixar, o macOS mostrará que o aplicativo está danificado."
+            exit 0
+          fi
+
+          # --deep --strict pega recurso fora do lacre, que foi o defeito da 1.0.5.
+          codesign --verify --deep --strict --verbose=2 "$app"
+          # Reprova assinatura ad-hoc: ela satisfaz o kernel, mas não o Gatekeeper.
+          codesign -dvv "$app" 2>&1 | grep -q "Authority=Developer ID Application" \
+            || { echo "::error::O aplicativo não está assinado com um Developer ID."; exit 1; }
+
+          if [ "${{ steps.cred.outputs.notarizar }}" = true ]; then
+            xcrun stapler validate "$dmg" \
+              || { echo "::error::O DMG não tem o comprovante de notarização anexado."; exit 1; }
+            # É esta checagem que reproduz o que o Mac do cliente faz ao abrir o download.
+            spctl -a -vvv -t install "$dmg" \
+              || { echo "::error::O Gatekeeper recusou o DMG."; exit 1; }
+            echo "Assinado com Developer ID e notarizado."
+          else
+            echo "::warning::Assinado, mas sem notarização: o macOS ainda exibirá aviso no primeiro uso."
+          fi
+
+      - name: Conferir assinatura do Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $alvo = Get-ChildItem apps/finance-desktop/src-tauri/target/release/bundle/nsis/*.exe,
+                                apps/finance-desktop/src-tauri/target/release/bundle/msi/*.msi -ErrorAction SilentlyContinue
+          foreach ($arquivo in $alvo) {
+            $sig = Get-AuthenticodeSignature $arquivo.FullName
+            Write-Host "$($arquivo.Name): $($sig.Status)"
+            if ('${{ steps.cred.outputs.assinar }}' -eq 'true' -and $sig.Status -ne 'Valid') {
+              Write-Host "::error::$($arquivo.Name) não tem assinatura Authenticode válida ($($sig.Status))."
+              exit 1
+            }
+          }
+          if ('${{ steps.cred.outputs.assinar }}' -ne 'true') {
+            Write-Host "::warning::Instalador sem assinatura: o SmartScreen alertará o cliente."
+          }
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
+          name: ${{ matrix.artifact }}${{ steps.cred.outputs.sufixo }}
           path: ${{ matrix.paths }}
           if-no-files-found: error

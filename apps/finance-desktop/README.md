@@ -30,4 +30,14 @@ npm run build
 - Backups `.myfinance` usam PBKDF2-SHA256 e AES-256-GCM com uma senha escolhida pelo usuário.
 - O backup nunca inclui a licença.
 
-Builds de produção para macOS devem ser assinados e notarizados; builds Windows devem ser assinados para reduzir alertas do SmartScreen.
+## Assinatura
+
+Builds de produção para macOS devem ser assinados com Developer ID e notarizados; builds Windows
+devem ser assinados para não disparar o SmartScreen. Sem isso o macOS informa ao cliente que o
+aplicativo "está danificado".
+
+O workflow `build-desktop.yml` faz as duas coisas quando os segredos estão cadastrados e reprova o
+build se a assinatura não sair válida. Sem segredos o artefato é publicado com o sufixo
+`-NAO-ASSINADO-NAO-PUBLICAR`, para não ser confundido com uma versão distribuível.
+
+Consulte `docs/ASSINATURA_INSTALADORES.md` para o que precisa ser contratado e cadastrado.
