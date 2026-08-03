@@ -1,16 +1,8 @@
-import crypto from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { clientHash } from "@/lib/client-hash";
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_SECONDS = 15 * 60;
-
-// O IP nunca é gravado em texto puro: o segredo de sessão atua como pepper do hash.
-function clientHash(request) {
-  const ip = (request.headers.get("x-forwarded-for") || "").split(",")[0].trim()
-    || request.headers.get("x-real-ip")
-    || "desconhecido";
-  return crypto.createHmac("sha256", process.env.ADMIN_SESSION_SECRET || "").update(ip).digest("hex");
-}
 
 /**
  * Estado do freio para este cliente. Erros de banco falham fechado: sem o freio

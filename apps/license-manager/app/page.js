@@ -31,6 +31,14 @@ const FEEDBACK_FILTERS = [
   { id: "arquivado", label: "Arquivados" },
   { id: "all", label: "Todos" },
 ];
+const REQUEST_LABELS = { novo: "Aguardando", emitida: "Emitida", recusada: "Recusada" };
+const REQUEST_FILTERS = [
+  { id: "novo", label: "Aguardando" },
+  { id: "emitida", label: "Emitidas" },
+  { id: "recusada", label: "Recusadas" },
+  { id: "all", label: "Todos" },
+];
+const PLATFORM_LABELS = { windows: "Windows", macos: "macOS" };
 
 const fmtData = value => value
   ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "medium" }).format(new Date(value))
@@ -88,10 +96,17 @@ function Login({ onSuccess }) {
   </main>;
 }
 
-function NewLicense({ onCreated }) {
+function NewLicense({ onCreated, prefill }) {
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Preenchido a partir de um pedido da landing page: evita redigitar o e-mail
+  // do cliente e errar justamente o campo por onde a licença será enviada.
+  useEffect(() => {
+    if (!prefill) return;
+    setForm(atual => ({ ...atual, customerName: prefill.name || atual.customerName, email: prefill.email || "" }));
+  }, [prefill]);
 
   async function submit(event) {
     event.preventDefault();
@@ -303,6 +318,104 @@ function Feedbacks({ items, loading, loadError, onChanged }) {
   </section>;
 }
 
+function RequestCard({ item, onChanged, onEmitir }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copiado, setCopiado] = useState(false);
+
+  async function request(url, options) {
+    setBusy(true); setError("");
+    try {
+      const response = await fetch(url, options);
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Não foi possível concluir a ação.");
+      await onChanged();
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  const setStatus = status => request(`/api/admin/license-requests/${item.id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }),
+  });
+
+  async function copiarEmail() {
+    await navigator.clipboard.writeText(item.email);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 1800);
+  }
+
+  async function excluir() {
+    if (!confirm(`Excluir o pedido de ${item.email}? Esta ação não pode ser desfeita.`)) return;
+    await request(`/api/admin/license-requests/${item.id}`, { method: "DELETE" });
+  }
+
+  return <article className={`request-card ${item.status}`}>
+    <div className="request-head">
+      <div className="customer">
+        <span className="customer-avatar">{item.email.slice(0, 1).toUpperCase()}</span>
+        <div>
+          <h3>{item.email}</h3>
+          <p>{item.name || "Nome não informado"}</p>
+        </div>
+      </div>
+      <span className={`request-tag ${item.status}`}>{REQUEST_LABELS[item.status] || item.status}</span>
+    </div>
+    <div className="request-meta">
+      <span>{fmtDataHora(item.created_at)}</span>
+      <span>{PLATFORM_LABELS[item.platform] || item.platform}</span>
+    </div>
+    {error && <p className="error card-error">{error}</p>}
+    <div className="request-actions">
+      <button type="button" className="secondary" disabled={busy} onClick={copiarEmail}>
+        {copiado ? "E-mail copiado ✓" : "Copiar e-mail"}
+      </button>
+      {item.status === "novo" && <button type="button" className="primary compacto" disabled={busy}
+        onClick={() => onEmitir(item)}>Gerar licença</button>}
+      {item.status !== "emitida" && <button type="button" className="text" disabled={busy}
+        onClick={() => setStatus("emitida")}>Marcar como emitida</button>}
+      {item.status === "novo" && <button type="button" className="text" disabled={busy}
+        onClick={() => setStatus("recusada")}>Recusar</button>}
+      {item.status !== "novo" && <button type="button" className="text" disabled={busy}
+        onClick={() => setStatus("novo")}>Reabrir</button>}
+      <button type="button" className="text danger" disabled={busy} onClick={excluir}>Excluir</button>
+    </div>
+  </article>;
+}
+
+function LicenseRequests({ items, loading, loadError, onChanged, onEmitir }) {
+  const [filter, setFilter] = useState("novo");
+
+  const counts = useMemo(() => ({
+    all: items.length,
+    novo: items.filter(i => i.status === "novo").length,
+    emitida: items.filter(i => i.status === "emitida").length,
+    recusada: items.filter(i => i.status === "recusada").length,
+  }), [items]);
+
+  const filtered = useMemo(() => filter === "all" ? items : items.filter(i => i.status === filter), [items, filter]);
+
+  return <section className="licenses-area">
+    <div className="list-head">
+      <div>
+        <p className="eyebrow">FILA DE PEDIDOS</p>
+        <h2>Solicitações de licença</h2>
+        <p className="muted lista-ajuda">Quem baixou o aplicativo e informou o e-mail para receber a licença.
+          Use <b>Gerar licença</b> para abrir o formulário já preenchido, envie a chave ao cliente e marque como emitida.</p>
+      </div>
+    </div>
+    <div className="status-tabs" role="tablist" aria-label="Agrupar pedidos por situação">
+      {REQUEST_FILTERS.map(tab =>
+        <button type="button" role="tab" aria-selected={filter === tab.id} className={filter === tab.id ? "selected" : ""}
+          key={tab.id} onClick={() => setFilter(tab.id)}>{tab.label}<span>{counts[tab.id]}</span></button>)}
+    </div>
+    {loadError && <p className="error load-error">{loadError}</p>}
+    {loading ? <p className="loading">Carregando pedidos…</p> : filtered.length
+      ? <div className="request-grid">{filtered.map(item =>
+          <RequestCard key={item.id} item={item} onChanged={onChanged} onEmitir={onEmitir} />)}</div>
+      : <p className="empty panel">Nenhum pedido neste grupo.</p>}
+  </section>;
+}
+
 function Dashboard({ onLogout }) {
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -314,6 +427,10 @@ function Dashboard({ onLogout }) {
   const [feedbacks, setFeedbacks] = useState([]);
   const [feedbacksLoading, setFeedbacksLoading] = useState(true);
   const [feedbacksError, setFeedbacksError] = useState("");
+  const [requests, setRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+  const [requestsError, setRequestsError] = useState("");
+  const [prefill, setPrefill] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -337,9 +454,28 @@ function Dashboard({ onLogout }) {
     finally { setFeedbacksLoading(false); }
   }, [onLogout]);
 
-  useEffect(() => { load(); loadFeedbacks(); }, [load, loadFeedbacks]);
+  const loadRequests = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/license-requests", { cache: "no-store" });
+      if (response.status === 401) return onLogout();
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Não foi possível carregar os pedidos.");
+      setRequests(result.requests || []); setRequestsError("");
+    } catch (err) { setRequestsError(err.message); }
+    finally { setRequestsLoading(false); }
+  }, [onLogout]);
+
+  useEffect(() => { load(); loadFeedbacks(); loadRequests(); }, [load, loadFeedbacks, loadRequests]);
 
   const novosFeedbacks = feedbacks.filter(item => item.status === "novo").length;
+  const pedidosPendentes = requests.filter(item => item.status === "novo").length;
+
+  // Abre o formulário de emissão já preenchido com o e-mail de quem pediu.
+  function emitirPara(pedido) {
+    setPrefill({ email: pedido.email, name: pedido.name, pedidoId: pedido.id });
+    setView("licencas");
+    requestAnimationFrame(() => document.querySelector(".new-license")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
 
   const counts = useMemo(() => ({
     all: licenses.length,
@@ -377,19 +513,25 @@ function Dashboard({ onLogout }) {
         <div><small>TOTAL</small><b>{licenses.length}</b><span>licenças emitidas</span></div>
         <div className="good"><small>ATIVAS</small><b>{counts.active}</b><span>acessos liberados</span></div>
         <div><small>DISPOSITIVOS</small><b>{activeDevices}</b><span>em uso agora</span></div>
+        <div><small>PEDIDOS</small><b>{pedidosPendentes}</b><span>aguardando licença</span></div>
         <div><small>FEEDBACKS</small><b>{novosFeedbacks}</b><span>aguardando leitura</span></div>
       </div>
     </section>
     <nav className="view-tabs" role="tablist" aria-label="Seções do painel">
       <button type="button" role="tab" aria-selected={view === "licencas"} className={view === "licencas" ? "selected" : ""}
         onClick={() => setView("licencas")}>Licenças</button>
+      <button type="button" role="tab" aria-selected={view === "pedidos"} className={view === "pedidos" ? "selected" : ""}
+        onClick={() => setView("pedidos")}>Solicitações{pedidosPendentes > 0 && <span className="badge">{pedidosPendentes}</span>}</button>
       <button type="button" role="tab" aria-selected={view === "feedbacks"} className={view === "feedbacks" ? "selected" : ""}
         onClick={() => setView("feedbacks")}>Feedbacks{novosFeedbacks > 0 && <span className="badge">{novosFeedbacks}</span>}</button>
     </nav>
     {view === "feedbacks"
       ? <Feedbacks items={feedbacks} loading={feedbacksLoading} loadError={feedbacksError} onChanged={loadFeedbacks} />
+      : view === "pedidos"
+      ? <LicenseRequests items={requests} loading={requestsLoading} loadError={requestsError}
+          onChanged={loadRequests} onEmitir={emitirPara} />
       : <>
-    <NewLicense onCreated={result => { setNewKey(result); load(); }} />
+    <NewLicense prefill={prefill} onCreated={result => { setNewKey(result); load(); loadRequests(); }} />
     {newKey && <CreatedKeyModal result={newKey} onClose={() => setNewKey(null)} />}
     <section className="licenses-area">
       <div className="list-head">

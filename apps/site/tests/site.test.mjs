@@ -19,6 +19,20 @@ test("mantém marca, projeto e links de download publicados", async () => {
   assert.match(page, /Versão 1\.0\.6/);
 });
 
+// O aplicativo não abre sem licença: o e-mail é coletado antes do download para
+// que ninguém instale e fique travado sem saber como obter a chave.
+test("pede o e-mail antes de liberar o download do Windows", async () => {
+  const modal = await readFile(new URL("app/download-windows.tsx", root), "utf8");
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+
+  assert.match(page, /<DownloadWindows href=\{windowsDownloadPath\} \/>/);
+  assert.match(modal, /\/api\/v1\/license-requests/);
+  assert.match(modal, /type="email"/);
+  assert.match(modal, /required/);
+  // O download real só dispara depois do pedido ser aceito pelo servidor.
+  assert.match(modal, /setPronto\(true\)[\s\S]{0,200}baixarRef\.current\?\.click\(\)/);
+});
+
 // Enquanto não houver instalador assinado, oferecer o .dmg leva o cliente a um
 // aplicativo que o macOS recusa como danificado.
 test("não oferece download de macOS sem instalador assinado", async () => {

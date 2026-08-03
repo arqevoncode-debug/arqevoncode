@@ -26,6 +26,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202607290002_optional_email_device_limit.sql`: e-mail opcional e limite de 1 a 5 dispositivos.
    - `202607290003_admin_login_rate_limit.sql`: freio de força bruta no login administrativo.
    - `202607290004_customer_feedback.sql`: tabela `feedbacks` e a função `submit_feedback`.
+   - `202607290005_license_requests.sql`: tabela `license_requests` e a função `request_license`.
 
    Um ambiente novo que receba apenas a primeira migração aceita licenças com até 20 dispositivos
    e deixa o login sem freio. Ao adicionar uma migração, inclua-a nesta lista.
@@ -43,6 +44,19 @@ O feedback é vinculado à licença pelo próprio comprovante assinado, não por
 pelo aplicativo: o cliente não escolhe a qual licença a mensagem pertence. A tabela aceita de 10
 a 2000 caracteres e a função limita 5 envios por licença por hora. O painel lista os feedbacks
 na aba **Feedbacks**, onde cada mensagem pode ser marcada como lida, arquivada ou reaberta.
+
+## Pedidos de licença
+
+- `POST /api/v1/license-requests`: registra o e-mail de quem quer receber uma licença.
+
+Chamado pela landing page, que é outro domínio e não tem banco próprio. Por ser público e sem
+autenticação, o freio vive na função do banco: no máximo 3 pedidos por origem por hora, com o IP
+guardado apenas como HMAC. Um mesmo e-mail já pendente não duplica a fila, e a resposta é idêntica
+nos dois casos — quem pede duas vezes não descobre o estado da fila.
+
+A emissão continua manual. O painel lista os pedidos na aba **Solicitações**, onde **Gerar licença**
+abre o formulário de emissão já preenchido com o e-mail e o nome informados. Depois de enviar a
+chave ao cliente, marque o pedido como emitida.
 
 O desktop consulta o endpoint de validação em toda abertura, a cada 24 horas enquanto estiver aberto e quando a conexão voltar. Um comprovante Ed25519 válido permite até 30 dias de tolerância quando o servidor ou a internet estiverem indisponíveis.
 

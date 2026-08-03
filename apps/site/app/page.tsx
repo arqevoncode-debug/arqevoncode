@@ -1,4 +1,5 @@
 import Image from "next/image";
+import DownloadWindows from "./download-windows";
 
 const windowsDownloadPath =
   "/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe";
@@ -150,11 +151,7 @@ export default function Home() {
               ))}
             </ul>
             <div className="download-actions">
-              <a className="button primary download" href={windowsDownloadPath} download>
-                <span className="platform-mark windows-mark" aria-hidden="true">⊞</span>
-                <span><small>BAIXAR PARA</small>Windows 10/11 · 64 bits</span>
-                <b aria-hidden="true">↓</b>
-              </a>
+              <DownloadWindows href={windowsDownloadPath} />
               {/* Sem certificado Developer ID o macOS recusa o download como danificado.
                   O botão fica inerte até haver instalador assinado. */}
               <span className="button download indisponivel" role="link" aria-disabled="true">

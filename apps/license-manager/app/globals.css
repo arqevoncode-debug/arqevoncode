@@ -168,8 +168,8 @@ input:focus, select:focus {
   -webkit-text-fill-color: transparent;
 }
 .hero > div > p:last-child { max-width: 610px; margin: 0; color: #a9b6c8; font-size: 16px; }
-/* Quatro indicadores em duas colunas: com três colunas o quarto ficava órfão numa linha só dele. */
-.stats { display: grid; grid-template-columns: repeat(2, minmax(125px, 1fr)); gap: 9px; }
+/* Cinco indicadores em três colunas (3+2). Com duas colunas o quinto ficaria órfão. */
+.stats { display: grid; grid-template-columns: repeat(3, minmax(115px, 1fr)); gap: 9px; }
 .stats div {
   min-width: 138px;
   padding: 16px 18px;
@@ -407,6 +407,31 @@ input:focus, select:focus {
 .feedback-meta .alerta { color: var(--warning); }
 .feedback-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
 
+.lista-ajuda { max-width: 620px; margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; }
+.request-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.request-card {
+  position: relative;
+  overflow: hidden;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, .98);
+}
+.request-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--warning); }
+.request-card.emitida::before { background: #21b987; }
+.request-card.recusada::before { background: var(--line-strong); }
+.request-card.recusada { opacity: .72; }
+.request-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+/* O e-mail é o dado principal do cartão e pode ser longo: quebra em vez de estourar. */
+.request-head h3 { font-size: 14.5px; overflow-wrap: anywhere; }
+.request-head p { margin: 0; color: var(--muted); font-size: 12px; }
+.request-tag { padding: 5px 11px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; background: var(--warning-soft); color: var(--warning); }
+.request-tag.emitida { background: var(--good-soft); color: var(--good); }
+.request-tag.recusada { background: var(--surface-soft); color: var(--muted); }
+.request-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
+.request-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+.request-actions .primary.compacto { min-height: 36px; padding: 8px 16px; font-size: 12.5px; }
+
 @media (max-width: 960px) {
   body { background: linear-gradient(var(--navy) 0 485px, #f2f5f9 485px); }
   .hero { grid-template-columns: 1fr; gap: 25px; }
@@ -429,8 +454,10 @@ input:focus, select:focus {
   .search { width: 100%; }
   .status-tabs { overflow-x: auto; }
   .status-tabs button { flex: 0 0 auto; }
-  .view-tabs button { flex: 1 1 0; justify-content: center; padding: 9px 12px; }
-  .feedback-head { flex-direction: column; }
+  .view-tabs { overflow-x: auto; }
+  .view-tabs button { flex: 0 0 auto; justify-content: center; padding: 9px 14px; }
+  .feedback-head, .request-head { flex-direction: column; }
+  .request-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 540px) {

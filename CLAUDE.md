@@ -54,6 +54,11 @@ só falhava em runtime, na máquina do cliente. Ao mudar a origem da API, atuali
 `docs/PRODUCTION_BASELINE.md` guardam os SHA-256 publicados. Trocar links sem atualizar os dois
 reprova o CI — é intencional, para a página nunca anunciar um arquivo diferente do homologado.
 
+**A landing page depende do license-manager em runtime.** O botão de download do Windows abre um
+modal que envia o e-mail para `POST /api/v1/license-requests`, em outro domínio. É a única chamada
+de rede que o site faz, e a URL está fixa em `apps/site/app/download-windows.tsx` porque o projeto
+do site não tem variáveis de ambiente. Ao mudar o domínio do license-manager, atualize esse arquivo.
+
 **O download de macOS está suspenso.** O botão é um rótulo inerte "Em breve" porque sem certificado
 Developer ID o cliente baixaria algo que não abre. Um teste reprova o CI se algum `href` voltar a
 apontar para o `.dmg`. Restaure o botão somente quando houver instalador assinado.
