@@ -52,3 +52,25 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+
+  license-manager-sql:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # Mesma versão principal do Supabase do projeto (supabase/config.toml).
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/license-manager
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./scripts/test-migrations.sh
