@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./legal.css";
 
 // Contato para dúvidas e para o exercício dos direitos do titular (LGPD, art. 18).
-export const CONTATO = "arqevoncode@gmail.com";
+export const CONTATO = "contato@arqevoncode.com.br";
 export const ATUALIZADO_EM = "5 de outubro de 2026";
 
 export default function LegalLayout({ titulo, children }: { titulo: string; children: ReactNode }) {
