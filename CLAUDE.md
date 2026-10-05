@@ -76,7 +76,14 @@ A lógica de negócio de licenças vive em funções `security definer` no Postg
 está ligado e todas as permissões revogadas de `anon` e `authenticated`; o acesso é só via
 `service_role` ou pelas funções. Endpoint novo que toque nessas tabelas deve seguir o padrão.
 
-Dados financeiros do cliente **nunca** passam pelo servidor. Ficam no `localStorage` do dispositivo.
+Dados financeiros do cliente **nunca** chegam ao servidor em claro. No modo local ficam só no
+`localStorage`. No modo nuvem, o app cifra cada registro antes de enviar e fala direto com o
+Supabase (funções `vault_*`, JWT do Supabase Auth). O Next.js não entra nesse caminho.
+
+**O cofre não segue o padrão "só `service_role`".** As funções `vault_*` são executáveis por
+`authenticated` e se protegem filtrando por `auth.uid()`. As tabelas continuam fechadas. Função nova
+do cofre precisa do mesmo filtro, e `supabase/tests/cloud_vault.test.sql` precisa provar o
+isolamento entre contas.
 
 ## Ordem de um release do desktop
 

@@ -78,4 +78,25 @@ assert.ok(!clientHash(req("203.0.113.7")).includes("203"));
 // Só o primeiro endereço da cadeia importa: os demais são anexados por proxies.
 assert.equal(clientHash(req("203.0.113.7, 70.41.3.18")), clientHash(req("203.0.113.7")));
 
-console.log("Self-test de licenças, feedback e pedidos concluído com sucesso.");
+const { bearerToken, isTokenError } = await import("../lib/account-link.js");
+
+const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.c2lnbmF0dXJh";
+assert.equal(bearerToken(`Bearer ${jwt}`), jwt);
+assert.equal(bearerToken(`  bearer   ${jwt}  `), jwt, "o esquema não diferencia maiúsculas (RFC 7235)");
+for (const ruim of [undefined, null, "", "Bearer", `Basic ${jwt}`, `Bearer ${jwt} extra`, "Bearer a.b", "Bearer a.b.c.d", `Bearer ${jwt}<script>`]) {
+  assert.equal(bearerToken(ruim), null, `deveria recusar: ${JSON.stringify(ruim)}`);
+}
+// Comprovante assinado por outra chave, expirado ou malformado é recusa (401), não falha do servidor.
+const { generateKeyPairSync: outraChave } = await import("node:crypto");
+const { SignJWT, importPKCS8 } = await import("jose");
+const intrusa = await importPKCS8(outraChave("ed25519").privateKey.export({ type: "pkcs8", format: "pem" }), "EdDSA");
+const forjado = await new SignJWT({}).setProtectedHeader({ alg: "EdDSA" }).setSubject(source.license_id)
+  .setIssuer("myfinance-license-server").setAudience("myfinance-desktop").setExpirationTime("1d").sign(intrusa);
+for (const recusado of [forjado, "lixo", ""]) {
+  const erro = await verifyActivationToken(recusado).then(() => null, e => e);
+  assert.ok(isTokenError(erro), `deveria ser erro de token: ${JSON.stringify(recusado.slice(0, 12))} → ${erro?.code}`);
+}
+assert.equal(isTokenError(new Error("rede")), false);
+assert.equal(isTokenError({ code: "PGRST301" }), false);
+
+console.log("Self-test de licenças, feedback, pedidos e contas concluído com sucesso.");

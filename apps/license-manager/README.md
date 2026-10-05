@@ -1,6 +1,6 @@
 # Arqevon Finance License Manager
 
-Painel privado e API de ativação do aplicativo desktop Arqevon Finance. Os dados financeiros dos clientes não passam por este projeto.
+Painel privado e API de ativação do aplicativo desktop Arqevon Finance. Os dados financeiros dos clientes só chegam ao Supabase cifrados no aplicativo, no cofre da nuvem (ver abaixo), e nunca passam pelo Next.js.
 
 Produção: https://myfinance-license-manager.vercel.app
 
@@ -27,6 +27,12 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202607290003_admin_login_rate_limit.sql`: freio de força bruta no login administrativo.
    - `202607290004_customer_feedback.sql`: tabela `feedbacks` e a função `submit_feedback`.
    - `202607290005_license_requests.sql`: tabela `license_requests` e a função `request_license`.
+   - `202610050001_cloud_vault.sql`: cofre na nuvem (`vault_accounts`, `vault_items`), coluna
+     `licenses.user_id` e as funções `vault_*` e `link_license_to_user`.
+
+   `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
+   roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
+   local; **nunca** as de produção, porque o script apaga e recria o banco de teste.
 
    Um ambiente novo que receba apenas a primeira migração aceita licenças com até 20 dispositivos
    e deixa o login sem freio. Ao adicionar uma migração, inclua-a nesta lista.
@@ -44,6 +50,34 @@ O feedback é vinculado à licença pelo próprio comprovante assinado, não por
 pelo aplicativo: o cliente não escolhe a qual licença a mensagem pertence. A tabela aceita de 10
 a 2000 caracteres e a função limita 5 envios por licença por hora. O painel lista os feedbacks
 na aba **Feedbacks**, onde cada mensagem pode ser marcada como lida, arquivada ou reaberta.
+
+## Cofre na nuvem
+
+O aplicativo cifra cada registro (AES-256-GCM) antes de enviar. O servidor guarda só texto
+cifrado, um id opaco por item e as chaves embrulhadas, que são inúteis sem a senha ou a chave de
+recuperação do cliente. A identidade é a conta do Supabase Auth, e o aplicativo chama as funções
+direto no Supabase com o JWT do usuário. O Next.js fica fora do caminho dos dados.
+
+| Função (RPC, papel `authenticated`) | O que faz | Exige assinatura |
+| --- | --- | --- |
+| `vault_status()` | estado do cofre, chaves embrulhadas e se a conta tem direito | não |
+| `vault_create(key_params, wrapped_key, recovery_wrapped_key)` | cria o cofre | sim |
+| `vault_push(items)` | grava até 500 itens `{id, ct, deleted}` | sim |
+| `vault_pull(since, limit)` | lê o que mudou depois do rev `since`, até 2000 por página | não |
+| `vault_rekey(expected_version, …)` | troca a senha e reembrulha a chave, sem recifrar os dados | não |
+| `vault_delete()` | apaga o cofre inteiro (LGPD) | não |
+
+- **Rev por conta:** o lock da linha em `vault_accounts` serializa os envios. Um dispositivo que
+  pede "o que mudou depois do rev X" nunca pula um item gravado em paralelo.
+- **Conflito:** vale o último envio de cada item. Edições em itens diferentes nunca se perdem.
+- **Cotas:** 64 KB por item, 100 mil itens e 50 MB por conta.
+- **Assinatura:** "ter assinatura" é ter uma licença `active`, não vencida, com `user_id` da conta.
+  Sem assinatura, o cliente ainda baixa, protege e apaga os próprios dados.
+
+`POST /api/v1/account/link-license` vincula a licença do dispositivo à conta. Recebe o JWT do
+Supabase em `Authorization: Bearer` e o comprovante de ativação no corpo (`{ "token": "..." }`). Os
+dois são verificados, e a ativação precisa continuar válida. Uma licença pertence a uma só conta, e
+a resposta `409 LICENSE_LINKED_ELSEWHERE` indica que ela já está em outra.
 
 ## Pedidos de licença
 
