@@ -99,4 +99,44 @@ for (const recusado of [forjado, "lixo", ""]) {
 assert.equal(isTokenError(new Error("rede")), false);
 assert.equal(isTokenError({ code: "PGRST301" }), false);
 
-console.log("Self-test de licenças, feedback, pedidos e contas concluído com sucesso.");
+const { asaasConfig, asaasCycle, hojeEmBrasilia, normalizeCpf, webhookTokenValido, parseAsaasEvent } = await import("../lib/billing.js");
+
+// O ambiente sai da chave: chave de sandbox nunca fala com a produção, e vice-versa.
+assert.equal(asaasConfig("$aact_hmlg_abc").baseUrl, "https://api-sandbox.asaas.com/v3");
+assert.equal(asaasConfig("$aact_prod_abc").baseUrl, "https://api.asaas.com/v3");
+assert.throws(() => asaasConfig(""), /ASAAS_API_KEY/);
+
+assert.deepEqual(asaasCycle({ id: "pro_mensal", billing_interval: "month" }), { cycle: "MONTHLY", billingType: "CREDIT_CARD" });
+assert.deepEqual(asaasCycle({ id: "pro_anual", billing_interval: "year" }), { cycle: "YEARLY", billingType: "UNDEFINED" });
+assert.throws(() => asaasCycle({ id: "free", billing_interval: "none" }));
+
+// 02:30 UTC ainda é o dia anterior em Brasília: a cobrança não pode vencer "amanhã".
+assert.equal(hojeEmBrasilia(new Date("2026-10-06T02:30:00Z")), "2026-10-05");
+
+assert.equal(normalizeCpf("529.982.247-25"), "52998224725");
+for (const invalido of ["529.982.247-24", "111.111.111-11", "123", "", null, "abcdefghijk"]) {
+  assert.equal(normalizeCpf(invalido), null, `CPF deveria ser recusado: ${invalido}`);
+}
+
+const tokenWebhook = "t".repeat(40);
+assert.equal(webhookTokenValido(tokenWebhook, tokenWebhook), true);
+assert.equal(webhookTokenValido("errado", tokenWebhook), false);
+assert.equal(webhookTokenValido(null, tokenWebhook), false);
+// Sem token configurado (ou curto demais), nenhum aviso é aceito.
+assert.equal(webhookTokenValido("", ""), false);
+assert.equal(webhookTokenValido("curto", "curto"), false);
+
+assert.deepEqual(
+  parseAsaasEvent({ id: "evt_1", event: "PAYMENT_CONFIRMED", payment: { id: "pay_1", subscription: "sub_1", dueDate: "2026-10-05" } }),
+  { eventId: "evt_1", event: "PAYMENT_CONFIRMED", subscriptionId: "sub_1", dueDate: "2026-10-05" },
+);
+assert.deepEqual(
+  parseAsaasEvent({ event: "SUBSCRIPTION_DELETED", subscription: { id: "sub_2" } }),
+  { eventId: "SUBSCRIPTION_DELETED:sub_2", event: "SUBSCRIPTION_DELETED", subscriptionId: "sub_2", dueDate: null },
+);
+assert.equal(parseAsaasEvent({ event: "PAYMENT_CONFIRMED", payment: { id: "pay_3" } }).subscriptionId, null);
+assert.equal(parseAsaasEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "05/10/2026" } }).dueDate, null);
+assert.equal(parseAsaasEvent(null), null);
+assert.equal(parseAsaasEvent({ payment: {} }), null);
+
+console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");
