@@ -131,6 +131,8 @@ Regras que vivem no banco, não no código:
 - Cada aviso é gravado em `payment_events` pelo `id`; repetido, é ignorado. Aviso atrasado nunca
   encurta o período já liberado.
 - Uma assinatura viva por conta (índice parcial): clique duplo não cobra duas vezes.
+- Estorno ou contestação revoga o acesso na hora e cancela a assinatura no Asaas, que do
+  contrário cobraria o cartão de novo no mês seguinte.
 - O CPF vai direto ao Asaas, que o exige para cobrar; não é guardado no nosso banco.
 
 O ambiente do Asaas sai do prefixo da chave (`$aact_hmlg_` = sandbox). Ao trocar para a chave de
