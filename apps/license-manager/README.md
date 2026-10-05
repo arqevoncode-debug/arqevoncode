@@ -37,6 +37,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
      `billing_find_user_by_email`).
    - `202610050005_kiwify_soma_periodo.sql`: compra nova com período em vigor soma, em vez de
      recomeçar (anual de valor fixo renovado antes de vencer).
+   - `202610050006_alerta_reembolso.sql`: `payment_events.alert_sent_at`.
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
@@ -165,6 +166,10 @@ aqui e `ARQEVON_PAGAMENTO=kiwify` no build do app web). O Asaas continua pronto 
     - cancelamento ou atraso: não mexe em nada, e o acesso vale até o fim do período (mais a
       carência de 5 dias).
 - O registro do aviso em `payment_events` sai **sem** dados do comprador (`semDadosPessoais`).
+- **Reembolso não cancela a assinatura na Kiwify**, e a API pública não tem como cancelá-la. A
+  cada reembolso ou chargeback, o webhook manda um e-mail para `ALERTA_EMAIL` (via Resend,
+  `RESEND_API_KEY`) dizendo qual assinatura cancelar no painel. `payment_events.alert_sent_at`
+  marca o envio. Se o e-mail falhar, o webhook responde 500 e a reentrega da Kiwify tenta de novo.
 
 ## Variáveis no Vercel
 
