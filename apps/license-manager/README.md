@@ -35,6 +35,8 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202610050003_list_plans.sql`: `list_plans`, o catálogo de planos para a interface.
    - `202610050004_kiwify.sql`: Kiwify como gateway (`billing_apply_kiwify`,
      `billing_find_user_by_email`).
+   - `202610050005_kiwify_soma_periodo.sql`: compra nova com período em vigor soma, em vez de
+     recomeçar (anual de valor fixo renovado antes de vencer).
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
