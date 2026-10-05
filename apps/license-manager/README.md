@@ -29,6 +29,9 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202607290005_license_requests.sql`: tabela `license_requests` e a função `request_license`.
    - `202610050001_cloud_vault.sql`: cofre na nuvem (`vault_accounts`, `vault_items`), coluna
      `licenses.user_id` e as funções `vault_*` e `link_license_to_user`.
+   - `202610050002_billing.sql`: planos, assinaturas e direitos (`products`, `plans`,
+     `plan_entitlements`, `subscriptions`, `entitlement_grants`, `payment_events`), a regra única
+     `has_entitlement`, `my_entitlements` e as funções `billing_*`. `vault_entitled` passa a usá-la.
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
@@ -111,6 +114,27 @@ abre o formulário de emissão já preenchido com o e-mail e o nome informados. 
 chave ao cliente, marque o pedido como emitida.
 
 O desktop consulta o endpoint de validação em toda abertura, a cada 24 horas enquanto estiver aberto e quando a conexão voltar. Um comprovante Ed25519 válido permite até 30 dias de tolerância quando o servidor ou a internet estiverem indisponíveis.
+
+## Assinaturas (Asaas)
+
+- `POST /api/v1/billing/checkout`: com o JWT do Supabase Auth e `{ plan, cpf }`, cria (ou
+  reaproveita) a assinatura no Asaas e devolve `checkoutUrl`, a fatura onde o cliente paga.
+  `pro_mensal` cobra no cartão e renova sozinho; `pro_anual` aceita Pix, boleto ou cartão.
+- `POST /api/v1/webhooks/asaas`: recebe os avisos do Asaas, autenticados pelo cabeçalho
+  `asaas-access-token` (= `ASAAS_WEBHOOK_TOKEN`), e os aplica com `billing_apply_event`.
+
+Regras que vivem no banco, não no código:
+- O código só pergunta `has_entitlement(conta, produto, recurso)`, nunca o nome do plano. Preço,
+  plano novo ou cortesia são linhas em `plans`, `plan_entitlements` e `entitlement_grants`.
+- A validade sai das datas: `active`/`past_due` valem até `current_period_end` + 5 dias,
+  `canceled` até `current_period_end`, `pending` não vale. Nenhum job liga ou desliga acesso.
+- Cada aviso é gravado em `payment_events` pelo `id`; repetido, é ignorado. Aviso atrasado nunca
+  encurta o período já liberado.
+- Uma assinatura viva por conta (índice parcial): clique duplo não cobra duas vezes.
+- O CPF vai direto ao Asaas, que o exige para cobrar; não é guardado no nosso banco.
+
+O ambiente do Asaas sai do prefixo da chave (`$aact_hmlg_` = sandbox). Ao trocar para a chave de
+produção, troque também `ASAAS_WEBHOOK_TOKEN` e recadastre o webhook na conta de produção.
 
 ## Variáveis no Vercel
 
