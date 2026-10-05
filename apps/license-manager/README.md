@@ -100,6 +100,20 @@ com link em vez de código, e o envio é restrito a membros da equipe, com cerca
 **Não abra o cadastro para clientes antes de configurar o SMTP (Resend)** e aplicar esse arquivo
 via `PATCH /v1/projects/{ref}/config/auth` da Management API.
 
+## E-mail de contato
+
+`contato@arqevoncode.com.br` não é uma caixa postal. O MX do domínio aponta para o Resend
+(recebimento ligado no domínio), que avisa `POST /api/v1/email/recebido` a cada e-mail.
+- A rota confere a assinatura Svix (`RESEND_WEBHOOK_SECRET`) e recusa avisos com mais de 5
+  minutos.
+- Ela busca o e-mail e os anexos com `RESEND_RECEIVING_API_KEY`, que precisa de acesso total,
+  porque a chave só de envio não lê e-mails recebidos.
+- Encaminha para `ALERTA_EMAIL` com `reply_to` de quem escreveu.
+- O envio usa o id do aviso como chave de idempotência, para uma reentrega não duplicar o
+  encaminhamento.
+
+Vale para qualquer endereço do domínio, inclusive respostas a `nao-responda@`.
+
 ## Saúde e keep-alive
 
 `GET /api/health` faz uma consulta mínima ao banco e responde `{ ok: true }` ou `503`. O workflow

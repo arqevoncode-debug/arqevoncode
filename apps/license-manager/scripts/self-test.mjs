@@ -235,4 +235,42 @@ assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
   } finally { globalThis.fetch = fetchOriginal; }
 }
 
+// ---------- E-mail recebido (contato@) ----------
+{
+  const { assinaturaResendValida, montarEncaminhamento } = await import("../lib/email-recebido.js");
+  const { createHmac: hmac } = await import("node:crypto");
+  const segredoBruto = Buffer.from("segredo-de-teste-com-32-bytes!!!");
+  const segredo = `whsec_${segredoBruto.toString("base64")}`;
+  const agora = 1_760_000_000_000;
+  const ts = String(agora / 1000);
+  const corpo = '{"type":"email.received","data":{"email_id":"e1"}}';
+  const assinar = (c, t = ts) => `v1,${hmac("sha256", segredoBruto).update(`msg_1.${t}.${c}`).digest("base64")}`;
+  const ok = (h, c = corpo) => assinaturaResendValida({ id: "msg_1", timestamp: ts, ...h }, c, segredo, agora);
+
+  assert.equal(ok({ signature: assinar(corpo) }), true);
+  assert.equal(ok({ signature: `v1,lixo ${assinar(corpo)}` }), true, "várias assinaturas: basta uma válida");
+  assert.equal(ok({ signature: assinar(corpo) }, corpo + " "), false, "corpo alterado");
+  assert.equal(ok({ signature: assinar("outro") }), false);
+  assert.equal(ok({ signature: assinar(corpo).replace("v1,", "v2,") }), false, "versão desconhecida");
+  assert.equal(ok({ signature: "" }), false);
+  assert.equal(assinaturaResendValida({ id: "msg_1", timestamp: ts, signature: assinar(corpo) }, corpo, "sem-prefixo", agora), false);
+  // Aviso velho (replay) é recusado, mesmo com assinatura correta.
+  const velho = String(agora / 1000 - 301);
+  assert.equal(assinaturaResendValida({ id: "msg_1", timestamp: velho, signature: assinar(corpo, velho) }, corpo, segredo, agora), false);
+
+  const enc = montarEncaminhamento(
+    { from: "cliente@x.com", headers: { from: "Cliente <cliente@x.com>" }, to: ["contato@arqevoncode.com.br"], subject: "Dúvida", text: "Oi", html: null, reply_to: [], created_at: "2026-10-05" },
+    [{ filename: "a.pdf", download_url: "https://cdn/a", content_type: "application/pdf" }],
+    "dono@x.com",
+  );
+  assert.deepEqual(enc.to, ["dono@x.com"]);
+  assert.deepEqual(enc.reply_to, ["cliente@x.com"], "responder vai para quem escreveu");
+  assert.equal(enc.subject, "[Contato] Dúvida");
+  assert.match(enc.text, /De: Cliente <cliente@x\.com>[\s\S]*Oi/);
+  assert.ok(enc.html.includes("&lt;cliente@x.com&gt;"), "cabeçalho escapado no HTML");
+  assert.deepEqual(enc.attachments, [{ filename: "a.pdf", path: "https://cdn/a", content_type: "application/pdf" }]);
+  assert.deepEqual(montarEncaminhamento({ from: "a@b.c", reply_to: ["r@b.c"], to: [] }, [], "d@x").reply_to, ["r@b.c"]);
+  assert.equal(montarEncaminhamento({ from: "a@b.c", to: [] }, [], "d@x").subject, "[Contato] (sem assunto)");
+}
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");
