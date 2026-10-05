@@ -586,7 +586,7 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
       <button id="btnImportar">Importar backup</button>
       <button id="btnResetar" class="perigo">Resetar dados</button>
     </div>
-    <input type="file" id="arqImportar" accept="application/json" hidden>
+    <input type="file" id="arqImportar" accept=".json,.myfinance,application/json" hidden>
   </div>
 </div>
 
@@ -1498,10 +1498,10 @@ function b64(buf) {
   return btoa(s);
 }
 const deB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-async function derivarChave(senha, saltB64) {
+async function derivarChave(senha, saltB64, iteracoes = 150000) {
   const mat = await crypto.subtle.importKey("raw", enc8(senha), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: deB64(saltB64), iterations: 150000, hash: "SHA-256" },
+    { name: "PBKDF2", salt: deB64(saltB64), iterations: iteracoes, hash: "SHA-256" },
     mat, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
 }
 async function cifrar(chave, texto) {
@@ -1827,6 +1827,16 @@ $("#arqImportar").addEventListener("change", e => {
           const chave = await derivarChave(s, novo.salt);
           novo = JSON.parse(await decifrar(chave, novo));
         } catch (err) { alert("Senha incorreta — não foi possível ler o arquivo."); return; }
+      } else if (novo && novo.format === "myfinance-backup" && novo.ciphertext) {
+        // backup protegido (.myfinance) exportado pelo app desktop
+        const s = prompt("Este backup é protegido. Digite a senha usada ao exportá-lo:");
+        if (s === null) return;
+        try {
+          const chave = await derivarChave(s, novo.salt, Number(novo.iterations) || 250000);
+          novo = JSON.parse(await decifrar(chave, { iv: novo.iv, ct: novo.ciphertext })).data;
+        } catch (err) { alert("Senha incorreta — não foi possível ler o arquivo."); return; }
+      } else if (novo && novo.format === "myfinance-data") {
+        novo = novo.data;
       }
       if (!novo || !Array.isArray(novo.lancamentos)) throw 0;
       if (confirm("Substituir os dados atuais pelos dados do arquivo?")) {
