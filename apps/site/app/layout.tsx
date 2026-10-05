@@ -21,21 +21,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: "Arqevon Code — Sistemas construídos para evoluir",
-    description: "Produtos digitais próprios, simples e seguros. Conheça o Arqevon Finance e os próximos sistemas da Arqevon Code.",
-    keywords: ["Arqevon Code", "Arqevon Finance", "software", "gestão financeira", "aplicativo financeiro"],
+    title: "Arqevon Finance — Suas contas do mês, claras em uma tela",
+    description: "Organize receitas, contas fixas e parcelas do cartão. Veja quanto sobra e como ficam os próximos meses. Grátis, no navegador, com seus dados no seu aparelho.",
+    keywords: ["Arqevon Finance", "controle financeiro", "finanças pessoais", "controle de gastos", "parcelas do cartão", "Arqevon Code"],
     alternates: { canonical: "/" },
     icons: { icon: "/simbolo-arqevon.svg", shortcut: "/simbolo-arqevon.svg" },
     openGraph: {
       type: "website",
       locale: "pt_BR",
       url: "/",
-      siteName: "Arqevon Code",
-      title: "Arqevon Code — Sistemas construídos para evoluir",
-      description: "Uma família de produtos digitais para transformar tarefas complexas em experiências simples.",
+      siteName: "Arqevon Finance",
+      title: "Arqevon Finance — Suas contas do mês, claras em uma tela",
+      description: "Receitas, contas fixas e parcelas organizadas, com projeção dos próximos meses. Grátis e no navegador.",
       images: [{ url: "/og.png", width: 1536, height: 1024, alt: "Arqevon Code — Sistemas construídos para evoluir" }],
     },
-    twitter: { card: "summary_large_image", title: "Arqevon Code", description: "Sistemas construídos para evoluir.", images: ["/og.png"] },
+    twitter: { card: "summary_large_image", title: "Arqevon Finance", description: "Suas contas do mês, claras em uma tela.", images: ["/og.png"] },
     robots: { index: true, follow: true },
   };
 }
