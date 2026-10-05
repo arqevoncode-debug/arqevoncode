@@ -61,6 +61,50 @@
     </div>
   </div>
 
+  <section class="wc-nuvem" id="wcNuvem" hidden>
+    <h3>Nuvem</h3>
+    <p class="wc-nuvem-status" id="wnStatus"></p>
+
+    <form id="wnCriar" class="wc-form" hidden>
+      <p class="wl-sub">Crie a senha da nuvem. Ela cifra seus dados <b>antes</b> de saírem deste aparelho: nem a Arqevon consegue abri-los.</p>
+      <label class="wl-campo"><span>Senha da nuvem (mín. 10 caracteres)</span><input id="wnSenha" type="password" autocomplete="new-password" minlength="10" required></label>
+      <label class="wl-campo"><span>Repita a senha</span><input id="wnSenha2" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p class="wl-erro" id="wnErroCriar" hidden></p>
+      <button class="wl-botao" type="submit" id="wnBotaoCriar">Continuar</button>
+    </form>
+
+    <form id="wnGuardar" class="wc-form" hidden>
+      <p class="wl-sub"><b>Guarde sua chave de recuperação.</b> Se esquecer a senha, só ela abre seus dados. Anote em papel ou num gerenciador de senhas.</p>
+      <output class="wc-chave" id="wnChave"></output>
+      <button class="wl-secundario" type="button" id="wnCopiar">Copiar chave</button>
+      <label class="wc-check"><input type="checkbox" id="wnGuardei" required> Guardei a chave em um lugar seguro</label>
+      <p class="wl-erro" id="wnErroGuardar" hidden></p>
+      <button class="wl-botao" type="submit" id="wnBotaoGuardar">Ativar sincronização</button>
+    </form>
+
+    <form id="wnAbrir" class="wc-form" hidden>
+      <p class="wl-sub">Sua conta já tem dados na nuvem. Digite a senha da nuvem para abri-los neste aparelho.</p>
+      <label class="wl-campo"><span>Senha da nuvem</span><input id="wnSenhaAbrir" type="password" autocomplete="current-password" required></label>
+      <p class="wl-erro" id="wnErroAbrir" hidden></p>
+      <button class="wl-botao" type="submit" id="wnBotaoAbrir">Abrir dados da nuvem</button>
+      <button class="wl-link" type="button" id="wnEsqueci">Esqueci a senha da nuvem</button>
+    </form>
+
+    <form id="wnRecuperar" class="wc-form" hidden>
+      <p class="wl-sub">Use a chave de recuperação e escolha uma senha nova. Ela passa a valer em todos os aparelhos.</p>
+      <label class="wl-campo"><span>Chave de recuperação</span><input id="wnChaveRec" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required></label>
+      <label class="wl-campo"><span>Nova senha da nuvem (mín. 10 caracteres)</span><input id="wnNovaSenha" type="password" autocomplete="new-password" minlength="10" required></label>
+      <p class="wl-erro" id="wnErroRec" hidden></p>
+      <button class="wl-botao" type="submit" id="wnBotaoRec">Recuperar e definir senha</button>
+      <button class="wl-link" type="button" id="wnVoltarAbrir">Lembrei a senha</button>
+    </form>
+
+    <div class="wc-nuvem-acoes" id="wnAtiva" hidden>
+      <button class="botao" type="button" id="wnAgora">Sincronizar agora</button>
+      <button class="botao cancelar" type="button" id="wnEsquecer">Desligar neste aparelho</button>
+    </div>
+  </section>
+
   <form id="wcAssinar" class="wc-assinar" hidden>
     <fieldset class="wc-ciclos">
       <legend>Como prefere pagar?</legend>
