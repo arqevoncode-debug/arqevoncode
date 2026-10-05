@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { SUPABASE_URL, SUPABASE_ANON_KEY, LICENSE_API } from "./config.js";
+import { criarNuvem } from "./nuvem.js";
 
 // ARQEVON_BILLING é fixado no build (scripts/build.mjs). Desligado, o Pro aparece como "em breve":
 // o plano só é vendido quando a sincronização existir.
@@ -23,7 +24,9 @@ const ICONE_CONTA = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" str
 const brl = centavos => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBr = iso => new Date(iso).toLocaleDateString("pt-BR");
 
-let estado = { modo: null, email: null, direitos: null, planos: [] };
+let estado = { modo: null, email: null, uid: null, direitos: null, planos: [] };
+
+const nuvem = criarNuvem({ supabase, aoMudar: () => atualizarConta() });
 
 // ---------- Layout ----------
 function montarLayout() {
@@ -73,14 +76,23 @@ function planoAtual() {
   return { sub, pro: !!temNuvem };
 }
 
+function atualizarCartao() {
+  const local = estado.modo === "local";
+  const { pro } = planoAtual();
+  $("webQuem").textContent = local ? "Sem conta" : estado.email || "";
+  $("webPlano").textContent = local ? "Dados só neste navegador"
+    : nuvem.ativa() ? `Pro · ${nuvem.texto() || "nuvem ativa"}`
+    : pro ? "Plano Pro" : "Plano Grátis";
+}
+
 function atualizarConta() {
   const local = estado.modo === "local";
   const { sub, pro } = planoAtual();
-  $("webQuem").textContent = local ? "Sem conta" : estado.email;
-  $("webPlano").textContent = local ? "Dados só neste navegador" : pro ? "Plano Pro" : "Plano Grátis";
+  atualizarCartao();
   $("wcEmail").textContent = local
     ? "Você está usando sem conta: os dados ficam só neste navegador."
-    : `${estado.email} · seus lançamentos ficam neste navegador até a sincronização chegar.`;
+    : nuvem.ativa() ? `${estado.email} · seus dados estão na nuvem, criptografados.`
+    : `${estado.email} · seus lançamentos ficam neste navegador.`;
   $("wcGratis").classList.toggle("wc-atual", !pro);
   $("wcPro").classList.toggle("wc-atual", pro);
   $("wcSair").textContent = local ? "Voltar ao login" : "Sair";
@@ -89,7 +101,8 @@ function atualizarConta() {
   $("wcProPreco").innerHTML = mensal ? `${brl(mensal.price_cents)}<small>/mês</small>` : "—";
 
   const status = $("wcProStatus");
-  status.hidden = !sub || sub.status === "pending";
+  status.hidden = !pro && (!sub || sub.status === "pending");
+  if (pro && (!sub || sub.status === "pending")) status.textContent = "Ativo";
   if (sub?.status === "active") status.textContent = `Ativo · renova em ${dataBr(sub.current_period_end)}`;
   if (sub?.status === "past_due") status.textContent = "Pagamento pendente: regularize para não perder o Pro.";
   if (sub?.status === "canceled" && pro) status.textContent = `Cancelado · acesso até ${dataBr(sub.current_period_end)}`;
@@ -125,6 +138,7 @@ async function carregarConta() {
 function abrirConta() {
   $("webConta").showModal();
   carregarConta();
+  if (estado.modo === "conta") nuvem.atualizar(); else $("wcNuvem").hidden = true;
 }
 
 // ---------- Entrar e sair ----------
@@ -134,6 +148,7 @@ function liberarApp() {
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
   atualizarConta();
   carregarConta();
+  if (estado.modo === "conta" && estado.uid) nuvem.entrar(estado.uid);
 }
 
 function mostrarLogin() {
@@ -182,20 +197,22 @@ $("wlPasso2").addEventListener("submit", async e => {
   botao.disabled = false; botao.textContent = "Entrar";
   if (error || !data?.session) { erro("wlErro", mensagemAuth(error)); return; }
   localStorage.removeItem(MODO_LOCAL);
-  estado = { ...estado, modo: "conta", email: data.session.user.email };
+  estado = { ...estado, modo: "conta", email: data.session.user.email, uid: data.session.user.id };
   liberarApp();
 });
 
 $("wlVoltar").addEventListener("click", mostrarLogin);
 $("wlLocal").addEventListener("click", () => {
   localStorage.setItem(MODO_LOCAL, "1");
-  estado = { ...estado, modo: "local", email: null, direitos: null };
+  estado = { ...estado, modo: "local", email: null, uid: null, direitos: null };
   liberarApp();
 });
 
 $("wcFechar").addEventListener("click", () => $("webConta").close());
 $("wcSair").addEventListener("click", async () => {
   // Sair encerra a sessão da conta; os lançamentos continuam neste navegador (plano grátis é local).
+  // As chaves da nuvem saem deste aparelho junto com a sessão.
+  await nuvem.sair();
   if (estado.modo === "conta") await supabase.auth.signOut().catch(() => {});
   localStorage.removeItem(MODO_LOCAL);
   estado = { ...estado, modo: null, email: null, direitos: null };
@@ -240,7 +257,7 @@ document.addEventListener("visibilitychange", () => {
 montarLayout();
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
-  estado = { ...estado, modo: "conta", email: session.user.email };
+  estado = { ...estado, modo: "conta", email: session.user.email, uid: session.user.id };
   liberarApp();
 } else if (localStorage.getItem(MODO_LOCAL) === "1") {
   estado = { ...estado, modo: "local" };
@@ -249,5 +266,5 @@ if (session) {
   mostrarLogin();
 }
 supabase.auth.onAuthStateChange((evento) => {
-  if (evento === "SIGNED_OUT" && estado.modo === "conta") { estado = { ...estado, modo: null }; mostrarLogin(); }
+  if (evento === "SIGNED_OUT" && estado.modo === "conta") { nuvem.sair(); estado = { ...estado, modo: null, uid: null }; mostrarLogin(); }
 });

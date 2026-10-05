@@ -50,6 +50,8 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      # Motor de sincronização e criptografia, com dois aparelhos e um servidor simulados.
+      - run: npm test
       # O build lê o motor do desktop: se meu-financeiro.html mudar de estrutura, falha aqui.
       - run: npm run build
       - run: ARQEVON_BILLING=1 npm run build

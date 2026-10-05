@@ -107,3 +107,15 @@ dialog.wc h2 { margin: 0; font-size: 22px; }
 .wc-ciclo input { accent-color: var(--accent); width: 18px; height: 18px; }
 .wc-breve { margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--accent) 8%, transparent); }
 .wl-botao:disabled { opacity: .7; cursor: progress; }
+
+/* ---------- Nuvem ---------- */
+.wc-nuvem { display: grid; gap: 12px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.wc-nuvem h3 { margin: 0; font-size: 16px; }
+.wc-nuvem-status { margin: 0; font-size: 13px; color: var(--ink-2); }
+.wc-form { display: grid; gap: 12px; }
+.wc-form .wl-sub { margin: 0; }
+.wc-chave { display: block; padding: 14px; border-radius: 12px; border: 1px dashed var(--accent-2); background: color-mix(in srgb, var(--accent-2) 8%, transparent); font: 600 16px/1.6 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .04em; text-align: center; word-break: break-all; color: var(--ink); }
+.wc-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
+.wc-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.wc-nuvem-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+dialog.wc { max-height: calc(100vh - 32px); overflow-y: auto; }

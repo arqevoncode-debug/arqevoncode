@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/build.mjs && node scripts/serve.mjs"
+    "dev": "node scripts/build.mjs && node scripts/serve.mjs",
+    "test": "node --test tests/sync.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.111.0"
