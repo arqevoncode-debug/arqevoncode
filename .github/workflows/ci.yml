@@ -57,8 +57,8 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        # Mesma versão principal do Supabase do projeto (supabase/config.toml).
-        image: postgres:15
+        # Mesma versão principal do Postgres do Supabase de produção (17 em 2026-10-05).
+        image: postgres:17
         env:
           POSTGRES_PASSWORD: postgres
         ports: ["5432:5432"]

@@ -79,6 +79,24 @@ Supabase em `Authorization: Bearer` e o comprovante de ativação no corpo (`{ "
 dois são verificados, e a ativação precisa continuar válida. Uma licença pertence a uma só conta, e
 a resposta `409 LICENSE_LINKED_ELSEWHERE` indica que ela já está em outra.
 
+### Login (Supabase Auth)
+
+E-mail e senha, com confirmação por **código de 6 dígitos**, porque o app desktop não abre links.
+Já configurado em produção: `site_url`, senha mínima de 8 caracteres e código de 6 dígitos válido
+por 1 hora. O app manda ao Auth um derivado da senha, nunca a senha.
+
+Os textos em português dos e-mails estão em `supabase/auth-email-templates.json`. O Supabase só
+aceita textos próprios com **SMTP próprio** configurado. Até lá vale o modelo padrão, em inglês e
+com link em vez de código, e o envio é restrito a membros da equipe, com cerca de 2 por hora.
+**Não abra o cadastro para clientes antes de configurar o SMTP (Resend)** e aplicar esse arquivo
+via `PATCH /v1/projects/{ref}/config/auth` da Management API.
+
+## Saúde e keep-alive
+
+`GET /api/health` faz uma consulta mínima ao banco e responde `{ ok: true }` ou `503`. O workflow
+`.github/workflows/keep-alive.yml` chama a rota todo dia, porque o plano grátis do Supabase pausa o
+projeto após dias sem uso. Se o workflow falhar, o banco está fora do ar.
+
 ## Pedidos de licença
 
 - `POST /api/v1/license-requests`: registra o e-mail de quem quer receber uma licença.
