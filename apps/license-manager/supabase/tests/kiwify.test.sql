@@ -72,4 +72,15 @@ select teste.ok((select status from public.subscriptions where provider_subscrip
 select teste.ok((select current_period_end from public.subscriptions where provider_subscription_id = 'sub-4') = '2027-10-05T00:00:00Z', 'anual vale 1 ano');
 reset role;
 
+-- ---------- Renovação antecipada do anual de valor fixo soma o período ----------
+-- d...3 tem o anual (sub-4) até 2027-10-05 e compra outro anual em 2027-09-01.
+set role service_role;
+select teste.ok(public.billing_apply_kiwify('kw:11', 'paid', 'd0000000-0000-4000-8000-000000000003', 'pro_anual', 'pedido-5', '2027-09-01T00:00:00Z', '{}')->>'outcome' = 'subscription_created', 'segunda compra anual');
+select teste.ok((select current_period_end from public.subscriptions where provider_subscription_id = 'pedido-5') = '2028-10-05T00:00:00Z', 'começa quando o período atual termina');
+select teste.ok((select status from public.subscriptions where provider_subscription_id = 'sub-4') = 'canceled', 'a anterior sai de cena');
+-- Compra depois de vencido recomeça na data da compra.
+select teste.ok(public.billing_apply_kiwify('kw:12', 'paid', 'd0000000-0000-4000-8000-000000000003', 'pro_mensal', 'pedido-6', '2029-01-10T00:00:00Z', '{}')->>'outcome' = 'subscription_created', 'compra depois de vencido');
+select teste.ok((select current_period_end from public.subscriptions where provider_subscription_id = 'pedido-6') = '2029-02-10T00:00:00Z', 'sem período em vigor, conta da compra');
+reset role;
+
 \echo 'kiwify: todos os testes passaram'
