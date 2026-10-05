@@ -1,5 +1,6 @@
 import Image from "next/image";
 import DownloadWindows from "./download-windows";
+import Orcamento from "./orcamento";
 import "./landing.css";
 
 const windowsDownloadPath =
@@ -20,6 +21,13 @@ const recursos = [
   { titulo: "Backup protegido por senha", texto: "Exporte seus dados em um arquivo criptografado e leve para outro computador quando quiser." },
 ];
 
+const servicos = [
+  { titulo: "Sistemas web e painéis", texto: "Cadastros, relatórios, área do cliente e controle interno, acessíveis de qualquer navegador." },
+  { titulo: "Aplicativos para computador", texto: "Programas instaláveis para Windows, com ativação por licença e atualizações." },
+  { titulo: "Automações e integrações", texto: "Pagamentos, assinaturas, e-mails automáticos e conexão entre os sistemas que você já usa." },
+  { titulo: "Segurança desde o início", texto: "Criptografia, backup e adequação à LGPD: o mesmo padrão que usamos no Arqevon Finance." },
+];
+
 const passos = [
   { n: "1", titulo: "Crie sua conta", texto: "Só o e-mail. Você recebe um código de acesso, sem senha para decorar." },
   { n: "2", titulo: "Lance o que entra e sai", texto: "Renda, contas fixas, gastos do dia a dia e compras parceladas." },
@@ -29,6 +37,10 @@ const passos = [
 export default function Home() {
   return (
     <main className="lp">
+      <div className="lp-topo-marca">
+        <span><strong>Arqevon Code</strong> · produtos próprios e software sob encomenda</span>
+        <a href="#sob-encomenda">Peça um orçamento →</a>
+      </div>
       <header className="lp-header">
         <a className="lp-marca" href="#inicio" aria-label="Arqevon Finance — início">
           <Image src="/simbolo-arqevon.svg" alt="" width={36} height={36} />
@@ -39,6 +51,7 @@ export default function Home() {
           <a href="#privacidade">Privacidade</a>
           <a href="#planos">Planos</a>
           <a href="#perguntas">Dúvidas</a>
+          <a href="#sob-encomenda">Sob encomenda</a>
         </nav>
         <div className="lp-header-acoes">
           <a className="lp-entrar" href={APP_URL}>Entrar</a>
@@ -173,6 +186,32 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="lp-secao lp-encomenda" id="sob-encomenda">
+        <div className="lp-titulo">
+          <p className="lp-selo"><i /> Arqevon Code · sob encomenda</p>
+          <h2>Precisa de um sistema sob medida?<br /><span>A gente desenvolve.</span></h2>
+          <p className="lp-encomenda-lead">
+            O Arqevon Finance é um produto nosso. Além dele, a Arqevon Code desenvolve software sob
+            encomenda para empresas e profissionais, com o mesmo cuidado com segurança e privacidade.
+          </p>
+        </div>
+        <div className="lp-encomenda-grade">
+          <div>
+            <div className="lp-servicos">
+              {servicos.map((s) => (
+                <article key={s.titulo}><h3>{s.titulo}</h3><p>{s.texto}</p></article>
+              ))}
+            </div>
+            <ol className="lp-encomenda-passos">
+              <li><b>1</b> Conte sua ideia no formulário.</li>
+              <li><b>2</b> Receba uma proposta com escopo, prazo e valor.</li>
+              <li><b>3</b> Acompanhe as entregas até o sistema estar no ar.</li>
+            </ol>
+          </div>
+          <Orcamento />
+        </div>
+      </section>
+
       <section className="lp-secao" id="perguntas">
         <div className="lp-titulo"><p className="lp-selo"><i /> Dúvidas</p><h2>Perguntas frequentes.</h2></div>
         <div className="lp-faq">
@@ -194,7 +233,7 @@ export default function Home() {
           <Image src="/simbolo-arqevon.svg" alt="" width={30} height={30} />
           <span><strong>Arqevon</strong> Finance</span>
         </a>
-        <p>Arqevon Finance é um produto da Arqevon Code.</p>
+        <p>Arqevon Finance é um produto da Arqevon Code, que também desenvolve <a href="#sob-encomenda">software sob encomenda</a>.</p>
         <nav className="lp-rodape-links" aria-label="Documentos legais">
           <a href="/termos">Termos de Uso</a>
           <a href="/privacidade">Política de Privacidade</a>

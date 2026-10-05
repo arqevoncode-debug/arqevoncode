@@ -90,3 +90,17 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
     assert.match(privacidade, new RegExp(fornecedor), `fornecedor ausente: ${fornecedor}`);
   }
 });
+
+// A Arqevon Code também faz software sob encomenda: o site precisa separar isso do produto
+// e o formulário precisa apontar para a API que grava o pedido.
+test("oferece software sob encomenda com formulário de orçamento", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
+  const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
+
+  assert.match(page, /id="sob-encomenda"/);
+  assert.match(page, /href="#sob-encomenda"/);
+  assert.match(page, /<Orcamento \/>/);
+  assert.match(form, /\/api\/v1\/quote-requests/);
+  assert.match(privacidade, /Pedido de orçamento/, "dado novo coletado precisa constar na política");
+});

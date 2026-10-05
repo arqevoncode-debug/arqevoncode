@@ -60,6 +60,11 @@ export default function Privacidade() {
               <td>Execução de contrato (art. 7º, V)</td>
             </tr>
             <tr>
+              <td><strong>Pedido de orçamento</strong> (software sob encomenda): nome, e-mail, telefone e empresa (se informados), tipo de projeto, faixa de orçamento, descrição e um código derivado do endereço IP</td>
+              <td>Responder ao pedido e preparar a proposta, e evitar abuso do formulário</td>
+              <td>Procedimentos preliminares a contrato, a seu pedido (art. 7º, V); legítimo interesse na prevenção de abuso (art. 7º, IX)</td>
+            </tr>
+            <tr>
               <td><strong>Mensagens de feedback</strong> enviadas pelo app</td>
               <td>Responder e melhorar o produto</td>
               <td>Legítimo interesse (art. 7º, IX)</td>
@@ -121,6 +126,7 @@ export default function Privacidade() {
         <li><strong>Dados técnicos da sessão:</strong> enquanto a sessão estiver ativa. Os registros técnicos dos fornecedores de hospedagem são mantidos por poucos dias, conforme a política de cada um.</li>
         <li><strong>Registros de pagamento e assinatura:</strong> pelo prazo exigido pela legislação fiscal e de defesa do consumidor (até 5 anos).</li>
         <li><strong>Pedidos de licença:</strong> até 12 meses depois do atendimento.</li>
+        <li><strong>Pedidos de orçamento:</strong> até 12 meses depois da resposta, ou durante o contrato, se o projeto for fechado.</li>
       </ul>
       <p>
         Cancelar a assinatura <strong>não</strong> apaga seus dados da nuvem: você continua podendo
