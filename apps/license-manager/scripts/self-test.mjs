@@ -211,4 +211,28 @@ assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
   } finally { globalThis.fetch = fetchOriginal; }
 }
 
+// ---------- Alerta de reembolso ----------
+{
+  const { montarAlertaReembolso, enviarAlerta } = await import("../lib/alerta.js");
+  const m = montarAlertaReembolso({ pedido: "IutMorX", assinatura: "f675", plano: "pro_mensal", comprador: "a@b.com", motivo: "reembolso" });
+  assert.match(m.assunto, /^Reembolso na Kiwify: cancele a assinatura do pedido IutMorX$/);
+  for (const parte of ["IutMorX", "f675", "pro_mensal", "a@b.com", "Cancelar"]) assert.ok(m.texto.includes(parte) && m.html.includes(parte), parte);
+  assert.match(montarAlertaReembolso({ pedido: "x", motivo: "chargeback" }).assunto, /^Chargeback/);
+  assert.match(montarAlertaReembolso({ pedido: "x" }).texto, /venda sem assinatura/);
+  // Conteúdo vindo de fora não injeta HTML no e-mail.
+  assert.ok(!montarAlertaReembolso({ pedido: "<script>x</script>", comprador: '"><img>' }).html.includes("<script>"));
+
+  await assert.rejects(() => enviarAlerta(m, { apiKey: "", para: "x@y.z" }), /não configurados/);
+  const fetchOriginal = globalThis.fetch;
+  let enviado;
+  globalThis.fetch = async (url, init) => { enviado = JSON.parse(init.body); return new Response(JSON.stringify({ id: "email-1" }), { status: 200 }); };
+  try {
+    assert.equal(await enviarAlerta(m, { apiKey: "re_x", para: "dono@x.com" }), "email-1");
+    assert.deepEqual(enviado.to, ["dono@x.com"]);
+    assert.match(enviado.from, /arqevoncode\.com\.br/);
+    globalThis.fetch = async () => new Response(JSON.stringify({ message: "domínio não verificado" }), { status: 403 });
+    await assert.rejects(() => enviarAlerta(m, { apiKey: "re_x", para: "dono@x.com" }), /403/, "falha no envio precisa lançar para a Kiwify reentregar");
+  } finally { globalThis.fetch = fetchOriginal; }
+}
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");
