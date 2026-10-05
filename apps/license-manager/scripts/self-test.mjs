@@ -139,4 +139,64 @@ assert.equal(parseAsaasEvent({ event: "PAYMENT_CONFIRMED", payment: { dueDate: "
 assert.equal(parseAsaasEvent(null), null);
 assert.equal(parseAsaasEvent({ payment: {} }), null);
 
+// ---------- Kiwify ----------
+const kw = await import("../lib/kiwify.js");
+
+// Aviso: aceita os nomes conhecidos e exige o pedido.
+assert.equal(kw.parseKiwifyWebhook(null), null);
+assert.equal(kw.parseKiwifyWebhook({ webhook_event_type: "order_approved" }), null, "sem pedido não há o que conferir");
+assert.deepEqual(kw.parseKiwifyWebhook({
+  order_id: "ord-1", webhook_event_type: "Order_Approved",
+  Subscription: { id: "sub-1", plan: { frequency: "Monthly", name: "Mensal" } },
+  Product: { product_id: "prod-1" },
+}), { orderId: "ord-1", eventType: "order_approved", subscriptionId: "sub-1", frequency: "monthly", planName: "Mensal", productId: "prod-1" });
+assert.equal(kw.parseKiwifyWebhook({ order: { id: "ord-2" } }).eventType, null);
+
+// O aviso sozinho nunca libera: precisa da venda paga na API.
+assert.equal(kw.classificarKiwify("order_approved", "paid"), "approved");
+assert.equal(kw.classificarKiwify("compra_aprovada", "paid"), "approved");
+assert.equal(kw.classificarKiwify("order_approved", "waiting_payment"), "ignored");
+assert.equal(kw.classificarKiwify("order_approved", "refunded"), "ignored");
+assert.equal(kw.classificarKiwify("subscription_renewed", "paid"), "renewed");
+assert.equal(kw.classificarKiwify("subscription_renewed", "refused"), "ignored");
+assert.equal(kw.classificarKiwify("order_refunded", "refunded"), "revoked");
+assert.equal(kw.classificarKiwify("chargeback", "chargedback"), "revoked");
+assert.equal(kw.classificarKiwify("order_refunded", "paid"), "ignored", "reembolso que a API não confirma não revoga");
+// Cancelar ou atrasar a assinatura não mexe no acesso: ele só não é renovado.
+assert.equal(kw.classificarKiwify("subscription_canceled", "paid"), "ignored");
+assert.equal(kw.classificarKiwify("subscription_late", "paid"), "ignored");
+assert.equal(kw.classificarKiwify("pix_created", "waiting_payment"), "ignored");
+// Sem tipo, decide pelo status, e uma aprovação sem tipo usa a data da compra (não estende).
+assert.equal(kw.classificarKiwify(null, "paid"), "approved");
+assert.equal(kw.classificarKiwify(null, "refunded"), "revoked");
+
+assert.equal(kw.planoKiwify({ frequency: "monthly" }), "pro_mensal");
+assert.equal(kw.planoKiwify({ frequency: "yearly" }), "pro_anual");
+assert.equal(kw.planoKiwify({ planName: "Plano Anual" }), "pro_anual");
+assert.equal(kw.planoKiwify({ productId: "p1" }, '{"p1":"pro_anual"}'), "pro_anual");
+assert.equal(kw.planoKiwify({ productId: "p2" }, '{"p1":"pro_anual"}'), null);
+assert.equal(kw.planoKiwify({ productId: "p1" }, "lixo"), null);
+
+const conta = "c0ffee00-0000-4000-8000-000000000001";
+assert.equal(kw.contaDoSck({ tracking: { sck: conta.toUpperCase() } }), conta);
+for (const sck of [null, "", "abc", "1; drop table", undefined]) assert.equal(kw.contaDoSck({ tracking: { sck } }), null);
+assert.equal(kw.contaDoSck({}), null);
+
+const link = new URL(kw.kiwifyCheckoutUrl("pro_mensal", { id: conta, email: "a+b@c.com" }, '{"pro_mensal":"https://pay.kiwify.com.br/AbC123?coupon=X"}'));
+assert.equal(link.origin + link.pathname, "https://pay.kiwify.com.br/AbC123");
+assert.equal(link.searchParams.get("sck"), conta);
+assert.equal(link.searchParams.get("email"), "a+b@c.com");
+assert.equal(link.searchParams.get("coupon"), "X", "parâmetros do link original são mantidos");
+assert.equal(kw.kiwifyCheckoutUrl("pro_anual", { id: conta }, '{"pro_mensal":"https://x.y/z"}'), null);
+assert.equal(kw.kiwifyCheckoutUrl("pro_mensal", { id: conta }, "lixo"), null);
+
+assert.equal(kw.kiwifyWebhookKeyValida("x".repeat(40), "x".repeat(40)), true);
+assert.equal(kw.kiwifyWebhookKeyValida("y".repeat(40), "x".repeat(40)), false);
+assert.equal(kw.kiwifyWebhookKeyValida(null, "x".repeat(40)), false);
+assert.equal(kw.kiwifyWebhookKeyValida("curta", "curta"), false, "chave curta demais não vale");
+
+const limpo = kw.semDadosPessoais({ order_id: "o", Customer: { email: "a@b", CPF: "1" }, Subscription: { id: "s", plan: { frequency: "monthly" } }, card_last_digits: "1234", items: [{ customer_name: "x", sku: 1 }] });
+assert.deepEqual(limpo, { order_id: "o", Subscription: { id: "s", plan: { frequency: "monthly" } }, items: [{ sku: 1 }] });
+assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");

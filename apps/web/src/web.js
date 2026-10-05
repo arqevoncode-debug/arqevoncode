@@ -4,8 +4,9 @@ import { criarNuvem } from "./nuvem.js";
 
 // ARQEVON_BILLING é fixado no build (scripts/build.mjs). Desligado, o Pro aparece como "em breve":
 // o plano só é vendido quando a sincronização existir.
-/* global ARQEVON_BILLING */
+/* global ARQEVON_BILLING, ARQEVON_PAGAMENTO */
 const VENDER_PRO = ARQEVON_BILLING === true;
+const VIA_KIWIFY = ARQEVON_PAGAMENTO === "kiwify";
 const MODO_LOCAL = "arqevon-web-local"; // "Usar sem conta"
 const $ = id => document.getElementById(id);
 const raiz = document.documentElement;
@@ -221,6 +222,12 @@ $("wcSair").addEventListener("click", async () => {
 });
 
 // ---------- Assinar ----------
+// Na Kiwify o CPF é pedido na página de pagamento dela; só o Asaas precisa dele aqui.
+if (VIA_KIWIFY) {
+  $("wcCpfCampo").hidden = true;
+  $("wcCpf").required = false;
+  $("wcNotaPagamento").textContent = "O pagamento é feito no ambiente seguro da Kiwify. O cartão não passa pela Arqevon.";
+}
 $("wcCpf").addEventListener("input", e => {
   const d = e.target.value.replace(/\D/g, "").slice(0, 11);
   e.target.value = d.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
@@ -237,7 +244,7 @@ $("wcAssinar").addEventListener("submit", async e => {
     const r = await fetch(`${LICENSE_API}/api/v1/billing/checkout`, {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ plan: plano, cpf: $("wcCpf").value }),
+      body: JSON.stringify(VIA_KIWIFY ? { plan: plano } : { plan: plano, cpf: $("wcCpf").value }),
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.checkoutUrl) throw Object.assign(new Error(j.error || "Pagamento indisponível agora."), { visivel: true });

@@ -32,6 +32,9 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202610050002_billing.sql`: planos, assinaturas e direitos (`products`, `plans`,
      `plan_entitlements`, `subscriptions`, `entitlement_grants`, `payment_events`), a regra única
      `has_entitlement`, `my_entitlements` e as funções `billing_*`. `vault_entitled` passa a usá-la.
+   - `202610050003_list_plans.sql`: `list_plans`, o catálogo de planos para a interface.
+   - `202610050004_kiwify.sql`: Kiwify como gateway (`billing_apply_kiwify`,
+     `billing_find_user_by_email`).
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
@@ -137,6 +140,29 @@ Regras que vivem no banco, não no código:
 
 O ambiente do Asaas sai do prefixo da chave (`$aact_hmlg_` = sandbox). Ao trocar para a chave de
 produção, troque também `ASAAS_WEBHOOK_TOKEN` e recadastre o webhook na conta de produção.
+
+## Assinaturas (Kiwify)
+
+A Kiwify vende em nome próprio, então a cobrança não mostra nome, CPF nem endereço do dono, e
+ela aceita vendedor pessoa física. É o gateway enquanto não houver CNPJ (`BILLING_PROVIDER=kiwify`
+aqui e `ARQEVON_PAGAMENTO=kiwify` no build do app web). O Asaas continua pronto para depois.
+
+- **Checkout:** `POST /api/v1/billing/checkout` devolve o link do plano (`KIWIFY_CHECKOUT_URLS`)
+  com o id da conta em `sck` e o e-mail preenchido. Não cria nada no banco: a assinatura nasce no
+  pagamento.
+- **Webhook:** `POST /api/v1/webhooks/kiwify?key=KIWIFY_WEBHOOK_KEY`.
+  - A chave na URL autentica o aviso.
+  - O conteúdo do aviso **não** libera acesso: status, e-mail e `sck` são lidos da venda em
+    `GET /v1/sales/{order_id}`, na API da Kiwify.
+  - A conta vem do `sck`. Na falta dele, vem do e-mail **confirmado** do comprador. Um pagamento
+    sem conta fica em `payment_events` com `ignored_no_account`, para conferência manual.
+  - `billing_apply_kiwify` aplica o evento:
+    - compra aprovada: o período começa na data da compra;
+    - renovação: o período começa no dia do aviso;
+    - reembolso ou chargeback: revoga na hora;
+    - cancelamento ou atraso: não mexe em nada, e o acesso vale até o fim do período (mais a
+      carência de 5 dias).
+- O registro do aviso em `payment_events` sai **sem** dados do comprador (`semDadosPessoais`).
 
 ## Variáveis no Vercel
 

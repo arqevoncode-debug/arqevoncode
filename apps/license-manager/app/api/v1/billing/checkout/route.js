@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { bearerToken } from "@/lib/account-link";
 import { asaas, asaasCycle, hojeEmBrasilia, normalizeCpf } from "@/lib/billing";
+import { kiwifyCheckoutUrl } from "@/lib/kiwify";
 
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type,authorization", "access-control-allow-methods": "POST,OPTIONS" };
 export function OPTIONS() { return new NextResponse(null, { status: 204, headers: cors }); }
@@ -17,8 +18,10 @@ export async function POST(request) {
   let body;
   try { body = await request.json(); } catch { body = {}; }
   const planId = String(body?.plan ?? "");
+  // Na Kiwify o CPF é pedido pela própria página de pagamento; só o Asaas precisa dele aqui.
+  const viaKiwify = process.env.BILLING_PROVIDER === "kiwify";
   const cpf = normalizeCpf(body?.cpf);
-  if (!cpf) return json({ error: "Informe um CPF válido.", code: "CPF_INVALID" }, 400);
+  if (!viaKiwify && !cpf) return json({ error: "Informe um CPF válido.", code: "CPF_INVALID" }, 400);
 
   try {
     const db = supabaseAdmin();
@@ -30,6 +33,14 @@ export async function POST(request) {
     const { data: inicio, error: inicioError } = await db.rpc("billing_begin_checkout", { p_user_id: user.id, p_plan_id: planId });
     if (inicioError) throw inicioError;
     if (!inicio?.ok) return json({ error: inicio.message, code: inicio.code }, inicio.code === "PLAN_INVALID" ? 400 : 409);
+
+    // Kiwify: a assinatura nasce no pagamento (webhook). Aqui só entregamos o link do plano com
+    // o id da conta em sck, para o pagamento voltar vinculado a ela.
+    if (viaKiwify) {
+      const checkoutUrl = kiwifyCheckoutUrl(planId, user);
+      if (!checkoutUrl) return json({ error: "Plano indisponível.", code: "PLAN_INVALID" }, 400);
+      return json({ ok: true, checkoutUrl });
+    }
 
     // Checkout já aberto para o mesmo plano: devolve o mesmo link em vez de gerar outra cobrança.
     if (inicio.subscription_id && inicio.checkout_url) return json({ ok: true, checkoutUrl: inicio.checkout_url });
