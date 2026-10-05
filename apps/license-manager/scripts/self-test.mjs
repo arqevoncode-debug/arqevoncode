@@ -199,4 +199,16 @@ const limpo = kw.semDadosPessoais({ order_id: "o", Customer: { email: "a@b", CPF
 assert.deepEqual(limpo, { order_id: "o", Subscription: { id: "s", plan: { frequency: "monthly" } }, items: [{ sku: 1 }] });
 assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
 
+// Erro devolvido com status 200 precisa virar exceção (500 no webhook, e a Kiwify reenvia).
+{
+  const fetchOriginal = globalThis.fetch;
+  Object.assign(process.env, { KIWIFY_CLIENT_ID: "id", KIWIFY_CLIENT_SECRET: "segredo", KIWIFY_ACCOUNT_ID: "conta" });
+  const respostas = { "/oauth/token": { access_token: "t", expires_in: 86400 }, "/sales/ok": { id: "ok", status: "paid" }, "/sales/erro": { error: "TypeError: x" } };
+  globalThis.fetch = async url => new Response(JSON.stringify(respostas[new URL(url).pathname.replace("/v1", "")]), { status: 200 });
+  try {
+    assert.equal((await kw.kiwify("/sales/ok")).status, "paid");
+    await assert.rejects(() => kw.kiwify("/sales/erro"), /TypeError: x/);
+  } finally { globalThis.fetch = fetchOriginal; }
+}
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");
