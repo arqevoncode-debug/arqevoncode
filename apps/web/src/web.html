@@ -1,0 +1,82 @@
+<div id="webLogin" class="wl">
+  <section class="wl-marca" aria-hidden="true">
+    <div class="wl-marca-topo">
+      <span class="wl-logo"><svg viewBox="0 0 32 32" fill="none"><path d="M7 24V19M13 24V15M19 24V11" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><path d="m7 14 6-5 5 3 7-7" stroke="#3fe7c0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 5h4v4" stroke="#3fe7c0" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      <strong>Arqevon Finance</strong>
+    </div>
+    <h2>Clareza para decidir.<br>Controle para evoluir.</h2>
+    <ul>
+      <li>Receitas, despesas, parcelas e objetivos em um só lugar</li>
+      <li>Seus dados protegidos por senha, no seu aparelho</li>
+      <li>Grátis para usar, sem instalar nada</li>
+    </ul>
+  </section>
+
+  <section class="wl-form">
+    <div class="wl-caixa">
+      <p class="wl-demo" id="wlAviso" hidden></p>
+
+      <form id="wlPasso1">
+        <h1>Entrar</h1>
+        <p class="wl-sub">Enviaremos um código de acesso para o seu e-mail. Sem senha para decorar.</p>
+        <label class="wl-campo"><span>E-mail</span>
+          <input id="wlEmail" type="email" autocomplete="email" placeholder="voce@email.com" required>
+        </label>
+        <p class="wl-erro" id="wlErro1" hidden></p>
+        <button class="wl-botao" type="submit" id="wlEnviar">Receber código</button>
+      </form>
+
+      <form id="wlPasso2" hidden>
+        <h1>Digite o código</h1>
+        <p class="wl-sub">Enviado para <b id="wlEmailMostra"></b>. Confira também o spam.</p>
+        <label class="wl-campo"><span>Código de 6 dígitos</span>
+          <input id="wlCodigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+        </label>
+        <p class="wl-erro" id="wlErro" hidden></p>
+        <button class="wl-botao" type="submit" id="wlEntrar">Entrar</button>
+        <button class="wl-link" type="button" id="wlVoltar">Usar outro e-mail</button>
+      </form>
+
+      <div class="wl-ou"><span>ou</span></div>
+      <button class="wl-secundario" type="button" id="wlLocal">Usar sem conta</button>
+      <p class="wl-nota">Sem conta, os dados ficam só neste navegador.</p>
+    </div>
+  </section>
+</div>
+
+<dialog id="webConta" class="wc">
+  <h2>Sua conta</h2>
+  <p class="wc-email" id="wcEmail"></p>
+  <div class="wc-planos">
+    <div class="wc-plano" id="wcGratis">
+      <span class="wc-rotulo">GRÁTIS</span>
+      <strong>R$ 0</strong>
+      <span>Todas as funções. Dados só neste aparelho.</span>
+    </div>
+    <div class="wc-plano wc-pro" id="wcPro">
+      <span class="wc-rotulo">PRO</span>
+      <strong id="wcProPreco">—</strong>
+      <span>Qualquer aparelho, sincronização e backup na nuvem criptografado.</span>
+      <span class="wc-status" id="wcProStatus" hidden></span>
+    </div>
+  </div>
+
+  <form id="wcAssinar" class="wc-assinar" hidden>
+    <fieldset class="wc-ciclos">
+      <legend>Como prefere pagar?</legend>
+      <div id="wcCiclos"></div>
+    </fieldset>
+    <label class="wl-campo"><span>CPF do titular (exigido para emitir a cobrança)</span>
+      <input id="wcCpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" required>
+    </label>
+    <p class="wl-erro" id="wcErro" hidden></p>
+    <button class="wl-botao" type="submit" id="wcIrPagar">Ir para o pagamento</button>
+    <p class="wl-nota">O pagamento é feito no ambiente seguro do Asaas. O cartão não passa pela Arqevon.</p>
+  </form>
+  <p class="wc-breve" id="wcBreve" hidden>O plano Pro, com acesso em qualquer aparelho, está chegando. Avisaremos você por e-mail.</p>
+
+  <div class="wc-acoes">
+    <button class="botao cancelar" type="button" id="wcFechar">Fechar</button>
+    <button class="botao" type="button" id="wcSair">Sair</button>
+  </div>
+</dialog>

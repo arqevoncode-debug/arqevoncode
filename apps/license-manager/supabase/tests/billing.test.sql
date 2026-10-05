@@ -136,3 +136,11 @@ select teste.ok((public.billing_begin_checkout('c0000000-0000-4000-8000-00000000
 reset role;
 
 \echo 'billing: todos os testes passaram'
+
+-- ---------- Preços públicos ----------
+set role anon;
+select teste.ok(jsonb_array_length(public.list_plans()) = 2, 'anon vê os 2 planos pagos');
+select teste.ok(public.list_plans()->0->>'id' = 'pro_mensal', 'mais barato primeiro');
+select teste.ok(not (public.list_plans()::text like '%free%'), 'grátis não aparece como plano pago');
+reset role;
+\echo 'list_plans: todos os testes passaram'

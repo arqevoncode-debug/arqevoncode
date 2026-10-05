@@ -10,6 +10,7 @@ conhecidas, ordem correta das operações e decisões cujo motivo não está ób
 | `apps/site` | Landing page e downloads | Vercel, projeto `arqevon-code` |
 | `apps/license-manager` | Painel e API de licenças | Vercel, projeto `myfinance-license-manager` |
 | `apps/finance-desktop` | Aplicativo Tauri | instalador gerado pela tag `v*` |
+| `apps/web` | Finance no navegador (login, conta, assinatura) | Vercel, projeto `arqevon-app` → app.arqevoncode.com.br |
 
 Cada app é autocontido, com o próprio `package-lock.json`. Não há workspace na raiz — a raiz do
 repositório **não** tem `package.json`.
@@ -18,6 +19,7 @@ repositório **não** tem `package.json`.
 cd apps/site            && npm ci && npm run lint && npm test
 cd apps/license-manager  && npm ci && npm run build && npm test
 cd apps/finance-desktop  && npm ci && npm test          # test já roda build:web
+cd apps/web              && npm ci && npm run dev         # http://localhost:4300
 ```
 
 `apps/finance-desktop` precisa de Rust apenas para `npm run dev` e `npm run build` (Tauri). Os
@@ -36,6 +38,14 @@ decide assinar pela presença de `APPLE_CERTIFICATE`, não pelo conteúdo, e abo
 tentar importar um certificado vazio. Por isso `build-desktop.yml` injeta as credenciais via
 `GITHUB_ENV` em um passo condicional, e o passo de compilação não declara nenhuma variável da Apple.
 Vale para qualquer credencial nova.
+
+**Depois de aplicar uma migração, recarregue o cache da API:** `notify pgrst, 'reload schema';`.
+Sem isso, uma função nova responde PGRST202 ("não encontrada") pelo REST mesmo existindo no banco.
+
+**O app web não copia o motor.** `apps/web/scripts/build.mjs` lê `apps/finance-desktop/meu-financeiro.html`
+e injeta login e layout. Mudou o motor, mudam desktop e web juntos. O motor só abre o convite de
+criptografia quando a classe `desktop-bloqueado` sai do `<html>`: o login web usa esse mesmo sinal.
+`ARQEVON_BILLING=1` no build liga a venda do Pro; sem ela o Pro aparece como "chegando".
 
 **As migrações do Supabase são aplicadas à mão.** Não há passo automático no deploy. Aplique a
 migração **antes** de subir código que dependa dela, e mantenha a lista no README do license-manager

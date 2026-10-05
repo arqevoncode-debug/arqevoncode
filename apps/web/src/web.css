@@ -1,0 +1,109 @@
+/* ---------- Base web ---------- */
+body { font-family: Geist, -apple-system, "Segoe UI", system-ui, sans-serif; }
+html.web-bloqueado body { overflow: hidden; }
+html.web-bloqueado .app { visibility: hidden; }
+
+/* ---------- Login ---------- */
+.wl { position: fixed; inset: 0; z-index: 6000; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); background: var(--page); color: var(--ink); overflow-y: auto; }
+.wl[hidden] { display: none; }
+.wl-marca { position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 64px clamp(32px, 6vw, 96px); color: #f5f7fb;
+  background: radial-gradient(700px 480px at 85% 10%, rgba(82,109,255,.35), transparent 60%), radial-gradient(600px 420px at 10% 90%, rgba(63,231,192,.18), transparent 62%), #07111f; }
+.wl-marca::before { content: ""; position: absolute; inset: 0; opacity: .25; pointer-events: none;
+  background-image: linear-gradient(rgba(151,174,205,.14) 1px, transparent 1px), linear-gradient(90deg, rgba(151,174,205,.14) 1px, transparent 1px); background-size: 56px 56px; }
+.wl-marca > * { position: relative; }
+.wl-marca-topo { display: flex; align-items: center; gap: 12px; font-size: 17px; }
+.wl-logo { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; background: #0a1628; border: 1px solid rgba(63,231,192,.4); box-shadow: 0 8px 24px rgba(63,231,192,.2); }
+.wl-logo svg { width: 28px; height: 28px; }
+.wl-marca h2 { margin: 0; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.1; letter-spacing: -.03em; font-weight: 800; }
+.wl-marca ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; color: #b6c2d4; font-size: 15px; }
+.wl-marca li { display: flex; gap: 12px; align-items: flex-start; }
+.wl-marca li::before { content: ""; flex: none; width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: #3fe7c0; }
+
+.wl-form { display: grid; place-items: center; padding: 48px 24px; }
+.wl-caixa { width: min(400px, 100%); display: grid; gap: 14px; }
+.wl-caixa h1 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
+.wl-sub { margin: -6px 0 6px; color: var(--muted); font-size: 14px; }
+.wl-caixa form { display: grid; gap: 14px; }
+.wl-campo { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.wl-campo input { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; min-height: 48px; }
+#wlCodigo { letter-spacing: .5em; font-size: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.wl-botao, .wl-secundario { font: inherit; font-size: 15px; font-weight: 700; min-height: 48px; border-radius: 12px; cursor: pointer; }
+.wl-botao { border: 0; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent); }
+.wl-botao:hover { filter: brightness(1.06); }
+.wl-secundario { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+.wl-secundario:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+.wl-link { border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; min-height: 40px; }
+.wl-ou { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12px; }
+.wl-ou::before, .wl-ou::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.wl-nota { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--muted); }
+.wl-demo { margin: 0 0 8px; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.wl-erro { margin: 0; color: var(--bad); background: var(--bad-bg); padding: 9px 11px; border-radius: 9px; font-size: 13px; }
+@media (max-width: 860px) {
+  .wl { grid-template-columns: 1fr; align-content: start; }
+  .wl-marca { padding: 40px 24px 32px; gap: 18px; }
+  .wl-marca h2 { font-size: 28px; }
+  .wl-marca ul { display: none; }
+}
+
+/* ---------- Layout com menu lateral ---------- */
+.web-lateral { display: none; }
+@media (min-width: 961px) {
+  .app.web-shell { max-width: none; margin: 0; padding: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); column-gap: 0; min-height: 100vh; align-content: start; }
+  .web-shell > :not(.web-lateral) { grid-column: 2; width: min(1160px, 100% - 80px); justify-self: center; }
+  .web-shell > header.topo { padding-top: 28px; }
+  .web-shell header.topo .marca { visibility: hidden; }
+  .web-lateral { display: flex; flex-direction: column; gap: 28px; grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; height: 100vh; box-sizing: border-box; padding: 26px 16px; background: var(--surface); border-right: 1px solid var(--border); }
+  .web-lateral .web-marca { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+  .web-lateral .web-marca .logo { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; background: #0a1628; border: 1px solid rgba(63,231,192,.4); }
+  .web-lateral .web-marca .logo svg { width: 24px; height: 24px; }
+  .web-lateral .web-marca strong { font-size: 16px; letter-spacing: -.01em; }
+  .web-lateral nav.abas { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .web-lateral nav.abas button { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 12px; text-align: left; font-size: 14.5px; color: var(--ink-2); }
+  .web-lateral nav.abas button:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .web-lateral nav.abas button.ativa { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--ink); box-shadow: none; font-weight: 700; }
+  .web-lateral nav.abas button.ativa svg { color: var(--accent); }
+}
+nav.abas button svg { width: 19px; height: 19px; flex: none; stroke: currentColor; }
+.web-cartao { margin-top: auto; display: grid; gap: 10px; padding: 16px; border-radius: 14px; background: var(--page); border: 1px solid var(--border); }
+.web-cartao .web-quem { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.web-cartao .web-plano { font-size: 12px; color: var(--muted); }
+.web-cartao button { font: inherit; font-size: 13px; font-weight: 700; min-height: 40px; border-radius: 10px; border: 0; cursor: pointer; color: #fff; background: var(--accent); }
+.web-conta-topo { display: none; }
+
+/* ---------- Celular: barra de abas embaixo ---------- */
+@media (max-width: 960px) {
+  body { padding-bottom: 86px; }
+  .web-shell nav.abas { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border: 0; border-top: 1px solid var(--border); box-shadow: 0 -8px 24px rgba(0,0,0,.12); }
+  .web-shell nav.abas button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; min-height: 52px; font-size: 11.5px; border-radius: 12px; }
+  .web-shell nav.abas button.ativa { background: none; color: var(--accent); box-shadow: none; }
+  .web-conta-topo { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); }
+  .web-conta-topo svg { width: 19px; height: 19px; stroke: currentColor; }
+  .web-shell header.topo .marca .sub { display: none; }
+  .web-shell header.topo .marca h1 { font-size: 18px; }
+}
+
+/* ---------- Janela da conta ---------- */
+dialog.wc { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--ink); padding: 26px; width: min(560px, calc(100vw - 32px)); box-shadow: 0 24px 70px rgba(0,0,0,.3); }
+dialog.wc::backdrop { background: rgba(0,0,0,.5); backdrop-filter: blur(3px); }
+dialog.wc h2 { margin: 0; font-size: 22px; }
+.wc-email { margin: 4px 0 18px; color: var(--muted); font-size: 14px; }
+.wc-planos { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.wc-plano { display: grid; gap: 6px; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--page); font-size: 13px; color: var(--ink-2); }
+.wc-plano strong { font-size: 20px; color: var(--ink); }
+.wc-pro { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: color-mix(in srgb, var(--accent) 8%, var(--page)); }
+.wc-atual { box-shadow: inset 0 0 0 2px var(--accent-2); }
+.wc-rotulo { font-size: 11px; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
+.wc-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* ---------- Assinatura ---------- */
+.wc-plano strong small { font-size: 13px; color: var(--muted); font-weight: 500; }
+.wc-status { margin-top: 4px; font-size: 12px; font-weight: 700; color: var(--accent-2); }
+.wc-assinar { display: grid; gap: 14px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--border); }
+.wc-ciclos { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wc-ciclos legend { font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 8px; }
+.wc-ciclos > div { display: grid; gap: 8px; }
+.wc-ciclo { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; font-size: 14px; color: var(--ink-2); }
+.wc-ciclo:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--ink); }
+.wc-ciclo input { accent-color: var(--accent); width: 18px; height: 18px; }
+.wc-breve { margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.wl-botao:disabled { opacity: .7; cursor: progress; }
