@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { parseAsaasEvent, webhookTokenValido } from "@/lib/billing";
+import { asaas, parseAsaasEvent, webhookTokenValido } from "@/lib/billing";
 
 // Avisos de pagamento do Asaas. A autenticidade vem do token configurado no painel do Asaas, que
 // chega no cabeçalho asaas-access-token. Toda a regra (idempotência, período, carência) vive em
@@ -25,6 +25,14 @@ export async function POST(request) {
       p_payload: body,
     });
     if (error) throw error;
+
+    // Estornar uma cobrança no Asaas não encerra a assinatura lá: sem isto, o cartão seria cobrado
+    // de novo no mês seguinte. A falha aqui não devolve 500, porque o evento já foi aplicado e uma
+    // repetição seria descartada como duplicada; fica no log para cancelar à mão.
+    if (data?.outcome === "revoked" && evento.subscriptionId) {
+      await asaas(`/subscriptions/${evento.subscriptionId}`, { method: "DELETE" })
+        .catch(e => console.error("webhook asaas: cancelar assinatura estornada", evento.subscriptionId, e.message));
+    }
     return NextResponse.json({ ok: true, outcome: data?.outcome });
   } catch (error) {
     // 500 faz o Asaas tentar de novo; o evento não se perde por uma falha momentânea do banco.
