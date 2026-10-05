@@ -110,12 +110,12 @@
       <legend>Como prefere pagar?</legend>
       <div id="wcCiclos"></div>
     </fieldset>
-    <label class="wl-campo"><span>CPF do titular (exigido para emitir a cobrança)</span>
+    <label class="wl-campo" id="wcCpfCampo"><span>CPF do titular (exigido para emitir a cobrança)</span>
       <input id="wcCpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" required>
     </label>
     <p class="wl-erro" id="wcErro" hidden></p>
     <button class="wl-botao" type="submit" id="wcIrPagar">Ir para o pagamento</button>
-    <p class="wl-nota">O pagamento é feito no ambiente seguro do Asaas. O cartão não passa pela Arqevon.</p>
+    <p class="wl-nota" id="wcNotaPagamento">O pagamento é feito no ambiente seguro do Asaas. O cartão não passa pela Arqevon.</p>
   </form>
   <p class="wc-breve" id="wcBreve" hidden>O plano Pro, com acesso em qualquer aparelho, está chegando. Avisaremos você por e-mail.</p>
 

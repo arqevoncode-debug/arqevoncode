@@ -24,6 +24,7 @@ html.web-bloqueado .app { visibility: hidden; }
 .wl-caixa h1 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
 .wl-sub { margin: -6px 0 6px; color: var(--muted); font-size: 14px; }
 .wl-caixa form { display: grid; gap: 14px; }
+.wl-campo[hidden] { display: none; }
 .wl-campo { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .wl-campo input { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 13px 14px; min-height: 48px; }
 #wlCodigo { letter-spacing: .5em; font-size: 20px; text-align: center; font-variant-numeric: tabular-nums; }

@@ -10,6 +10,10 @@ const output = resolve(root, "dist");
 
 // ARQEVON_BILLING=1 libera a venda do Pro na interface. Fica desligado até a sincronização existir.
 const venderPro = process.env.ARQEVON_BILLING === "1";
+// Gateway da venda: "kiwify" (padrão; dispensa CNPJ e não expõe os dados do dono) ou "asaas".
+// Precisa bater com BILLING_PROVIDER do license-manager: o Asaas exige o CPF digitado aqui.
+const pagamento = process.env.ARQEVON_PAGAMENTO || "kiwify";
+if (!["kiwify", "asaas"].includes(pagamento)) throw new Error(`ARQEVON_PAGAMENTO inválido: ${pagamento}`);
 
 let html = await readFile(motor, "utf8");
 const css = await readFile(resolve(root, "src/web.css"), "utf8");
@@ -20,7 +24,7 @@ const markup = await readFile(resolve(root, "src/web.html"), "utf8");
 const bundle = await build({
   entryPoints: [resolve(root, "src/web.js")],
   bundle: true, format: "esm", target: "es2022", minify: true, write: false, legalComments: "none",
-  define: { ARQEVON_BILLING: venderPro ? "true" : "false" },
+  define: { ARQEVON_BILLING: venderPro ? "true" : "false", ARQEVON_PAGAMENTO: JSON.stringify(pagamento) },
 });
 const js = bundle.outputFiles[0].text.replaceAll("</script", "<\\/script");
 
@@ -39,4 +43,4 @@ html = html.replace("</body>", `<style id="web-style">\n${css}\n</style>\n${mark
 
 await mkdir(output, { recursive: true });
 await writeFile(resolve(output, "index.html"), html);
-console.log(`dist/index.html gerado (venda do Pro ${venderPro ? "LIGADA" : "desligada"}).`);
+console.log(`dist/index.html gerado (venda do Pro ${venderPro ? `LIGADA via ${pagamento}` : "desligada"}).`);
