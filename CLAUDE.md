@@ -63,6 +63,11 @@ do site não tem variáveis de ambiente. Ao mudar o domínio do license-manager,
 Developer ID o cliente baixaria algo que não abre. Um teste reprova o CI se algum `href` voltar a
 apontar para o `.dmg`. Restaure o botão somente quando houver instalador assinado.
 
+**O Supabase grátis pausa sozinho.** Em 2026-10-05 o projeto estava `INACTIVE`, com ativações e
+pedidos de licença fora do ar, sem que ninguém percebesse. O `keep-alive.yml` faz uma chamada diária
+a `/api/health` para evitar isso. Para reativar o projeto, use `POST /v1/projects/{ref}/restore`
+(leva uns 5 minutos). Produção roda **Postgres 17**, e o CI testa as migrações nessa mesma versão.
+
 ## Como o licenciamento se sustenta
 
 A chave privada Ed25519 existe **somente** no ambiente do license-manager. O desktop carrega apenas
