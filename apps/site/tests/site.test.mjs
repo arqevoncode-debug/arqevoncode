@@ -72,3 +72,21 @@ test("mantém a rota curta apontando para projetos", async () => {
   assert.match(route, /\/#projetos/);
   assert.match(route, /302/);
 });
+
+// A venda do Pro depende destes documentos (LGPD e CDC): o rodapé precisa levar a eles.
+test("publica Termos de Uso e Política de Privacidade com contato", async () => {
+  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const termos = await readFile(new URL("app/termos/page.tsx", root), "utf8");
+  const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
+  const layout = await readFile(new URL("app/legal-layout.tsx", root), "utf8");
+
+  assert.match(page, /href="\/termos"/);
+  assert.match(page, /href="\/privacidade"/);
+  assert.match(layout, /CONTATO = "[^"]+@[^"]+"/);
+  assert.match(termos, /art\. 49/, "direito de arrependimento");
+  assert.match(termos, /chave de recuperação/);
+  assert.match(privacidade, /art\. 18/, "direitos do titular");
+  for (const fornecedor of ["Supabase", "Vercel", "Resend", "Kiwify", "GitHub", "Google Fonts"]) {
+    assert.match(privacidade, new RegExp(fornecedor), `fornecedor ausente: ${fornecedor}`);
+  }
+});

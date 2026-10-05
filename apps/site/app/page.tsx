@@ -195,6 +195,10 @@ export default function Home() {
           <span><strong>Arqevon</strong> Finance</span>
         </a>
         <p>Arqevon Finance é um produto da Arqevon Code.</p>
+        <nav className="lp-rodape-links" aria-label="Documentos legais">
+          <a href="/termos">Termos de Uso</a>
+          <a href="/privacidade">Política de Privacidade</a>
+        </nav>
         <small>© {new Date().getFullYear()} Arqevon Code.</small>
       </footer>
     </main>

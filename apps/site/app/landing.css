@@ -100,6 +100,9 @@
 
 .lp-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; padding: 48px 0; margin-top: 64px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 .lp-rodape small { margin-left: auto; }
+.lp-rodape-links { display: flex; gap: 20px; }
+.lp-rodape-links a { color: var(--ink-2); }
+.lp-rodape-links a:hover { color: var(--ink); }
 
 /* Responsivo */
 @media (max-width: 960px) {
