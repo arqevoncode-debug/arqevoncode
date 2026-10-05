@@ -273,4 +273,28 @@ assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
   assert.equal(montarEncaminhamento({ from: "a@b.c", to: [] }, [], "d@x").subject, "[Contato] (sem assunto)");
 }
 
+// ---------- Pedido de orçamento ----------
+{
+  const { normalizeQuoteRequest, montarAvisoOrcamento } = await import("../lib/quote-requests.js");
+  const base = { name: "  Ana  ", email: " Ana@Empresa.COM ", description: "  Preciso de um painel de pedidos para a loja.  ", projectType: "web", budget: "5k_15k", phone: " ", company: "ACME" };
+  const ok = normalizeQuoteRequest(base);
+  assert.equal(ok.ok, true);
+  assert.deepEqual(ok.value, { name: "Ana", email: "ana@empresa.com", description: "Preciso de um painel de pedidos para a loja.", phone: null, company: "ACME", projectType: "web", budget: "5k_15k" });
+  // Valores fora da lista caem no padrão em vez de violar a check constraint.
+  assert.equal(normalizeQuoteRequest({ ...base, projectType: "nave" }).value.projectType, "outro");
+  assert.equal(normalizeQuoteRequest({ ...base, budget: "1 milhão" }).value.budget, null);
+  assert.equal(normalizeQuoteRequest({ ...base, projectType: "toString" }).value.projectType, "outro", "propriedade herdada não vale como tipo");
+  assert.equal(normalizeQuoteRequest({ ...base, name: "A" }).ok, false);
+  assert.equal(normalizeQuoteRequest({ ...base, email: "sem-arroba" }).ok, false);
+  assert.equal(normalizeQuoteRequest({ ...base, description: "curto" }).ok, false);
+  assert.equal(normalizeQuoteRequest({ ...base, description: "x".repeat(3001) }).ok, false);
+  assert.equal(normalizeQuoteRequest({}).ok, false);
+
+  const aviso = montarAvisoOrcamento({ ...ok.value, description: "<b>oi</b> quero um app" });
+  assert.equal(aviso.replyTo, "ana@empresa.com", "responder vai para o cliente");
+  assert.match(aviso.assunto, /Sistema web ou painel — Ana/);
+  assert.match(aviso.texto, /R\$ 5 mil a R\$ 15 mil/);
+  assert.ok(!aviso.html.includes("<b>oi</b>") && aviso.html.includes("&lt;b&gt;oi"), "descrição escapada");
+}
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");

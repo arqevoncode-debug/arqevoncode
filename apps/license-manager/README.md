@@ -38,6 +38,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202610050005_kiwify_soma_periodo.sql`: compra nova com período em vigor soma, em vez de
      recomeçar (anual de valor fixo renovado antes de vencer).
    - `202610050006_alerta_reembolso.sql`: `payment_events.alert_sent_at`.
+   - `202610050007_quote_requests.sql`: pedidos de orçamento (`quote_requests`, `request_quote`).
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres
@@ -99,6 +100,15 @@ aceita textos próprios com **SMTP próprio** configurado. Até lá vale o model
 com link em vez de código, e o envio é restrito a membros da equipe, com cerca de 2 por hora.
 **Não abra o cadastro para clientes antes de configurar o SMTP (Resend)** e aplicar esse arquivo
 via `PATCH /v1/projects/{ref}/config/auth` da Management API.
+
+## Pedidos de orçamento
+
+`POST /api/v1/quote-requests` recebe o formulário "sob encomenda" do site: nome, e-mail, telefone e
+empresa (opcionais), tipo de projeto, faixa de orçamento e descrição.
+- O pedido é gravado em `quote_requests` por `request_quote`, que limita 3 pedidos por origem
+  (HMAC do IP) e 50 no total por hora.
+- Em seguida, um e-mail vai para `ALERTA_EMAIL`, com `reply_to` do cliente. Se o e-mail falhar, o
+  pedido continua gravado e o cliente vê a confirmação.
 
 ## E-mail de contato
 

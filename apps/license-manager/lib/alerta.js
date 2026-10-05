@@ -30,12 +30,12 @@ export function montarAlertaReembolso({ pedido, assinatura, plano, comprador, mo
 }
 
 /** Envia pelo Resend. Lança erro em qualquer falha, para o webhook pedir nova entrega. */
-export async function enviarAlerta({ assunto, texto, html }, { apiKey = process.env.RESEND_API_KEY, para = process.env.ALERTA_EMAIL } = {}) {
+export async function enviarAlerta({ assunto, texto, html, replyTo }, { apiKey = process.env.RESEND_API_KEY, para = process.env.ALERTA_EMAIL } = {}) {
   if (!apiKey || !para) throw new Error("RESEND_API_KEY ou ALERTA_EMAIL não configurados.");
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-    body: JSON.stringify({ from: "Arqevon Alertas <nao-responda@arqevoncode.com.br>", to: [para], subject: assunto, text: texto, html }),
+    body: JSON.stringify({ from: "Arqevon Alertas <nao-responda@arqevoncode.com.br>", to: [para], subject: assunto, text: texto, html, ...(replyTo ? { reply_to: [replyTo] } : {}) }),
     cache: "no-store",
   });
   const data = await response.json().catch(() => ({}));
