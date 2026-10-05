@@ -1,5 +1,6 @@
 import Image from "next/image";
 import DownloadWindows from "./download-windows";
+import "./landing.css";
 
 const windowsDownloadPath =
   "/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe";
@@ -7,279 +8,193 @@ const windowsDownloadPath =
 // oferecido na página: sem certificado Developer ID o macOS o recusa como danificado.
 // Ao publicar um instalador assinado, restaure o botão e aponte para o arquivo novo.
 
-const financeFeatures = [
-  "Receitas, despesas e parcelas em um só lugar",
-  "Projeções e objetivos financeiros",
-  "Dados armazenados no próprio dispositivo",
-  "Backup protegido para levar seus dados",
+// Endereço do sistema web. Em teste local: NEXT_PUBLIC_APP_URL=http://localhost:4300
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.arqevoncode.com.br";
+
+const recursos = [
+  { titulo: "Fixos, avulsos e parcelados", texto: "Salário, aluguel, mercado e a parcela 4 de 12 do cartão entram na mesma lista. As contas do mês se montam sozinhas." },
+  { titulo: "Gastos por categoria", texto: "Veja para onde o dinheiro foi: moradia, alimentação, transporte e o que mais você usar." },
+  { titulo: "Projeção dos próximos meses", texto: "Fixos, parcelas que ainda vão cair e a média dos gastos variáveis, somados para os próximos 6 meses." },
+  { titulo: "Quanto da renda já está comprometido", texto: "Fixos e parcelas somados, em reais e em porcentagem da sua renda." },
+  { titulo: "Objetivos com aportes", texto: "Reserva de emergência, viagem ou um notebook novo: acompanhe quanto falta para cada meta." },
+  { titulo: "Backup protegido por senha", texto: "Exporte seus dados em um arquivo criptografado e leve para outro computador quando quiser." },
 ];
 
-const principles = [
-  {
-    number: "01",
-    title: "Direto ao ponto",
-    text: "Interfaces claras, poucos passos e recursos que resolvem problemas reais.",
-  },
-  {
-    number: "02",
-    title: "Privacidade primeiro",
-    text: "Quando o produto permite, seus dados permanecem no seu dispositivo.",
-  },
-  {
-    number: "03",
-    title: "Feito para evoluir",
-    text: "Produtos independentes, atualizáveis e preparados para crescer com você.",
-  },
+const passos = [
+  { n: "1", titulo: "Crie sua conta", texto: "Só o e-mail. Você recebe um código de acesso, sem senha para decorar." },
+  { n: "2", titulo: "Lance o que entra e sai", texto: "Renda, contas fixas, gastos do dia a dia e compras parceladas." },
+  { n: "3", titulo: "Decida com clareza", texto: "Saldo do mês, gastos por categoria e a projeção dos próximos meses na mesma tela." },
 ];
 
 export default function Home() {
   return (
-    <main>
-      <header className="site-header">
-        <a className="brand" href="#inicio" aria-label="Arqevon Code — início">
-          <Image src="/simbolo-arqevon.svg" alt="" width={48} height={48} />
-          <span>
-            <strong>ARQEVON</strong>
-            <em>CODE</em>
-          </span>
+    <main className="lp">
+      <header className="lp-header">
+        <a className="lp-marca" href="#inicio" aria-label="Arqevon Finance — início">
+          <Image src="/simbolo-arqevon.svg" alt="" width={36} height={36} />
+          <span><strong>Arqevon</strong> Finance</span>
         </a>
         <nav aria-label="Navegação principal">
-          <a href="#projetos">Projetos</a>
-          <a href="#diferenciais">Como construímos</a>
-          <a href="#sobre">Sobre</a>
+          <a href="#recursos">Recursos</a>
+          <a href="#privacidade">Privacidade</a>
+          <a href="#planos">Planos</a>
+          <a href="#perguntas">Dúvidas</a>
         </nav>
-        <a className="header-cta" href="#finance">
-          Conhecer produtos <span aria-hidden="true">↗</span>
-        </a>
+        <div className="lp-header-acoes">
+          <a className="lp-entrar" href={APP_URL}>Entrar</a>
+          <a className="lp-botao" href={APP_URL}>Começar grátis</a>
+        </div>
       </header>
 
-      <section className="hero" id="inicio">
-        <div className="hero-copy">
-          <p className="eyebrow"><span /> SOFTWARE PRÁTICO. IMPACTO REAL.</p>
-          <h1>
-            Sistemas construídos
-            <br /> para <span>evoluir.</span>
-          </h1>
-          <p className="hero-lead">
-            Criamos produtos digitais próprios para transformar tarefas complexas
-            em experiências simples, seguras e agradáveis de usar.
+      <section className="lp-hero" id="inicio">
+        <div className="lp-hero-texto">
+          <p className="lp-selo"><i /> Finanças pessoais, sem planilha</p>
+          <h1>Suas contas do mês,{" "}<br /><span>claras em uma tela.</span></h1>
+          <p className="lp-lead">
+            O Arqevon Finance organiza receitas, contas fixas e parcelas do cartão e mostra
+            quanto sobra, para onde o dinheiro vai e como ficam os próximos meses.
           </p>
-          <div className="hero-actions">
-            <a className="button primary" href="#projetos">
-              Explorar projetos <span aria-hidden="true">↓</span>
-            </a>
-            <a
-              className="button secondary"
-              href="#finance"
-            >
-              Ver Arqevon Finance <span aria-hidden="true">↗</span>
-            </a>
+          <div className="lp-hero-acoes">
+            <a className="lp-botao grande" href={APP_URL}>Começar grátis</a>
+            <a className="lp-botao-sec grande" href="#como-funciona">Ver como funciona</a>
           </div>
-          <div className="hero-notes" aria-label="Características da Arqevon Code">
-            <span>Produtos próprios</span>
-            <span>Experiência simples</span>
-            <span>Suporte próximo</span>
-          </div>
+          <p className="lp-hero-nota">Grátis para usar. Funciona no navegador, sem instalar nada.</p>
         </div>
-
-        <div className="hero-system" aria-label="Ecossistema de produtos Arqevon Code">
-          <div className="system-orbit orbit-one" />
-          <div className="system-orbit orbit-two" />
-          <div className="system-label label-top">ECOSSISTEMA ARQEVON</div>
-          <div className="system-card card-finance">
-            <span className="system-index">01</span>
-            <div className="finance-glyph" aria-hidden="true">
-              <i /><i /><i />
-            </div>
-            <div><strong>Finance</strong><small>Controle financeiro</small></div>
-          </div>
-          <div className="system-card card-license">
-            <span className="system-index">02</span>
-            <div className="license-glyph" aria-hidden="true">◇</div>
-            <div><strong>Licenças</strong><small>Ativação segura</small></div>
-          </div>
-          <div className="system-card card-next">
-            <span className="system-index">03</span>
-            <div className="next-glyph" aria-hidden="true">+</div>
-            <div><strong>Próximo sistema</strong><small>Em desenvolvimento</small></div>
-          </div>
-          <div className="system-core">
-            <Image src="/simbolo-arqevon.svg" alt="" width={96} height={96} />
+        <div className="lp-hero-tela">
+          <div className="lp-janela">
+            <div className="lp-janela-barra"><i /><i /><i /><span>app.arqevoncode.com.br</span></div>
+            <Image src="/produto/visao-geral.png" alt="Tela Visão geral do Arqevon Finance com receitas, despesas, saldo e gastos por categoria" width={2800} height={3320} priority sizes="(max-width: 960px) 100vw, 640px" />
           </div>
         </div>
       </section>
 
-      <section className="signal-strip" aria-label="Compromissos dos produtos">
-        <div><strong>LOCAL</strong><span>Dados no seu dispositivo</span></div>
-        <div><strong>SEGURO</strong><span>Licenças por computador</span></div>
-        <div><strong>PORTÁTIL</strong><span>Backup para levar seus dados</span></div>
-        <div><strong>EVOLUTIVO</strong><span>Atualizações constantes</span></div>
+      <section className="lp-faixa" aria-label="Destaques">
+        <div><strong>Parcelas automáticas</strong><span>a 4/12 aparece no mês certo</span></div>
+        <div><strong>Projeção de 6 meses</strong><span>antes de a conta chegar</span></div>
+        <div><strong>Criptografado</strong><span>seus dados protegidos por senha</span></div>
+        <div><strong>Sem planilha</strong><span>nada de fórmula para montar</span></div>
       </section>
 
-      <section className="projects section" id="projetos">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow"><span /> NOSSOS PROJETOS</p>
-            <h2>Software que sai da ideia<br />e chega até você.</h2>
-          </div>
-          <p>
-            Cada produto Arqevon nasce para resolver uma necessidade específica,
-            com foco em autonomia e facilidade de uso.
-          </p>
+      <section className="lp-secao" id="projetos">
+        <div className="lp-titulo" id="recursos">
+          <p className="lp-selo"><i /> Recursos</p>
+          <h2>Tudo o que você precisa<br />para fechar o mês no azul.</h2>
         </div>
-
-        <article className="featured-product" id="finance">
-          <div className="product-copy">
-            <div className="product-topline">
-              <span className="product-number">PRODUTO 01</span>
-              <span className="available"><i /> DISPONÍVEL</span>
-            </div>
-            <div className="product-brand">
-              <div className="product-icon">
-                <span /><span /><span />
-              </div>
-              <div><h3>Arqevon Finance</h3><p>Gestão financeira pessoal</p></div>
-            </div>
-            <h4>Clareza para decidir.<br />Controle para evoluir.</h4>
-            <p className="product-description">
-              Um aplicativo instalável para organizar sua vida financeira sem
-              planilhas complicadas e sem entregar seus dados a uma plataforma online.
-            </p>
-            <ul>
-              {financeFeatures.map((feature) => (
-                <li key={feature}><span aria-hidden="true">✓</span>{feature}</li>
-              ))}
-            </ul>
-            <div className="download-actions">
-              <DownloadWindows href={windowsDownloadPath} />
-              {/* Sem certificado Developer ID o macOS recusa o download como danificado.
-                  O botão fica inerte até haver instalador assinado. */}
-              <span className="button download indisponivel" role="link" aria-disabled="true">
-                <span className="platform-mark" aria-hidden="true">●</span>
-                <span><small>MACOS APPLE SILICON</small>Em breve</span>
-                <b aria-hidden="true">⏳</b>
-              </span>
-              <span className="version">Versão 1.0.6 · requer licença · versão para macOS em preparação</span>
-            </div>
-          </div>
-
-          <div className="product-preview" aria-label="Prévia do painel Arqevon Finance">
-            <div className="preview-window">
-              <div className="preview-toolbar">
-                <div className="mini-brand"><span /> Arqevon Finance</div>
-                <div className="window-pills"><i /><i /></div>
-              </div>
-              <div className="preview-tabs"><b>Visão geral</b><span>Lançamentos</span><span>Objetivos</span></div>
-              <div className="preview-kpis">
-                <div><small>RECEITAS</small><strong className="mint">R$ 5.800</strong></div>
-                <div><small>DESPESAS</small><strong>R$ 3.460</strong></div>
-                <div><small>SALDO DO MÊS</small><strong className="blue">R$ 2.340</strong></div>
-              </div>
-              <div className="preview-grid">
-                <div className="category-card">
-                  <div><b>Gastos por categoria</b><span>Este mês</span></div>
-                  <div className="donut"><span><small>TOTAL</small>R$ 3.460</span></div>
-                  <div className="legend"><i />Moradia <i />Alimentação <i />Outros</div>
-                </div>
-                <div className="bars-card">
-                  <div><b>Últimos 6 meses</b><span>Evolução das despesas</span></div>
-                  <div className="bars"><i /><i /><i /><i /><i /><i /></div>
-                  <div className="months"><span>Fev</span><span>Mar</span><span>Abr</span><span>Mai</span><span>Jun</span><span>Jul</span></div>
-                </div>
-              </div>
-            </div>
-            <div className="preview-tag tag-private"><i /> DADOS LOCAIS</div>
-            <div className="preview-tag tag-backup"><i /> BACKUP PROTEGIDO</div>
-          </div>
-        </article>
-
-        <div className="project-grid">
-          <article className="project-card">
-            <div className="project-card-top"><span>INFRAESTRUTURA</span><b>02</b></div>
-            <div className="project-symbol license-symbol">◇</div>
-            <h3>Arqevon Licenças</h3>
-            <p>
-              A tecnologia que ativa nossos produtos por dispositivo, permite
-              planos flexíveis e valida o acesso com segurança.
-            </p>
-            <span className="project-status"><i /> EM OPERAÇÃO</span>
-          </article>
-          <article className="project-card upcoming">
-            <div className="project-card-top"><span>PRÓXIMOS PRODUTOS</span><b>03+</b></div>
-            <div className="project-symbol">+</div>
-            <h3>Uma família de sistemas</h3>
-            <p>
-              Novas soluções estão sendo desenhadas para rotina, organização e
-              gestão de pequenos negócios.
-            </p>
-            <a href="#projetos">
-              Conhecer projetos <span aria-hidden="true">↗</span>
-            </a>
-          </article>
-        </div>
-      </section>
-
-      <section className="principles section" id="diferenciais">
-        <div className="section-heading compact">
-          <div><p className="eyebrow"><span /> NOSSO JEITO DE CONSTRUIR</p><h2>Tecnologia com menos atrito.</h2></div>
-        </div>
-        <div className="principle-grid">
-          {principles.map((principle) => (
-            <article key={principle.number}>
-              <span>{principle.number}</span>
-              <h3>{principle.title}</h3>
-              <p>{principle.text}</p>
+        <div className="lp-recursos">
+          {recursos.map((r) => (
+            <article key={r.titulo}>
+              <h3>{r.titulo}</h3>
+              <p>{r.texto}</p>
             </article>
           ))}
         </div>
+        <div className="lp-duas-telas">
+          <figure>
+            <Image src="/produto/lancamentos.png" alt="Aba Lançamentos com contas fixas, renda e parcelas" width={2800} height={3120} sizes="(max-width: 960px) 100vw, 560px" />
+            <figcaption>Lançamentos: fixos, renda e parcelas na mesma lista.</figcaption>
+          </figure>
+          <figure>
+            <Image src="/produto/objetivos.png" alt="Aba Objetivos com barras de progresso" width={2800} height={1240} sizes="(max-width: 960px) 100vw, 560px" />
+            <figcaption>Objetivos: quanto falta para cada meta.</figcaption>
+          </figure>
+        </div>
       </section>
 
-      <section className="about section" id="sobre">
-        <div className="about-mark"><Image src="/simbolo-arqevon.svg" alt="" width={180} height={180} /></div>
+      <section className="lp-secao" id="como-funciona">
+        <div className="lp-titulo">
+          <p className="lp-selo"><i /> Como funciona</p>
+          <h2>Comece em menos de um minuto.</h2>
+        </div>
+        <ol className="lp-passos">
+          {passos.map((p) => (
+            <li key={p.n}><span>{p.n}</span><h3>{p.titulo}</h3><p>{p.texto}</p></li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="lp-secao lp-privacidade" id="privacidade">
         <div>
-          <p className="eyebrow"><span /> SOBRE A ARQEVON CODE</p>
-          <h2>Arquitetura para criar.<br />Evolução para continuar.</h2>
-          <p>
-            Arqevon reúne arquitetura, evolução e tecnologia sempre ativa. Somos
-            uma marca brasileira criando uma família de produtos digitais próprios,
-            pensados para funcionar de verdade no dia a dia.
-          </p>
-          <a href="#projetos">
-            Conheça nossos projetos <span aria-hidden="true">↗</span>
-          </a>
+          <p className="lp-selo"><i /> Privacidade</p>
+          <h2>Seus dados são seus.<br /><span>E ficam com você.</span></h2>
+        </div>
+        <ul>
+          <li><strong>Guardados no seu aparelho.</strong> No plano grátis, seus lançamentos não saem do seu navegador ou computador.</li>
+          <li><strong>Protegidos por senha.</strong> Ative a criptografia (AES-256) e só quem tem a senha abre os dados.</li>
+          <li><strong>Sem venda de dados, sem anúncios.</strong> O produto é o app, não você.</li>
+          <li><strong>Exporte quando quiser.</strong> Backup protegido em arquivo, para levar seus dados para onde quiser.</li>
+        </ul>
+      </section>
+
+      <section className="lp-secao" id="planos">
+        <div className="lp-titulo">
+          <p className="lp-selo"><i /> Planos</p>
+          <h2>Grátis de verdade. E o Pro está chegando.</h2>
+        </div>
+        <div className="lp-planos">
+          <article>
+            <span className="lp-plano-nome">Grátis</span>
+            <strong>R$ 0</strong>
+            <ul>
+              <li>Todas as funções do Finance</li>
+              <li>Dados só neste aparelho</li>
+              <li>Backup manual em arquivo</li>
+            </ul>
+            <a className="lp-botao-sec" href={APP_URL}>Começar grátis</a>
+          </article>
+          <article className="destaque">
+            <span className="lp-plano-nome">Pro · em breve</span>
+            <strong>Em breve</strong>
+            <ul>
+              <li>Tudo do Grátis</li>
+              <li>Acesso em qualquer aparelho, inclusive celular</li>
+              <li>Sincronização automática</li>
+              <li>Backup na nuvem com criptografia ponta a ponta</li>
+            </ul>
+            <a className="lp-botao" href={APP_URL}>Criar conta e ser avisado</a>
+          </article>
         </div>
       </section>
 
-      <section className="faq section">
-        <div className="section-heading compact">
-          <div><p className="eyebrow"><span /> PERGUNTAS FREQUENTES</p><h2>Antes de baixar.</h2></div>
-        </div>
-        <div className="faq-list">
-          <details><summary>O Arqevon Finance funciona sem internet?<span>+</span></summary><p>Sim. A internet é necessária para ativar e validar periodicamente a licença. O uso financeiro acontece no seu computador, com tolerância offline.</p></details>
-          <details><summary>Onde meus dados ficam armazenados?<span>+</span></summary><p>Os dados ficam localmente no dispositivo. Você pode criar backups protegidos e importá-los em outro computador.</p></details>
-          <details><summary>Preciso de uma licença para abrir o aplicativo?<span>+</span></summary><p>Sim. Depois da compra, você recebe uma chave vinculada à quantidade de dispositivos do seu plano.</p></details>
-          <details><summary>Existe versão para Windows?<span>+</span></summary><p>Sim. O instalador está disponível para Windows 10 e 11 de 64 bits e prepara automaticamente o componente WebView2 necessário para abrir o aplicativo.</p></details>
-        </div>
-      </section>
-
-      <section className="final-cta section">
+      <section className="lp-secao lp-windows" id="download">
         <div>
-          <p className="eyebrow"><span /> O PRÓXIMO PASSO É SIMPLES</p>
-          <h2>Conheça o primeiro<br />produto Arqevon.</h2>
+          <h2>Prefere instalar no computador?</h2>
+          <p>O aplicativo para Windows continua disponível para quem já usa ou prefere a versão instalada.</p>
         </div>
-        <div>
-          <p>Baixe o Arqevon Finance ou acompanhe os próximos lançamentos da nossa família de sistemas.</p>
-          <a className="button primary" href="#finance">Ver Arqevon Finance <span aria-hidden="true">↑</span></a>
+        <div className="download-actions">
+          <DownloadWindows href={windowsDownloadPath} />
+          {/* Sem certificado Developer ID o macOS recusa o download como danificado.
+              O botão fica inerte até haver instalador assinado. */}
+          <span className="button download indisponivel" role="link" aria-disabled="true">
+            <span className="platform-mark" aria-hidden="true">●</span>
+            <span><small>MACOS APPLE SILICON</small>Em breve</span>
+            <b aria-hidden="true">⏳</b>
+          </span>
+          <span className="version">Versão 1.0.6 · requer licença</span>
         </div>
       </section>
 
-      <footer>
-        <a className="brand" href="#inicio">
-          <Image src="/simbolo-arqevon.svg" alt="" width={48} height={48} />
-          <span><strong>ARQEVON</strong><em>CODE</em></span>
+      <section className="lp-secao" id="perguntas">
+        <div className="lp-titulo"><p className="lp-selo"><i /> Dúvidas</p><h2>Perguntas frequentes.</h2></div>
+        <div className="lp-faq">
+          <details><summary>Preciso instalar alguma coisa?<span>+</span></summary><p>Não. O Arqevon Finance funciona no navegador, no computador ou no celular. Se preferir, existe também o aplicativo para Windows.</p></details>
+          <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não. No Grátis você usa todas as funções, com os dados guardados só no aparelho que estiver usando.</p></details>
+          <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
+          <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
+          <details><summary>O que vai ter no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Quem criar a conta agora será avisado no lançamento.</p></details>
+        </div>
+      </section>
+
+      <section className="lp-final">
+        <h2>Clareza para decidir.<br /><span>Controle para evoluir.</span></h2>
+        <a className="lp-botao grande" href={APP_URL}>Começar grátis</a>
+      </section>
+
+      <footer className="lp-rodape">
+        <a className="lp-marca" href="#inicio">
+          <Image src="/simbolo-arqevon.svg" alt="" width={30} height={30} />
+          <span><strong>Arqevon</strong> Finance</span>
         </a>
-        <p>Sistemas construídos para evoluir.</p>
-        <div><a href="#projetos">Projetos</a><a href="#sobre">Sobre</a></div>
+        <p>Arqevon Finance é um produto da Arqevon Code.</p>
         <small>© {new Date().getFullYear()} Arqevon Code.</small>
       </footer>
     </main>
