@@ -37,7 +37,9 @@ export async function kiwify(path, { method = "GET", body } = {}) {
     cache: "no-store",
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
+  // A API responde 200 com {"error": "..."} em algumas falhas (pedido inexistente, erro interno).
+  // Tratar isso como sucesso faria uma compra real virar "ignorada" numa instabilidade da Kiwify.
+  if (!response.ok || typeof data?.error === "string") {
     const error = new Error(`Kiwify ${method} ${path}: ${response.status} ${data.message || data.error || ""}`.trim());
     error.status = response.status;
     throw error;
