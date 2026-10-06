@@ -10,8 +10,9 @@ async function sha256(relativePath) {
   return createHash("sha256").update(contents).digest("hex");
 }
 
+// O Arqevon Finance tem página própria (/finance); a página inicial é da Arqevon Code.
 test("mantém marca, projeto e links de download publicados", async () => {
-  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
 
   assert.match(page, /Arqevon Code/);
   assert.match(page, /Arqevon Finance/);
@@ -23,7 +24,7 @@ test("mantém marca, projeto e links de download publicados", async () => {
 // que ninguém instale e fique travado sem saber como obter a chave.
 test("pede o e-mail antes de liberar o download do Windows", async () => {
   const modal = await readFile(new URL("app/download-windows.tsx", root), "utf8");
-  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
 
   assert.match(page, /<DownloadWindows href=\{windowsDownloadPath\} \/>/);
   assert.match(modal, /\/api\/v1\/license-requests/);
@@ -36,7 +37,7 @@ test("pede o e-mail antes de liberar o download do Windows", async () => {
 // Enquanto não houver instalador assinado, oferecer o .dmg leva o cliente a um
 // aplicativo que o macOS recusa como danificado.
 test("não oferece download de macOS sem instalador assinado", async () => {
-  const page = await readFile(new URL("app/page.tsx", root), "utf8");
+  const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
 
   assert.match(page, /Em breve/);
   assert.match(page, /aria-disabled="true"/);
@@ -67,9 +68,10 @@ test("mantém os instaladores da 1.0.5 acessíveis", async () => {
   );
 });
 
-test("mantém a rota curta apontando para projetos", async () => {
+// /p é o link da bio do Instagram: leva à página inicial (a fábrica de software).
+test("mantém a rota curta apontando para a página inicial", async () => {
   const route = await readFile(new URL("app/p/route.ts", root), "utf8");
-  assert.match(route, /\/#projetos/);
+  assert.match(route, /new URL\("\/", request\.url\)/);
   assert.match(route, /302/);
 });
 
@@ -91,8 +93,8 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   }
 });
 
-// A Arqevon Code também faz software sob encomenda: o site precisa separar isso do produto
-// e o formulário precisa apontar para a API que grava o pedido.
+// A página inicial é da fábrica de software: o foco é o orçamento, e o Finance aparece como
+// produto pronto, com link para a página dele. O formulário aponta para a API que grava o pedido.
 test("oferece software sob encomenda com formulário de orçamento", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
@@ -101,6 +103,10 @@ test("oferece software sob encomenda com formulário de orçamento", async () =>
   assert.match(page, /id="sob-encomenda"/);
   assert.match(page, /href="#sob-encomenda"/);
   assert.match(page, /<Orcamento \/>/);
+  assert.match(page, /Fábrica de software/);
+  assert.match(page, /id="produtos"/);
+  assert.match(page, /href="\/finance"/);
+  assert.ok(page.indexOf('id="servicos"') < page.indexOf('id="produtos"'), "serviços vêm antes dos produtos");
   assert.match(form, /\/api\/v1\/quote-requests/);
   assert.match(privacidade, /Pedido de orçamento/, "dado novo coletado precisa constar na política");
 });
