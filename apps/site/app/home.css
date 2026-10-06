@@ -1,0 +1,44 @@
+/* Página inicial da Arqevon Code. Complementa landing.css (mesmos tokens de globals.css). */
+
+/* Ilustração do sistema em módulos no hero */
+.hm-diagrama { position: relative; }
+.hm-diagrama::before { content: ""; position: absolute; inset: -10% -6% -8% 6%; background: radial-gradient(closest-side, rgba(82, 109, 255, .32), transparent 70%), radial-gradient(closest-side at 80% 80%, rgba(63, 231, 192, .16), transparent 70%); filter: blur(10px); }
+.hm-janela { position: relative; z-index: 1; border-radius: 18px; overflow: hidden; border: 1px solid var(--line-strong); background: var(--surface); box-shadow: 0 40px 100px rgba(0, 0, 0, .55); }
+.hm-modulos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 22px; }
+.hm-modulo { display: grid; gap: 6px; padding: 20px; border-radius: 14px; border: 1px solid var(--line); background: rgba(7, 17, 31, .6); }
+.hm-modulo b { font-size: 16px; }
+.hm-modulo span { color: var(--muted); font-size: 13px; }
+.hm-modulo.destaque { grid-column: 1 / -1; border-color: rgba(63, 231, 192, .35); background: linear-gradient(120deg, rgba(82, 109, 255, .18), rgba(63, 231, 192, .1)); }
+.hm-modulo.destaque b { color: var(--mint); }
+
+/* Como trabalhamos */
+.hm-etapas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.hm-etapas li { display: grid; gap: 10px; align-content: start; padding: 26px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); }
+.hm-etapas span { color: var(--mint); font-size: 30px; font-weight: 800; letter-spacing: -.03em; }
+.hm-etapas h3 { font-size: 18px; }
+.hm-etapas p { color: var(--ink-2); font-size: 14.5px; line-height: 1.6; }
+
+/* Por que a Arqevon: reaproveita o bloco .lp-privacidade com acento azul */
+.hm-motivos { border-color: rgba(82, 109, 255, .3) !important; }
+
+/* Produtos prontos */
+.hm-produto { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; padding: 40px; border-radius: 28px; border: 1px solid var(--line); background: var(--surface); overflow: hidden; }
+.hm-produto-texto { display: grid; gap: 16px; justify-items: start; }
+.hm-produto-tag { padding: 6px 12px; border-radius: 999px; background: rgba(63, 231, 192, .12); color: var(--mint); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.hm-produto h3 { font-size: 30px; letter-spacing: -.02em; }
+.hm-produto p { color: var(--ink-2); font-size: 16px; line-height: 1.65; }
+.hm-produto-acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 6px; }
+.hm-link { color: var(--mint); font-weight: 700; font-size: 14px; }
+.hm-produto-tela { border-radius: 16px; overflow: hidden; border: 1px solid var(--line-strong); height: 340px; }
+.hm-produto-tela img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+.hm-passos-orcamento { margin: 0; align-self: start; }
+
+@media (max-width: 960px) {
+  .hm-etapas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hm-produto { grid-template-columns: 1fr; padding: 28px; }
+}
+@media (max-width: 620px) {
+  .hm-etapas, .hm-modulos { grid-template-columns: 1fr; }
+  .hm-produto-tela { height: 240px; }
+}

@@ -21,21 +21,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase,
-    title: "Arqevon Finance — Suas contas do mês, claras em uma tela",
-    description: "Organize receitas, contas fixas e parcelas do cartão. Veja quanto sobra e como ficam os próximos meses. Grátis, no navegador, com seus dados no seu aparelho.",
-    keywords: ["Arqevon Finance", "controle financeiro", "finanças pessoais", "controle de gastos", "parcelas do cartão", "Arqevon Code"],
+    title: "Arqevon Code — Fábrica de software sob medida",
+    description: "Desenvolvemos sistemas web, aplicativos, automações e integrações sob encomenda, do jeito que a sua empresa funciona. Peça um orçamento sem compromisso.",
+    keywords: ["Arqevon Code", "fábrica de software", "software sob medida", "desenvolvimento de sistemas", "sistema web", "automação", "integração de sistemas", "Arqevon Finance"],
     alternates: { canonical: "/" },
     icons: { icon: "/simbolo-arqevon.svg", shortcut: "/simbolo-arqevon.svg" },
     openGraph: {
       type: "website",
       locale: "pt_BR",
       url: "/",
-      siteName: "Arqevon Finance",
-      title: "Arqevon Finance — Suas contas do mês, claras em uma tela",
-      description: "Receitas, contas fixas e parcelas organizadas, com projeção dos próximos meses. Grátis e no navegador.",
+      siteName: "Arqevon Code",
+      title: "Arqevon Code — Fábrica de software sob medida",
+      description: "Sistemas web, aplicativos, automações e integrações sob encomenda. Orçamento sem compromisso.",
       images: [{ url: "/og.png", width: 1536, height: 1024, alt: "Arqevon Code — Sistemas construídos para evoluir" }],
     },
-    twitter: { card: "summary_large_image", title: "Arqevon Finance", description: "Suas contas do mês, claras em uma tela.", images: ["/og.png"] },
+    twitter: { card: "summary_large_image", title: "Arqevon Code", description: "Fábrica de software sob medida.", images: ["/og.png"] },
     robots: { index: true, follow: true },
   };
 }
