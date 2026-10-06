@@ -166,3 +166,7 @@
   .lp-secao { padding-top: 72px; }
   .lp-rodape small { margin-left: 0; }
 }
+
+/* Preço do Pro em /finance */
+.lp-plano-mes { font-size: 16px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+.lp-plano-anual { color: var(--mint); font-size: 14px; font-weight: 600; margin-top: -6px !important; }
