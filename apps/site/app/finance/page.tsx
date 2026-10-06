@@ -141,7 +141,7 @@ export default function Finance() {
       <section className="lp-secao" id="planos">
         <div className="lp-titulo">
           <p className="lp-selo"><i /> Planos</p>
-          <h2>Grátis de verdade. E o Pro está chegando.</h2>
+          <h2>Grátis de verdade.<br /><span>Pro para ter tudo na nuvem.</span></h2>
         </div>
         <div className="lp-planos">
           <article>
@@ -155,15 +155,16 @@ export default function Finance() {
             <a className="lp-botao-sec" href={APP_URL}>Começar grátis</a>
           </article>
           <article className="destaque">
-            <span className="lp-plano-nome">Pro · em breve</span>
-            <strong>Em breve</strong>
+            <span className="lp-plano-nome">Pro</span>
+            <strong>R$ 14,90<small className="lp-plano-mes">/mês</small></strong>
+            <p className="lp-plano-anual">ou R$ 119/ano · economize R$ 59,80</p>
             <ul>
               <li>Tudo do Grátis</li>
               <li>Acesso em qualquer aparelho, inclusive celular</li>
               <li>Sincronização automática</li>
               <li>Backup na nuvem com criptografia ponta a ponta</li>
             </ul>
-            <a className="lp-botao" href={APP_URL}>Criar conta e ser avisado</a>
+            <a className="lp-botao" href={APP_URL}>Assinar o Pro</a>
           </article>
         </div>
       </section>
@@ -193,7 +194,7 @@ export default function Finance() {
           <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não. No Grátis você usa todas as funções, com os dados guardados só no aparelho que estiver usando.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
           <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
-          <details><summary>O que vai ter no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Quem criar a conta agora será avisado no lançamento.</p></details>
+          <details><summary>O que tem no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
         </div>
       </section>
 

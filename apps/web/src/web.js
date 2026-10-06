@@ -118,9 +118,12 @@ function montarCiclos() {
   const caixa = $("wcCiclos");
   if (caixa.childElementCount) return;
   estado.planos.forEach((p, i) => {
+    // Formas de pagamento de cada gateway: a Kiwify aceita Pix e cartão nos dois ciclos.
+    const mensal = estado.planos.find(x => x.interval === "month");
+    const economia = mensal && p.interval === "year" ? mensal.price_cents * 12 - p.price_cents : 0;
     const rotulo = p.interval === "month"
-      ? `<b>Mensal</b> · ${brl(p.price_cents)}/mês no cartão, renova sozinho`
-      : `<b>Anual</b> · ${brl(p.price_cents)}/ano no Pix, boleto ou cartão`;
+      ? `<b>Mensal</b> · ${brl(p.price_cents)}/mês ${VIA_KIWIFY ? "no Pix ou cartão" : "no cartão"}, renova sozinho`
+      : `<b>Anual</b> · ${brl(p.price_cents)}/ano ${VIA_KIWIFY ? "no Pix ou cartão em até 12x" : "no Pix, boleto ou cartão"}${economia > 0 ? ` · economize ${brl(economia)}` : ""}`;
     caixa.insertAdjacentHTML("beforeend",
       `<label class="wc-ciclo"><input type="radio" name="wcPlano" value="${p.id}" ${i === 0 ? "checked" : ""}><span>${rotulo}</span></label>`);
   });
