@@ -128,7 +128,7 @@ main { overflow: hidden; }
 .download-actions { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
 .button.download { justify-content: flex-start; min-width: 250px; }
 .button.download > span:not(.platform-mark) { display: grid; gap: 2px; text-align: left; color: #fff; }
-.button.download small { color: rgba(255,255,255,.66); font-size: 8px; letter-spacing: .12em; }
+.button.download small { color: rgba(255,255,255,.66); font-size: 11px; letter-spacing: .1em; }
 .button.download b { margin-left: auto; color: var(--mint); }
 .platform-mark { width: 22px; height: 22px; color: #fff!important; font-size: 15px; }
 .windows-mark { font-size: 20px; line-height: 1; }
@@ -147,7 +147,7 @@ main { overflow: hidden; }
 .button.download.indisponivel:hover { transform: none; }
 
 .download-actions .version { flex-basis: 100%; }
-.version { color: var(--muted); font: 620 9px/1.3 var(--font-geist-mono), monospace; }
+.version { color: var(--muted); font: 620 12px/1.4 var(--font-geist-mono), monospace; }
 
 .product-preview { position: relative; min-height: 690px; display: grid; place-items: center; padding: 42px; overflow: hidden; border-left: 1px solid var(--line); background: radial-gradient(circle at 58% 45%, rgba(82, 109, 255, .16), transparent 40%), linear-gradient(150deg, #091626, #060f1b); }
 .product-preview::before { content: ""; position: absolute; inset: 0; opacity: .26; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 46px 46px; mask-image: linear-gradient(to bottom, transparent, black 18%, black 80%, transparent); }
