@@ -39,6 +39,10 @@
   .hm-produto { grid-template-columns: 1fr; padding: 28px; }
 }
 @media (max-width: 620px) {
-  .hm-etapas, .hm-modulos { grid-template-columns: 1fr; }
+  .hm-etapas { grid-template-columns: 1fr; }
+  .hm-modulos { gap: 10px; padding: 14px; }
+  .hm-modulo { padding: 14px; gap: 4px; }
+  .hm-modulo b { font-size: 14px; }
+  .hm-modulo span { font-size: 12px; }
   .hm-produto-tela { height: 240px; }
 }

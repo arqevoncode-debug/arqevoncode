@@ -99,7 +99,7 @@
 .lp-final { display: grid; justify-items: center; gap: 28px; text-align: center; margin-top: 110px; padding: 72px 24px; border-radius: 28px; background: radial-gradient(500px 260px at 50% 0%, rgba(82, 109, 255, .25), transparent 70%), var(--surface); border: 1px solid var(--line); }
 
 .lp-rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; padding: 48px 0; margin-top: 64px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-.lp-rodape small { margin-left: auto; }
+.lp-rodape small { margin-left: auto; font-size: 12px; }
 .lp-rodape-links { display: flex; gap: 20px; }
 .lp-rodape-links a { color: var(--ink-2); }
 .lp-rodape-links a:hover { color: var(--ink); }
@@ -123,7 +123,7 @@
 .lp-campos-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .lp-orcamento-form label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .lp-orcamento-form label em { font-style: normal; font-weight: 400; color: var(--muted); }
-.lp-orcamento-form input, .lp-orcamento-form select, .lp-orcamento-form textarea { font: inherit; font-size: 15px; font-weight: 400; color: var(--ink); background: var(--page); border: 1px solid var(--line-strong); border-radius: 12px; padding: 11px 13px; min-height: 46px; width: 100%; }
+.lp-orcamento-form input, .lp-orcamento-form select, .lp-orcamento-form textarea { font: inherit; font-size: 16px; font-weight: 400; color: var(--ink); background: var(--page); border: 1px solid var(--line-strong); border-radius: 12px; padding: 11px 13px; min-height: 46px; width: 100%; }
 .lp-orcamento-form textarea { resize: vertical; min-height: 120px; line-height: 1.5; }
 .lp-orcamento-form input:focus, .lp-orcamento-form select:focus, .lp-orcamento-form textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
 .lp-orcamento-form button { justify-self: start; border: 0; cursor: pointer; font-family: inherit; }
@@ -137,6 +137,11 @@
 .lp-rodape p a { color: var(--ink-2); }
 
 /* Responsivo */
+/* Toque: no celular, links de texto ganham área mínima de 44px de altura (recomendação da Apple e do Google). */
+@media (max-width: 960px) {
+  .lp-rodape-links a, .lp-topo-marca a, .hm-link, .lp-marca { display: inline-flex; align-items: center; min-height: 44px; }
+  .lp-rodape-links { flex-wrap: wrap; column-gap: 20px; row-gap: 0; }
+}
 @media (max-width: 960px) {
   .lp-encomenda-grade { grid-template-columns: 1fr; }
   .lp-header nav { display: none; }
