@@ -472,7 +472,7 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
   <section id="aba-lancamentos" hidden>
     <div class="card">
       <h2>Nova despesa</h2>
-      <p class="hint">Escolha se o gasto acontece <b>só este mês</b>, se <b>repete todo mês</b> (conta fixa) ou se foi <b>parcelado no cartão</b>.</p>
+      <p class="hint">Escolha se o gasto acontece <b>só este mês</b>, se <b>repete todo mês</b> (conta fixa) ou se foi <b>parcelado no cartão</b>. Ele entra no mês escolhido no topo.</p>
       <form class="linha" id="formLanc">
         <div class="campo grande">
           <label for="lDesc">Descrição</label>
@@ -498,9 +498,9 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
           <label for="lCat">Categoria</label>
           <select id="lCat"></select>
         </div>
-        <div class="campo">
-          <label for="lData" id="lDataLabel">Data</label>
-          <input id="lData" type="date" required>
+        <div class="campo" id="campoDiaLanc">
+          <label for="lDia" id="lDiaLabel">Dia (opcional)</label>
+          <input id="lDia" type="number" min="1" max="31" inputmode="numeric">
         </div>
         <button class="botao" type="submit" id="lBtn">Adicionar despesa</button>
         <button class="botao cancelar" type="button" id="lCancelar" hidden>Cancelar</button>
@@ -508,7 +508,7 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
     </div>
     <div class="card card-entrada">
       <h2>Nova entrada</h2>
-      <p class="hint">Dinheiro que entra: salário (escolha "Todo mês"), freelas, vendas, presentes…</p>
+      <p class="hint">Dinheiro que entra: salário (escolha "Todo mês"), freelas, vendas, presentes… Entra no mês escolhido no topo.</p>
       <form class="linha" id="formEntrada">
         <div class="campo grande">
           <label for="eDesc">Descrição</label>
@@ -526,8 +526,8 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
           </select>
         </div>
         <div class="campo">
-          <label for="eData">Data</label>
-          <input id="eData" type="date" required>
+          <label for="eDia" id="eDiaLabel">Dia (opcional)</label>
+          <input id="eDia" type="number" min="1" max="31" inputmode="numeric">
         </div>
         <button class="botao entrada" type="submit" id="eBtn">Adicionar entrada</button>
         <button class="botao cancelar" type="button" id="eCancelar" hidden>Cancelar</button>
@@ -1182,7 +1182,10 @@ $("#abas").addEventListener("click", e => {
   if (b) ativarAba(b.dataset.aba);
 });
 
-function atualizarMesLabel() { $("#mesLabel").textContent = rotuloMes(mesAtual); }
+function atualizarMesLabel() {
+  $("#mesLabel").textContent = rotuloMes(mesAtual);
+  $("#lDia").placeholder = $("#eDia").placeholder = String(diaPadrao());
+}
 $("#mesAnt").onclick = () => { mesAtual = somaMes(mesAtual.ano, mesAtual.mes, -1); renderTudo(); };
 $("#mesProx").onclick = () => { mesAtual = somaMes(mesAtual.ano, mesAtual.mes, 1); renderTudo(); };
 $("#mesHoje").onclick = () => { mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() }; renderTudo(); };
@@ -1206,10 +1209,19 @@ mascaraMoeda($("#eValor"));
 let edicao = null; // { fonte: 'lanc'|'fixo'|'parc', id, form: 'lanc'|'entrada' }
 const fmtInput = v => v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function dataParaDia(dia) {
-  const ultimo = new Date(mesAtual.ano, mesAtual.mes + 1, 0).getDate();
-  const d = Math.min(Math.max(dia || 1, 1), ultimo);
-  return `${chaveMes(mesAtual.ano, mesAtual.mes)}-${String(d).padStart(2, "0")}`;
+// Os lançamentos sempre caem no mês de referência (seletor do topo); o dia é opcional.
+// Sem dia: hoje, se o mês de referência é o atual, ou o dia 1 nos outros meses.
+function diaPadrao() {
+  return mesAtual.ano === hoje.getFullYear() && mesAtual.mes === hoje.getMonth() ? hoje.getDate() : 1;
+}
+function diaDe(el) {
+  const d = parseInt(el.value, 10);
+  return d >= 1 && d <= 31 ? d : null;
+}
+function montarData(mk, dia) {
+  const { ano, mes } = deChave(mk);
+  const ultimo = new Date(ano, mes + 1, 0).getDate();
+  return `${mk}-${String(Math.min(dia || diaPadrao(), ultimo)).padStart(2, "0")}`;
 }
 function iniciarEdicao(form) {
   ativarAba("lancamentos");
@@ -1238,24 +1250,24 @@ window.editarItem = (fonte, id) => {
     const l = dados.lancamentos.find(x => x.id === id); if (!l) return;
     if (l.tipo === "receita") {
       $("#eDesc").value = l.descricao; $("#eValor").value = fmtInput(l.valor);
-      $("#eRep").value = "unico"; $("#eData").value = l.data;
-      edicao = { fonte, id, form: "entrada" }; iniciarEdicao("entrada");
+      $("#eRep").value = "unico"; $("#eDia").value = +l.data.slice(8, 10);
+      edicao = { fonte, id, form: "entrada", mes: l.data.slice(0, 7) }; iniciarEdicao("entrada");
     } else {
       $("#lRep").value = "unico"; $("#lRep").dispatchEvent(new Event("change"));
       $("#lDesc").value = l.descricao; $("#lValor").value = fmtInput(l.valor);
-      $("#lCat").value = l.categoria; $("#lData").value = l.data;
-      edicao = { fonte, id, form: "lanc" }; iniciarEdicao("lanc");
+      $("#lCat").value = l.categoria; $("#lDia").value = +l.data.slice(8, 10);
+      edicao = { fonte, id, form: "lanc", mes: l.data.slice(0, 7) }; iniciarEdicao("lanc");
     }
   } else if (fonte === "fixo") {
     const f = dados.fixos.find(x => x.id === id); if (!f) return;
     if (f.tipo === "receita") {
       $("#eDesc").value = f.descricao; $("#eValor").value = fmtInput(f.valor);
-      $("#eRep").value = "fixo"; $("#eData").value = dataParaDia(f.dia);
+      $("#eRep").value = "fixo"; $("#eDia").value = f.dia || "";
       edicao = { fonte, id, form: "entrada" }; iniciarEdicao("entrada");
     } else {
       $("#lRep").value = "fixo"; $("#lRep").dispatchEvent(new Event("change"));
       $("#lDesc").value = f.descricao; $("#lValor").value = fmtInput(f.valor);
-      $("#lCat").value = f.categoria; $("#lData").value = dataParaDia(f.dia);
+      $("#lCat").value = f.categoria; $("#lDia").value = f.dia || "";
       edicao = { fonte, id, form: "lanc" }; iniciarEdicao("lanc");
     }
   } else {
@@ -1263,17 +1275,16 @@ window.editarItem = (fonte, id) => {
     $("#lRep").value = "parcelado"; $("#lRep").dispatchEvent(new Event("change"));
     $("#lDesc").value = p.descricao; $("#lValor").value = fmtInput(p.valorTotal);
     $("#lCat").value = p.categoria; $("#lNum").value = p.numParcelas;
-    $("#lData").value = p.inicio + "-01";
-    edicao = { fonte, id, form: "lanc" }; iniciarEdicao("lanc");
+    edicao = { fonte, id, form: "lanc", mes: p.inicio }; iniciarEdicao("lanc");
   }
 };
 $("#lCancelar").onclick = () => {
   $("#formLanc").reset(); $("#lNum").value = 10;
   $("#lRep").value = "unico"; $("#lRep").dispatchEvent(new Event("change"));
-  $("#lData").value = dataHoje; limparEdicao();
+  limparEdicao();
 };
 $("#eCancelar").onclick = () => {
-  $("#formEntrada").reset(); $("#eData").value = dataHoje; limparEdicao();
+  $("#formEntrada").reset(); limparEdicao();
 };
 
 /* ================= Formulário de despesas ================= */
@@ -1281,8 +1292,8 @@ $("#lRep").addEventListener("change", () => {
   const rep = $("#lRep").value;
   $("#campoParcelas").hidden = rep !== "parcelado";
   $("#lValorLabel").textContent = rep === "parcelado" ? "Valor total (R$)" : "Valor (R$)";
-  $("#lDataLabel").textContent =
-    rep === "parcelado" ? "Data da compra" : rep === "fixo" ? "Vencimento (dia)" : "Data";
+  $("#campoDiaLanc").hidden = rep === "parcelado"; // a 1ª parcela cai no mês de referência
+  $("#lDiaLabel").textContent = rep === "fixo" ? "Vencimento (opcional)" : "Dia (opcional)";
 });
 
 $("#formLanc").addEventListener("submit", e => {
@@ -1292,13 +1303,15 @@ $("#formLanc").addEventListener("submit", e => {
   const rep = $("#lRep").value;
   const desc = $("#lDesc").value.trim();
   const cat = $("#lCat").value;
-  const data = $("#lData").value;
+  const dia = diaDe($("#lDia"));
+  const mk = (edicao && edicao.form === "lanc" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
+  const data = montarData(mk, dia);
 
   removerOriginal("lanc");
   if (rep === "fixo") {
     dados.fixos.push({
       id: uid(), tipo: "despesa", descricao: desc, valor,
-      categoria: cat, dia: parseInt(data.slice(8, 10)) || null,
+      categoria: cat, dia,
     });
   } else if (rep === "parcelado") {
     const num = Math.max(parseInt($("#lNum").value) || 1, 1);
@@ -1312,12 +1325,9 @@ $("#formLanc").addEventListener("submit", e => {
 
   salvar();
   $("#formLanc").reset();
-  $("#lData").value = data;
   $("#lNum").value = 10;
-  $("#campoParcelas").hidden = true;
-  $("#lValorLabel").textContent = "Valor (R$)";
-  $("#lDataLabel").textContent = "Data";
-  mesAtual = deChave(data.slice(0, 7)); // mostra o mês do lançamento
+  $("#lRep").dispatchEvent(new Event("change"));
+  mesAtual = deChave(mk); // mostra o mês do lançamento
   renderTudo();
 });
 
@@ -1327,20 +1337,21 @@ $("#formEntrada").addEventListener("submit", e => {
   const valor = valorDe($("#eValor"));
   if (!(valor > 0)) return;
   const desc = $("#eDesc").value.trim();
-  const data = $("#eData").value;
+  const dia = diaDe($("#eDia"));
+  const mk = (edicao && edicao.form === "entrada" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
+  const data = montarData(mk, dia);
   removerOriginal("entrada");
   if ($("#eRep").value === "fixo") {
     dados.fixos.push({
       id: uid(), tipo: "receita", descricao: desc, valor,
-      categoria: "outros", dia: parseInt(data.slice(8, 10)) || null,
+      categoria: "outros", dia,
     });
   } else {
     dados.lancamentos.push({ id: uid(), tipo: "receita", descricao: desc, valor, categoria: "outros", data });
   }
   salvar();
   $("#formEntrada").reset();
-  $("#eData").value = data;
-  mesAtual = deChave(data.slice(0, 7));
+  mesAtual = deChave(mk);
   renderTudo();
 });
 
@@ -1853,8 +1864,6 @@ $("#arqImportar").addEventListener("change", e => {
 /* ================= Boot ================= */
 preencherCategorias($("#lCat"));
 const dataHoje = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-$("#lData").value = dataHoje;
-$("#eData").value = dataHoje;
 
 function renderTudo() {
   atualizarMesLabel();
