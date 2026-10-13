@@ -118,7 +118,6 @@ header.topo {
 .mes-nav button:hover { background: var(--page); }
 .mes-nav .mes-label {
   min-width: 148px; text-align: center; font-weight: 600; font-size: 14px;
-  text-transform: capitalize;
 }
 .mes-nav .hoje {
   width: auto; padding: 0 10px; font-size: 12px; font-weight: 600; color: var(--accent);
@@ -222,6 +221,28 @@ td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: mi
 tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* No celular cada lançamento vira duas linhas, para o valor nunca ficar fora da tela. */
+@media (max-width: 560px) {
+  #cardLista .tabela-wrap { overflow: visible; }
+  #cardLista thead { display: none; }
+  #cardLista tbody tr {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px 10px;
+    grid-template-areas: "desc desc valor" "quando cat acoes";
+    padding: 11px 2px; border-bottom: 1px solid var(--grid);
+  }
+  #cardLista tbody tr:last-child { border-bottom: 0; }
+  #cardLista tbody tr:hover td { background: none; }
+  #cardLista td { padding: 0; border: 0; }
+  #cardLista td:nth-child(1) { grid-area: quando; font-size: 12.5px; color: var(--muted); }
+  #cardLista td:nth-child(2) { grid-area: desc; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+  #cardLista td:nth-child(3) { grid-area: cat; min-width: 0; }
+  #cardLista td:nth-child(4) { grid-area: valor; }
+  #cardLista td:nth-child(5) { grid-area: acoes; width: auto !important; }
+  #cardLista tr.total-mes { grid-template-columns: 1fr auto; grid-template-areas: "desc valor"; }
+  #cardLista tr.total-mes td:nth-child(1) { grid-area: desc; font-size: inherit; color: inherit; }
+  #cardLista tr.total-mes td:nth-child(2) { grid-area: valor; }
+  #cardLista tr.total-mes td:nth-child(3) { display: none; }
+}
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 600; color: var(--ink-2);
@@ -703,9 +724,21 @@ const CATEGORIAS = [
 ];
 // Categoria "cartao" = pagamento de fatura (repasse): conta como despesa do mês,
 // mas fica fora da média de variáveis usada na projeção, para não duplicar com as parcelas.
-const catPorId = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS[7];
+const catPorId = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS.find(c => c.id === "outros");
 
 let blobPendente = null; // dados criptografados aguardando a senha
+// Descarta registros sem os campos que os cálculos usam: um item quebrado não pode travar o app inteiro.
+function normalizar(d) {
+  const lista = v => (Array.isArray(v) ? v : []).filter(x => x && typeof x === "object");
+  const num = v => Number.isFinite(v);
+  return {
+    lancamentos: lista(d.lancamentos).filter(l => typeof l.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.data) && num(l.valor)),
+    fixos: lista(d.fixos).filter(f => num(f.valor)),
+    parcelamentos: lista(d.parcelamentos).filter(p => typeof p.inicio === "string" && /^\d{4}-\d{2}$/.test(p.inicio)
+      && num(p.valorTotal) && Number.isInteger(p.numParcelas) && p.numParcelas >= 1),
+    objetivos: lista(d.objetivos).map(o => ({ ...o, aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)) })),
+  };
+}
 let dados = carregar();
 function carregar() {
   // tenta a chave principal; se estiver corrompida, recupera da cópia de segurança
@@ -713,15 +746,13 @@ function carregar() {
     try {
       const bruto = JSON.parse(localStorage.getItem(k));
       if (bruto && bruto.enc === true && bruto.ct) { blobPendente = bruto; break; }
-      if (bruto && Array.isArray(bruto.lancamentos)) {
-        if (!Array.isArray(bruto.objetivos)) bruto.objetivos = [];
-        return bruto;
-      }
+      if (bruto && Array.isArray(bruto.lancamentos)) return normalizar(bruto);
     } catch (e) {}
   }
   return { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] };
 }
 function salvar() {
+  if (seg.cripto && !chaveSessao) return; // trancado: gravar agora apagaria o cofre com dados vazios
   if (seg.cripto && chaveSessao) {
     const json = JSON.stringify(dados);
     cifrar(chaveSessao, json).then(p => {
@@ -736,6 +767,25 @@ function salvar() {
   localStorage.setItem(CHAVE, json);
   localStorage.setItem(CHAVE + "-backup", json);
   agendarBackupArquivo();
+}
+// Cópia de recuperação (antes de importar ou resetar): segue a criptografia, se estiver ligada.
+function guardarCopia(chave, d) {
+  if (seg.cripto && chaveSessao) {
+    return cifrar(chaveSessao, JSON.stringify(d)).then(p =>
+      localStorage.setItem(chave, JSON.stringify({ enc: true, salt: seg.salt, iv: p.iv, ct: p.ct })));
+  }
+  if (!seg.cripto) localStorage.setItem(chave, JSON.stringify(d));
+  return Promise.resolve();
+}
+// Versões anteriores gravavam essas cópias em texto puro mesmo com a criptografia ligada.
+function recifrarCopias() {
+  if (!seg.cripto || !chaveSessao) return;
+  for (const k of [CHAVE + "-pre-import", CHAVE + "-pre-reset"]) {
+    try {
+      const bruto = JSON.parse(localStorage.getItem(k));
+      if (bruto && Array.isArray(bruto.lancamentos)) guardarCopia(k, bruto);
+    } catch (e) {}
+  }
 }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -1054,7 +1104,7 @@ function renderPainel() {
           <th class="num">Variáveis (est.)</th><th class="num">Total previsto</th>
           ${temRenda ? '<th class="num">Saldo previsto</th>' : ""}</tr></thead>
         <tbody>${meses.map(m => `<tr>
-          <td style="text-transform:capitalize">${MESES_NOME[m.m.mes]} de ${m.m.ano}</td>
+          <td>${MESES_NOME[m.m.mes][0].toUpperCase() + MESES_NOME[m.m.mes].slice(1)} de ${m.m.ano}</td>
           <td class="num">${dinheiro(m.fixas)}</td>
           <td class="num">${dinheiro(m.parcelas)}</td>
           <td class="num">${dinheiro(m.variaveis)}</td>
@@ -1130,7 +1180,7 @@ function renderLista() {
         <td class="num ${i.receita ? "pos" : ""}">${i.receita ? "+" : "−"} ${dinheiro(i.valor)}</td>
         <td style="width:68px; white-space:nowrap"><button type="button" class="editar" title="Editar" aria-label="Editar lançamento" data-acao="editar" data-fonte="${i.fonte}" data-id="${esc(String(i.id))}">✎</button><button type="button" class="excluir" title="Excluir" aria-label="Excluir lançamento" data-acao="excluir" data-fonte="${i.fonte}" data-id="${esc(String(i.id))}" data-confirmar="${esc(i.confirmar)}">✕</button></td>
       </tr>`).join("")}
-      <tr>
+      <tr class="total-mes">
         <td colspan="3" style="font-weight:600">Total do mês</td>
         <td class="num" style="font-weight:700">− ${dinheiro(totDesp)}${totRec > 0 ? ` <span class="pos" style="display:block; font-weight:600">+ ${dinheiro(totRec)}</span>` : ""}</td>
         <td></td>
@@ -1183,7 +1233,8 @@ $("#abas").addEventListener("click", e => {
 });
 
 function atualizarMesLabel() {
-  $("#mesLabel").textContent = rotuloMes(mesAtual);
+  const rotulo = rotuloMes(mesAtual);
+  $("#mesLabel").textContent = rotulo[0].toUpperCase() + rotulo.slice(1);
   $("#lDia").placeholder = $("#eDia").placeholder = String(diaPadrao());
 }
 $("#mesAnt").onclick = () => { mesAtual = somaMes(mesAtual.ano, mesAtual.mes, -1); renderTudo(); };
@@ -1246,6 +1297,7 @@ function removerOriginal(form) {
   limparEdicao();
 }
 window.editarItem = (fonte, id) => {
+  if (edicao) (edicao.form === "entrada" ? $("#eCancelar") : $("#lCancelar")).click();
   if (fonte === "lanc") {
     const l = dados.lancamentos.find(x => x.id === id); if (!l) return;
     if (l.tipo === "receita") {
@@ -1302,6 +1354,7 @@ $("#formLanc").addEventListener("submit", e => {
   if (!(valor > 0)) return;
   const rep = $("#lRep").value;
   const desc = $("#lDesc").value.trim();
+  if (!desc) { $("#lDesc").value = ""; $("#lDesc").reportValidity(); return; }
   const cat = $("#lCat").value;
   const dia = diaDe($("#lDia"));
   const mk = (edicao && edicao.form === "lanc" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
@@ -1337,6 +1390,7 @@ $("#formEntrada").addEventListener("submit", e => {
   const valor = valorDe($("#eValor"));
   if (!(valor > 0)) return;
   const desc = $("#eDesc").value.trim();
+  if (!desc) { $("#eDesc").value = ""; $("#eDesc").reportValidity(); return; }
   const dia = diaDe($("#eDia"));
   const mk = (edicao && edicao.form === "entrada" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
   const data = montarData(mk, dia);
@@ -1423,6 +1477,12 @@ window.excluirAporte = (objId, apId) => {
   salvar(); renderTudo();
 };
 
+$("#listaObjetivos").addEventListener("click", e => {
+  const botao = e.target.closest("button[data-excluir-objetivo]");
+  if (!botao) return;
+  const o = dados.objetivos.find(x => String(x.id) === botao.dataset.excluirObjetivo);
+  if (o && confirm(`Excluir o objetivo "${o.nome}" e todo o seu histórico?`)) excluirObjetivo(o.id);
+});
 function renderObjetivos() {
   const alvo = $("#listaObjetivos");
   if (!dados.objetivos.length) {
@@ -1460,7 +1520,7 @@ function renderObjetivos() {
         <h2>${esc(o.nome)}</h2>
         <span style="white-space:nowrap">
           <button class="editar" title="Editar" onclick="editarObjetivo('${o.id}')">✎</button>
-          <button class="excluir" title="Excluir" onclick="if(confirm('Excluir o objetivo &quot;${esc(o.nome).replace(/'/g, "\\'")}&quot; e todo o seu histórico?'))excluirObjetivo('${o.id}')">✕</button>
+          <button class="excluir" title="Excluir" data-excluir-objetivo="${esc(String(o.id))}">✕</button>
         </span>
       </div>
       <div class="obj-valores">${dinheiro(guardado)}
@@ -1544,6 +1604,7 @@ function bloquearTela() {
   $("#tbErro").hidden = true;
   $("#tbSenha").value = "";
   $("#telaBloqueio").hidden = false;
+  document.querySelector(".app").inert = true;
   $("#tbSenha").focus();
 }
 async function tentarDesbloquear() {
@@ -1554,9 +1615,7 @@ async function tentarDesbloquear() {
     if (blobPendente) {
       const chave = await derivarChave(senha, blobPendente.salt || seg.salt);
       const json = await decifrar(chave, blobPendente);
-      const novo = JSON.parse(json);
-      if (!Array.isArray(novo.objetivos)) novo.objetivos = [];
-      dados = novo;
+      dados = normalizar(JSON.parse(json));
       blobPendente = null;
       chaveSessao = chave;
     } else {
@@ -1566,7 +1625,9 @@ async function tentarDesbloquear() {
     }
     bloqueado = false;
     $("#telaBloqueio").hidden = true;
+    document.querySelector(".app").inert = false;
     $("#tbSenha").value = "";
+    recifrarCopias();
     renderTudo();
     reiniciarIdle();
   } catch (e) {
@@ -1811,7 +1872,7 @@ $("#resetAceitar").onclick = () => {
     $("#resetConfirmacao").focus();
     return;
   }
-  localStorage.setItem(CHAVE + "-pre-reset", JSON.stringify(dados)); // última rede de segurança
+  guardarCopia(CHAVE + "-pre-reset", dados); // última rede de segurança
   localStorage.removeItem(CHAVE + "-pre-import");
   dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] };
   salvar();
@@ -1851,8 +1912,8 @@ $("#arqImportar").addEventListener("change", e => {
       }
       if (!novo || !Array.isArray(novo.lancamentos)) throw 0;
       if (confirm("Substituir os dados atuais pelos dados do arquivo?")) {
-        localStorage.setItem(CHAVE + "-pre-import", JSON.stringify(dados)); // guarda o estado anterior
-        dados = { lancamentos: novo.lancamentos || [], fixos: novo.fixos || [], parcelamentos: novo.parcelamentos || [], objetivos: novo.objetivos || [] };
+        guardarCopia(CHAVE + "-pre-import", dados); // guarda o estado anterior
+        dados = normalizar(novo);
         salvar(); renderTudo();
       }
     } catch { alert("Arquivo inválido. Use um JSON exportado por este sistema."); }
@@ -1878,13 +1939,8 @@ window.MyFinanceBridge = {
   obterDados: () => structuredClone(dados),
   substituirDados: novo => {
     if (!novo || !Array.isArray(novo.lancamentos)) throw new Error("Dados inválidos");
-    localStorage.setItem(CHAVE + "-pre-import", JSON.stringify(dados));
-    dados = {
-      lancamentos: novo.lancamentos || [],
-      fixos: novo.fixos || [],
-      parcelamentos: novo.parcelamentos || [],
-      objetivos: novo.objetivos || [],
-    };
+    guardarCopia(CHAVE + "-pre-import", dados);
+    dados = normalizar(novo);
     salvar(); limparEdicao(); renderTudo();
   },
 };
