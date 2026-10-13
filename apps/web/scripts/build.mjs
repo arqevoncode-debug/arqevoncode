@@ -5,8 +5,9 @@ import { build } from "esbuild";
 // O motor financeiro é o mesmo do desktop: lemos meu-financeiro.html direto de lá, sem cópia,
 // para que as duas versões nunca divirjam. Aqui só entram a tela de login e o layout web.
 const root = resolve(import.meta.dirname, "..");
-const motor = resolve(root, "../finance-desktop/meu-financeiro.html");
-const output = resolve(root, "dist");
+// ARQEVON_MOTOR e ARQEVON_SAIDA só servem ao teste de regressão, que monta a versão de main ao lado.
+const motor = resolve(process.env.ARQEVON_MOTOR || resolve(root, "../finance-desktop/meu-financeiro.html"));
+const output = resolve(process.env.ARQEVON_SAIDA || resolve(root, "dist"));
 
 // ARQEVON_BILLING=1 libera a venda do Pro na interface. Fica desligado até a sincronização existir.
 const venderPro = process.env.ARQEVON_BILLING === "1";
@@ -43,4 +44,4 @@ html = html.replace("</body>", `<style id="web-style">\n${css}\n</style>\n${mark
 
 await mkdir(output, { recursive: true });
 await writeFile(resolve(output, "index.html"), html);
-console.log(`dist/index.html gerado (venda do Pro ${venderPro ? `LIGADA via ${pagamento}` : "desligada"}).`);
+console.log(`${output === resolve(root, "dist") ? "dist" : output}/index.html gerado (venda do Pro ${venderPro ? `LIGADA via ${pagamento}` : "desligada"}).`);

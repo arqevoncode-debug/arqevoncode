@@ -22,6 +22,13 @@ cd apps/finance-desktop  && npm ci && npm test          # test já roda build:we
 cd apps/web              && npm ci && npm run dev         # http://localhost:4300
 ```
 
+No `apps/web`, `npm run test:e2e` abre o app no Chrome (puppeteer-core, com o Chrome do sistema ou
+`CHROME_PATH`) e testa lançamentos, cálculos, objetivos, criptografia, backup e celular, com a data
+fixada em 13/10/2026. `npm run test:regressao` roda o mesmo roteiro em `origin/main`
+(`REGRESSAO_BASE`) e na versão local e compara dados e telas passo a passo. Os dois rodam no CI. A
+regressão também fica vermelha numa mudança intencional de comportamento: nesse caso, leia a saída
+antes de fazer o merge.
+
 `apps/finance-desktop` precisa de Rust apenas para `npm run dev` e `npm run build` (Tauri). Os
 testes e o `build:web` rodam sem Rust.
 
