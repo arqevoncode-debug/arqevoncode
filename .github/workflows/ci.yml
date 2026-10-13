@@ -55,6 +55,30 @@ jobs:
       # O build lê o motor do desktop: se meu-financeiro.html mudar de estrutura, falha aqui.
       - run: npm run build
       - run: ARQEVON_BILLING=1 npm run build
+      # O app de verdade no Chrome (já instalado no runner): lançamentos, cálculos, objetivos,
+      # criptografia, backup e celular. Só o modo "usar sem conta": nada sai do navegador.
+      - run: npm run test:e2e
+
+  # Mesmo roteiro na versão de destino do PR e nesta, comparando dados e telas passo a passo.
+  # Fica vermelho também quando a mudança de comportamento é intencional: confira a saída.
+  web-regressao:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - run: git fetch --depth=1 origin ${{ github.base_ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run test:regressao
+        env:
+          REGRESSAO_BASE: FETCH_HEAD
 
   license-manager:
     runs-on: ubuntu-latest
