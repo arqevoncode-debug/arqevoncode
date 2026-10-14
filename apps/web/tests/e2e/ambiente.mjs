@@ -105,7 +105,11 @@ export async function desbloquear(p, senha = "segredo123") {
 /** Cria o servidor e o navegador uma vez por arquivo de teste. */
 export function preparar(t) {
   const ctx = {};
-  t.before(async () => { ctx.srv = await servir(); ctx.browser = await navegador(); });
+  // ARQEVON_WEB_URL roda a mesma bateria contra um endereço publicado (ex.: a produção, depois do deploy).
+  t.before(async () => {
+    ctx.srv = process.env.ARQEVON_WEB_URL ? { url: process.env.ARQEVON_WEB_URL, fechar: async () => {} } : await servir();
+    ctx.browser = await navegador();
+  });
   t.after(async () => { await ctx.browser?.close(); await ctx.srv?.fechar(); });
   ctx.abrir = (o = {}) => abrir(ctx.browser, { url: ctx.srv.url, ...o });
   return ctx;

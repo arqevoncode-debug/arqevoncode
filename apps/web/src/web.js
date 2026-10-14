@@ -307,16 +307,21 @@ document.addEventListener("visibilitychange", () => {
 
 // ---------- Início ----------
 montarLayout();
+// Link "Ver um exemplo" do site (/#exemplo): abre o app com dados fictícios, sem pedir login.
+const pediuExemplo = location.hash === "#exemplo";
+if (pediuExemplo) history.replaceState(null, "", location.pathname + location.search);
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
   estado = { ...estado, modo: "conta", email: session.user.email, uid: session.user.id };
   liberarApp();
-} else if (localStorage.getItem(MODO_LOCAL) === "1") {
+} else if (localStorage.getItem(MODO_LOCAL) === "1" || pediuExemplo) {
+  localStorage.setItem(MODO_LOCAL, "1");
   estado = { ...estado, modo: "local" };
   liberarApp();
 } else {
   mostrarLogin();
 }
+if (pediuExemplo) window.verExemplo?.();
 supabase.auth.onAuthStateChange((evento) => {
   if (evento === "SIGNED_OUT" && estado.modo === "conta") { nuvem.sair(); estado = { ...estado, modo: null, uid: null }; mostrarLogin(); }
 });
