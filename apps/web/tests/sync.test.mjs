@@ -33,7 +33,7 @@ function servidor() {
 }
 
 function aparelho(srv, chaves, dadosIniciais = {}, opcoes = {}) {
-  let dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], ...dadosIniciais };
+  let dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [], ...dadosIniciais };
   let estado = estadoVazio("conta-1");
   const ap = {
     get dados() { return dados; },
@@ -110,6 +110,16 @@ test("dois aparelhos: cria, edita e apaga propagam nos dois sentidos", async () 
   await a.sync.sincronizar();
   await b.sync.sincronizar();
   assert.deepEqual(b.dados.objetivos, []);
+
+  // Limites por categoria também vão e voltam, e a remoção de um limite propaga.
+  a.dados = { ...a.dados, orcamentos: [{ id: "alimentacao", categoria: "alimentacao", limite: 700 }, { id: "lazer", categoria: "lazer", limite: 150 }] };
+  await a.sync.sincronizar();
+  await b.sync.sincronizar();
+  assert.deepEqual(b.dados.orcamentos.map(o => [o.categoria, o.limite]).sort(), [["alimentacao", 700], ["lazer", 150]]);
+  b.dados = { ...b.dados, orcamentos: [{ id: "alimentacao", categoria: "alimentacao", limite: 800 }] };
+  await b.sync.sincronizar();
+  await a.sync.sincronizar();
+  assert.deepEqual(a.dados.orcamentos, [{ id: "alimentacao", categoria: "alimentacao", limite: 800 }]);
 
   // Nada muda: rodada vazia não envia nada.
   const r = await b.sync.sincronizar();

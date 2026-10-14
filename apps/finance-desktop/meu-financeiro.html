@@ -283,6 +283,26 @@ button.editar:hover { color: var(--accent); background: var(--accent-soft); }
   font-size: 13px; margin-bottom: 4px;
 }
 .barra-cat .topo-cat .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+.barra-cat .topo-cat .v small { color: var(--muted); font-weight: 500; }
+.barra-cat.orc-perto .barra-progresso { --cat-color: var(--warn); }
+.barra-cat.orc-estourou .barra-progresso { --cat-color: var(--bad); }
+.barra-cat.orc-estourou .topo-cat .v { color: var(--bad); }
+.cab-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cab-card h2 { margin: 0; }
+.alertas-orc { display: grid; gap: 6px; padding: 14px 18px; margin-bottom: 14px; border-left: 3px solid var(--warn); }
+.alertas-orc p { margin: 0; font-size: 14px; }
+.alertas-orc p.orc-estourou b { color: var(--bad); }
+.alertas-orc p.orc-perto b { color: var(--warn); }
+.limites-lista { display: grid; gap: 8px; max-height: 50vh; overflow-y: auto; }
+.limites-lista label { display: grid; grid-template-columns: minmax(0, 1fr) 140px; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); }
+.limites-lista input { font: inherit; font-size: 16px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; width: 100%; }
+#avisoMotor {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60; width: min(520px, calc(100vw - 32px));
+  padding: 13px 16px; border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px;
+  border: 1px solid var(--border); border-left: 4px solid var(--warn); box-shadow: 0 18px 50px rgba(0,0,0,.28);
+}
+#avisoMotor.estourou { border-left-color: var(--bad); }
+#avisoMotor[hidden] { display: none; }
 .barra-progresso {
   display: block; width: 100%; height: 10px; border: 0; border-radius: 4px;
   overflow: hidden; background: var(--page); appearance: none; -webkit-appearance: none;
@@ -401,13 +421,13 @@ details.hist summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 }
 
 /* ---------- Segurança ---------- */
-dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia, dialog#modalExtrato {
+dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia, dialog#modalExtrato, dialog#modalLimites {
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--ink);
   padding: 22px; max-width: 420px; width: calc(100vw - 48px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
-dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop, dialog#modalLimites::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
 dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0 0 4px; font-size: 17px; }
 .botao.confirmar-perigo { background: var(--bad); box-shadow: none; }
 .reset-campo { display: grid; gap: 5px; margin-top: 16px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
@@ -798,6 +818,17 @@ dialog#modalGuia { max-width: 560px; }
   </div>
 </dialog>
 
+<dialog id="modalLimites" aria-labelledby="limTitulo">
+  <h2 id="limTitulo">Limite por categoria</h2>
+  <p class="hint">Quanto você quer gastar no máximo em cada categoria por mês, somando avulsos, contas fixas e parcelas. Deixe em branco para não ter limite. Você recebe um aviso ao chegar em 80% e ao passar do limite.</p>
+  <div class="limites-lista" id="limLista"></div>
+  <div class="sec-acoes">
+    <button class="botao cancelar" type="button" id="limCancelar">Cancelar</button>
+    <button class="botao" type="button" id="limSalvar">Salvar limites</button>
+  </div>
+</dialog>
+<div id="avisoMotor" role="status" hidden></div>
+
 <dialog id="modalReset">
   <h2>Resetar todos os dados?</h2>
   <p class="hint" id="resetMensagem"></p>
@@ -874,6 +905,8 @@ function normalizar(d) {
     parcelamentos: lista(d.parcelamentos).filter(p => typeof p.inicio === "string" && /^\d{4}-\d{2}$/.test(p.inicio)
       && num(p.valorTotal) && Number.isInteger(p.numParcelas) && p.numParcelas >= 1),
     objetivos: lista(d.objetivos).map(o => ({ ...o, aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)) })),
+    // Limite mensal por categoria: um registro por categoria (id = categoria), para sincronizar.
+    orcamentos: lista(d.orcamentos).filter(o => typeof o.categoria === "string" && num(o.limite) && o.limite > 0),
   };
 }
 let dados = carregar();
@@ -886,7 +919,7 @@ function carregar() {
       if (bruto && Array.isArray(bruto.lancamentos)) return normalizar(bruto);
     } catch (e) {}
   }
-  return { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] };
+  return { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] };
 }
 function salvar() {
   if (exemplo) return; // dados fictícios do exemplo nunca são gravados
@@ -1014,6 +1047,17 @@ function projecao(nMeses = 6) {
     });
   }
   return { meses: out, media };
+}
+
+/* ================= Orçamento por categoria ================= */
+const limiteDe = cat => dados.orcamentos.find(o => o.categoria === cat)?.limite || 0;
+/** Categorias com limite no mês: gasto, limite e situação (ok, perto a partir de 80%, estourou). */
+function situacaoOrcamento(mk) {
+  const gastos = Object.fromEntries(gastosPorCategoria(mk).map(x => [x.cat.id, x.valor]));
+  return dados.orcamentos.map(o => {
+    const gasto = gastos[o.categoria] || 0, pct = gasto / o.limite;
+    return { cat: catPorId(o.categoria), gasto, limite: o.limite, pct, estado: pct > 1 ? "estourou" : pct >= 0.8 ? "perto" : "ok" };
+  }).sort((a, b) => b.pct - a.pct);
 }
 
 /* ================= Utilidades de UI ================= */
@@ -1156,6 +1200,10 @@ function renderPainel() {
   const r = resumoDoMes(mk);
   const cats = gastosPorCategoria(mk);
   const totalCats = cats.reduce((s, c) => s + c.valor, 0);
+  const orc = situacaoOrcamento(mk);
+  const alertas = orc.filter(o => o.estado !== "ok");
+  // categorias com limite aparecem mesmo sem gasto, para a pessoa ver quanto ainda pode gastar
+  const linhasCat = [...cats, ...orc.filter(o => !cats.some(c => c.cat.id === o.cat.id)).map(o => ({ cat: o.cat, valor: 0 }))];
 
   const serie = [];
   for (let i = 5; i >= 0; i--) {
@@ -1193,6 +1241,10 @@ function renderPainel() {
         <button class="botao cancelar" type="button" onclick="verExemplo()">Ver um exemplo</button>
       </div>
     </div>` : `
+    ${alertas.length ? `<div class="card alertas-orc" role="status">${alertas.map(o => `<p class="orc-${o.estado}">
+      <b>${o.cat.nome}:</b> ${o.estado === "estourou"
+        ? `passou do limite em ${dinheiro(o.gasto - o.limite)} (${dinheiro(o.gasto)} de ${dinheiro(o.limite)})`
+        : `${Math.round(o.pct * 100)}% do limite usado (${dinheiro(o.gasto)} de ${dinheiro(o.limite)})`}</p>`).join("")}</div>` : ""}
     <div class="grid tiles">
       <div class="card tile">
         <div class="rotulo">Receitas do mês</div>
@@ -1218,18 +1270,22 @@ function renderPainel() {
 
     <div class="grid duas">
       <div class="card viz">
-        <h2>Gastos por categoria</h2>
-        <p class="hint">${rotuloMes(mesAtual)}</p>
-        ${cats.length ? `
+        <div class="cab-card"><h2>Gastos por categoria</h2>
+          <button class="botao mini cancelar" type="button" onclick="abrirLimites()">${dados.orcamentos.length ? "Editar limites" : "Definir limites"}</button></div>
+        <p class="hint">${rotuloMes(mesAtual)}${dados.orcamentos.length ? "" : " · defina um limite por categoria e receba um aviso ao chegar perto"}</p>
+        ${linhasCat.length ? `
           <div style="display:flex; gap:18px; align-items:center; flex-wrap:wrap">
             <div style="flex:0 1 210px; min-width:170px">${graficoDonut(cats, totalCats)}</div>
             <div style="flex:1 1 220px">
-              ${cats.map(({ cat, valor }) => `
-                <div class="barra-cat">
+              ${linhasCat.map(({ cat, valor }) => {
+                const lim = limiteDe(cat.id), o = orc.find(x => x.cat.id === cat.id);
+                return `
+                <div class="barra-cat${o ? ` orc-${o.estado}` : ""}">
                   <div class="topo-cat"><span class="chip"><span class="ponto cor-${cat.id}"></span>${cat.nome}</span>
-                  <span class="v">${dinheiro(valor)}</span></div>
-                  <progress class="barra-progresso cor-${cat.id}" max="${cats[0].valor}" value="${valor}" aria-label="${esc(cat.nome)}: ${dinheiro(valor)}"></progress>
-                </div>`).join("")}
+                  <span class="v">${dinheiro(valor)}${lim ? `<small> de ${dinheiro(lim)}</small>` : ""}</span></div>
+                  <progress class="barra-progresso cor-${cat.id}" max="${lim || cats[0]?.valor || 1}" value="${Math.min(valor, lim || valor)}" aria-label="${esc(cat.nome)}: ${dinheiro(valor)}${lim ? ` de ${dinheiro(lim)}` : ""}"></progress>
+                </div>`;
+              }).join("")}
             </div>
           </div>` : `<div class="vazio">Nenhum gasto neste mês ainda.</div>`}
       </div>
@@ -1520,6 +1576,44 @@ $("#eCancelar").onclick = () => {
   $("#formEntrada").reset(); limparEdicao();
 };
 
+/* ================= Limites por categoria ================= */
+const CATS_COM_LIMITE = CATEGORIAS.filter(c => c.id !== "cartao"); // pagamento de fatura já aparece nas parcelas
+window.abrirLimites = () => {
+  sairExemplo();
+  $("#limLista").innerHTML = CATS_COM_LIMITE.map(c => `<label><span><span class="ponto cor-${c.id}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat-color);margin-right:8px"></span>${c.nome}</span>
+    <input data-limite="${c.id}" inputmode="numeric" autocomplete="off" placeholder="sem limite" value="${limiteDe(c.id) ? fmtInput(limiteDe(c.id)) : ""}" aria-label="Limite de ${c.nome}"></label>`).join("");
+  $("#limLista").querySelectorAll("input").forEach(mascaraMoeda);
+  $("#modalLimites").showModal();
+};
+$("#limCancelar").onclick = () => $("#modalLimites").close();
+$("#limSalvar").onclick = () => {
+  dados.orcamentos = [...document.querySelectorAll("[data-limite]")]
+    .map(el => ({ id: el.dataset.limite, categoria: el.dataset.limite, limite: valorDe(el) }))
+    .filter(o => o.limite > 0);
+  salvar();
+  $("#modalLimites").close();
+  renderTudo();
+};
+
+let timerAviso = null;
+function avisarMotor(texto, classe = "") {
+  const el = $("#avisoMotor");
+  el.textContent = texto;
+  el.className = classe;
+  el.hidden = false;
+  clearTimeout(timerAviso);
+  timerAviso = setTimeout(() => { el.hidden = true; }, 7000);
+}
+/** Depois de gravar uma despesa: avisa se a categoria passou de 80% ou do limite neste lançamento. */
+function avisarSeChegouNoLimite(cat, mk, antes) {
+  const lim = limiteDe(cat);
+  if (!lim) return;
+  const depois = (gastosPorCategoria(mk).find(x => x.cat.id === cat)?.valor || 0);
+  const nome = catPorId(cat).nome, mes = rotuloMes(deChave(mk));
+  if (depois > lim && antes <= lim) avisarMotor(`${nome} passou do limite de ${dinheiro(lim)} em ${mes}: ${dinheiro(depois)} gastos.`, "estourou");
+  else if (depois >= lim * 0.8 && antes < lim * 0.8 && depois <= lim) avisarMotor(`${nome} chegou a ${Math.round(depois / lim * 100)}% do limite em ${mes}: ${dinheiro(depois)} de ${dinheiro(lim)}.`);
+}
+
 /* ================= Contas fixas: gravar nova ou editada ================= */
 // Editar uma conta que já valia em meses anteriores pergunta se a mudança vale "a partir deste
 // mês" (o histórico fica como estava, ex.: o aluguel aumentou) ou "em todos os meses" (correção).
@@ -1566,6 +1660,7 @@ $("#formLanc").addEventListener("submit", async e => {
   const original = fixoEmEdicao("lanc");
   const modo = rep === "fixo" ? await decidirFixo(original, mk) : null;
   if (modo === false) return;
+  const gastoAntes = gastosPorCategoria(mk).find(x => x.cat.id === cat)?.valor || 0;
 
   removerOriginal("lanc");
   if (rep === "fixo") {
@@ -1586,6 +1681,7 @@ $("#formLanc").addEventListener("submit", async e => {
   $("#lRep").dispatchEvent(new Event("change"));
   mesAtual = deChave(mk); // mostra o mês do lançamento
   renderTudo();
+  avisarSeChegouNoLimite(cat, mk, gastoAntes);
 });
 
 /* ================= Formulário de entradas ================= */
@@ -2025,6 +2121,11 @@ function dadosExemplo() {
       { id: uid(), descricao: "Celular", valorTotal: 2500, numParcelas: 10, categoria: "outros", inicio: mk(-2) },
       { id: uid(), descricao: "Geladeira", valorTotal: 3480, numParcelas: 12, categoria: "moradia", inicio: mk(-7) },
     ],
+    orcamentos: [
+      { id: "alimentacao", categoria: "alimentacao", limite: 700 },
+      { id: "lazer", categoria: "lazer", limite: 120 },
+      { id: "transporte", categoria: "transporte", limite: 400 },
+    ],
     objetivos: [
       { id: uid(), nome: "Reserva de emergência", meta: 15000, aporteMensal: 500,
         aportes: [-2, -1, 0].map(n => ({ id: uid(), valor: 500, data: dia(n, 6) })) },
@@ -2452,7 +2553,7 @@ $("#btnImportar").onclick = () => { sairExemplo(); $("#arqImportar").click(); };
 /* ================= Resetar todos os dados ================= */
 $("#btnResetar").onclick = () => {
   sairExemplo();
-  const n = dados.lancamentos.length + dados.fixos.length + dados.parcelamentos.length + dados.objetivos.length;
+  const n = dados.lancamentos.length + dados.fixos.length + dados.parcelamentos.length + dados.objetivos.length + dados.orcamentos.length;
   if (n === 0) return;
   $("#resetMensagem").textContent = `Isso apagará ${n} ${n === 1 ? "item" : "itens"}, incluindo lançamentos, contas fixas, parcelas e objetivos. Uma cópia local de recuperação será criada antes. Se o backup automático estiver ativo, o arquivo externo poderá ser sobrescrito vazio.`;
   $("#resetConfirmacao").value = "";
@@ -2470,7 +2571,7 @@ $("#resetAceitar").onclick = () => {
   }
   guardarCopia(CHAVE + "-pre-reset", dados); // última rede de segurança
   localStorage.removeItem(CHAVE + "-pre-import");
-  dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] };
+  dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] };
   salvar();
   limparEdicao();
   mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
