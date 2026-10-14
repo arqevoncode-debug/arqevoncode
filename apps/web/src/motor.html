@@ -445,6 +445,15 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
 .sec-toggle select { width: auto; margin-left: 24px; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
+/* ---------- Recursos do Pro ---------- */
+.pro-trava { text-align: center; display: grid; justify-items: center; gap: 10px; padding: 32px 24px; }
+.pro-trava h2 { margin: 0; }
+.pro-trava .hint { max-width: 520px; margin: 0; }
+.pro-selo { font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: 3px 10px; }
+.rel-previa { position: relative; }
+.rel-previa-conteudo { filter: blur(6px); opacity: .55; pointer-events: none; user-select: none; max-height: 640px; overflow: hidden; }
+.rel-previa > .pro-trava { position: absolute; left: 50%; top: 80px; transform: translateX(-50%); width: min(520px, calc(100% - 24px)); box-shadow: var(--shadow); }
+
 /* ---------- Relatórios ---------- */
 .rel-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
 .rel-topo .hint { margin: 4px 0 0; }
@@ -1169,6 +1178,36 @@ function situacaoOrcamento(mk) {
   }).sort((a, b) => b.pct - a.pct);
 }
 
+/* ================= Plano: o que o grátis libera ================= */
+// O Pro vem da conta (a camada web chama MyFinanceBridge.definirPlano com os direitos da nuvem:
+// assinatura, teste grátis ou cortesia). Sem conta é grátis. No exemplo tudo aparece: é a vitrine.
+// A trava aqui é de interface; o que custa dinheiro (a nuvem) é bloqueado no servidor.
+let planoPro = window.__ARQEVON_TESTE_PRO__ === true; // os testes de navegador ligam o Pro por aqui
+const GRATIS = { parcelasAtivas: 5, mesesHistorico: 6, mesesProjecao: 3, objetivos: 1, limites: 2 };
+const ehPro = () => planoPro || !!exemplo;
+function mesMaisAntigoGratis() {
+  const m = somaMes(hoje.getFullYear(), hoje.getMonth(), -(GRATIS.mesesHistorico - 1));
+  return chaveMes(m.ano, m.mes);
+}
+/** Mês anterior ao histórico do grátis: fica com cadeado (os dados continuam guardados). */
+const mesTravado = mk => !ehPro() && mk < mesMaisAntigoGratis();
+/** Compras parceladas com parcela a pagar a partir deste mês. */
+function parcelasAtivas() {
+  const mk = chaveMes(hoje.getFullYear(), hoje.getMonth());
+  return dados.parcelamentos.filter(p => difMeses(p.inicio, mk) < p.numParcelas).length;
+}
+async function convidarPro(motivo) {
+  const ok = await escolherNoApp("Recurso do Pro",
+    `${motivo} No Pro não há esse limite, e você ainda tem nuvem, celular, importação de extrato, relatórios completos e projeção de 12 meses.`,
+    "Conhecer o Pro", "");
+  if (ok) dispatchEvent(new CustomEvent("arqevon:conhecer-pro", { detail: { motivo } }));
+}
+const travaPro = (titulo, texto, dentroDeCard = false) => `<div class="${dentroDeCard ? "" : "card "}pro-trava"><span class="pro-selo">PRO</span><h2>${titulo}</h2>
+  <p class="hint">${texto}</p><button class="botao" type="button" data-conhecer-pro>Conhecer o Pro</button></div>`;
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-conhecer-pro]")) dispatchEvent(new CustomEvent("arqevon:conhecer-pro", { detail: { motivo: "botão" } }));
+});
+
 /* ================= Utilidades de UI ================= */
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -1306,6 +1345,11 @@ function graficoProjecao(meses) {
 /* ================= Render: Painel (resumo + projeção) ================= */
 function renderPainel() {
   const mk = chaveMes(mesAtual.ano, mesAtual.mes);
+  if (mesTravado(mk)) {
+    $("#aba-painel").innerHTML = travaPro(`${maiuscula(rotuloMes(mesAtual))} está no histórico do Pro`,
+      `No plano grátis, você vê o mês atual e os ${GRATIS.mesesHistorico - 1} anteriores. Os lançamentos deste mês continuam guardados (inclusive no backup) e aparecem de novo ao assinar.`);
+    return;
+  }
   const r = resumoDoMes(mk);
   const cats = gastosPorCategoria(mk);
   const totalCats = cats.reduce((s, c) => s + c.valor, 0);
@@ -1334,7 +1378,8 @@ function renderPainel() {
   const pctComp = r.receitas > 0 ? Math.round(comprometido / r.receitas * 100) : null;
   const temDados = dados.lancamentos.length || dados.fixos.length || dados.parcelamentos.length;
 
-  const { meses, media } = projecao(6);
+  const nProj = ehPro() ? 12 : GRATIS.mesesProjecao;
+  const { meses, media } = projecao(nProj);
   const temRenda = dados.fixos.some(f => f.tipo === "receita");
 
   $("#aba-painel").innerHTML = !temDados ? `
@@ -1407,7 +1452,7 @@ function renderPainel() {
     </div>
 
     <div class="card viz">
-      <h2>Projeção — próximos 6 meses</h2>
+      <h2>Projeção — próximos ${nProj} meses${ehPro() ? "" : ` <button class="botao mini cancelar" type="button" data-conhecer-pro>12 meses no Pro</button>`}</h2>
       <p class="hint">Fixos cadastrados + parcelas que ainda vão cair + estimativa de gastos variáveis
         (média dos últimos meses: <b>${dinheiro(media)}</b>/mês).
         Lançamentos na categoria <b>Cartão de crédito</b> ficam de fora — as parcelas já representam o cartão.
@@ -1432,6 +1477,11 @@ function renderPainel() {
 /* ================= Render: Lançamentos (lista única do mês) ================= */
 function renderLista() {
   const mk = chaveMes(mesAtual.ano, mesAtual.mes);
+  if (mesTravado(mk)) {
+    $("#cardLista").innerHTML = travaPro(`${maiuscula(rotuloMes(mesAtual))} está no histórico do Pro`,
+      `No plano grátis, você vê e lança no mês atual e nos ${GRATIS.mesesHistorico - 1} anteriores. Nada foi apagado: os lançamentos continuam guardados e aparecem de novo ao assinar.`, true);
+    return;
+  }
   const mkHoje = chaveMes(hoje.getFullYear(), hoje.getMonth());
   const itens = [];
 
@@ -1713,9 +1763,15 @@ $("#limCancelar").onclick = () => $("#modalLimites").close();
 $("#modalLimites").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); $("#limSalvar").click(); } });
 $("#modalGuia").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); $("#guiaAvancar").click(); } });
 $("#limSalvar").onclick = () => {
-  dados.orcamentos = [...document.querySelectorAll("[data-limite]")]
+  const novos = [...document.querySelectorAll("[data-limite]")]
     .map(el => ({ id: el.dataset.limite, categoria: el.dataset.limite, limite: valorDe(el) }))
     .filter(o => o.limite > 0);
+  // quem já tinha mais limites (antes da regra) mantém; só não aumenta
+  if (!ehPro() && novos.length > Math.max(GRATIS.limites, dados.orcamentos.length)) {
+    convidarPro(`No plano grátis, você define limite em até ${GRATIS.limites} categorias.`);
+    return;
+  }
+  dados.orcamentos = novos;
   salvar();
   $("#modalLimites").close();
   renderTudo();
@@ -1805,6 +1861,11 @@ async function enviarDespesa() {
   const dia = diaDe($("#lDia"));
   const mk = (edicao && edicao.form === "lanc" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
   const data = montarData(mk, dia);
+  if (mesTravado(mk)) return convidarPro(`No plano grátis, você lança no mês atual e nos ${GRATIS.mesesHistorico - 1} anteriores.`);
+  const novaParcelada = rep === "parcelado" && !(edicao && edicao.fonte === "parc");
+  if (novaParcelada && !ehPro() && parcelasAtivas() >= GRATIS.parcelasAtivas) {
+    return convidarPro(`No plano grátis, cabem ${GRATIS.parcelasAtivas} compras parceladas ativas ao mesmo tempo, e você já tem ${parcelasAtivas()}.`);
+  }
   const original = fixoEmEdicao("lanc");
   const modo = original ? await decidirFixo(original, mk, rep !== "fixo") : null;
   if (modo === false) return;
@@ -1848,6 +1909,7 @@ async function enviarEntrada() {
   const dia = diaDe($("#eDia"));
   const mk = (edicao && edicao.form === "entrada" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
   const data = montarData(mk, dia);
+  if (mesTravado(mk)) return convidarPro(`No plano grátis, você lança no mês atual e nos ${GRATIS.mesesHistorico - 1} anteriores.`);
   const original = fixoEmEdicao("entrada");
   const viraOutro = $("#eRep").value !== "fixo";
   const modo = original ? await decidirFixo(original, mk, viraOutro) : null;
@@ -1883,6 +1945,10 @@ $("#formObj").addEventListener("submit", e => {
   e.preventDefault();
   const nome = $("#oNome").value.trim();
   if (!nome) return;
+  if (!edicaoObj && !ehPro() && dados.objetivos.length >= GRATIS.objetivos) {
+    convidarPro(`No plano grátis, você acompanha ${GRATIS.objetivos} objetivo.`);
+    return;
+  }
   const meta = valorDe($("#oMeta"));
   const aporteMensal = valorDe($("#oAporte"));
   if (edicaoObj) {
@@ -2125,9 +2191,15 @@ function renderRelatorios() {
           <td class="num" style="font-weight:700">${dinheiro(x.total)}</td><td class="num">${dinheiro(x.media)}</td></tr>`).join("")}</tbody>
       </table></div>` : `<div class="vazio">Nenhuma despesa no período.</div>`}
     </div>`;
+  if (!ehPro()) {
+    // prévia com os dados da própria pessoa, desfocada: ela vê o que ganha com o Pro
+    alvo.innerHTML = `<div class="rel-previa"><div class="rel-previa-conteudo" aria-hidden="true" inert>${alvo.innerHTML}</div>
+      ${travaPro("Relatórios completos no Pro", "Mês a mês, despesas por categoria, comparação com a média e exportação em CSV e PDF, com os seus lançamentos.")}</div>`;
+  }
 }
 $("#relPeriodo").addEventListener("change", renderRelatorios);
 $("#relImprimir").onclick = () => {
+  if (!ehPro()) { convidarPro("Imprimir e salvar relatórios em PDF é um recurso do Pro."); return; }
   ativarAba("relatorios");
   document.documentElement.classList.add("imprimindo-relatorio");
   window.print();
@@ -2165,6 +2237,7 @@ function csvRelatorio(meses) {
   return "\uFEFF" + linhas.map(l => l.map((v, i) => cel(v, i < l.length - 1)).join(";")).join("\r\n");
 }
 $("#relCsv").onclick = () => {
+  if (!ehPro()) { convidarPro("Exportar relatórios em CSV é um recurso do Pro."); return; }
   const meses = mesesDoRelatorio($("#relPeriodo").value);
   if (!meses.length) return;
   const blob = new Blob([csvRelatorio(meses)], { type: "text/csv;charset=utf-8" });
@@ -2351,7 +2424,10 @@ function chaveExtrato(t) {
 
 /* ================= Importar extrato: revisão antes de salvar ================= */
 let ext = null; // { nome, csv, mapa, itens: [{data, desc, valor, ref, chave, cat, marcado, aviso}] }
-$("#btnExtrato").onclick = () => { sairExemplo(); $("#arqExtrato").click(); };
+$("#btnExtrato").onclick = () => {
+  if (!planoPro) { convidarPro("Importar o extrato do banco é um recurso do Pro: o arquivo OFX ou CSV vira lançamentos em segundos."); return; }
+  sairExemplo(); $("#arqExtrato").click();
+};
 $("#arqExtrato").addEventListener("change", async e => {
   const f = e.target.files[0];
   e.target.value = "";
@@ -2606,6 +2682,9 @@ function parcelasGuia() {
     const ini = somaMes(hoje.getFullYear(), hoje.getMonth(), -(atual - 1));
     out.push({ id: uid(), descricao: desc, valorTotal: Math.round(valor * total * 100) / 100, numParcelas: total,
       categoria: "outros", inicio: chaveMes(ini.ano, ini.mes) });
+  }
+  if (!ehPro() && parcelasAtivas() + out.length > GRATIS.parcelasAtivas) {
+    throw new Error(`No plano grátis, cabem ${GRATIS.parcelasAtivas} compras parceladas ativas. Deixe as demais para depois ou conheça o Pro.`);
   }
   return out;
 }
@@ -3100,6 +3179,8 @@ window.MyFinanceBridge = {
   // A nuvem espera: com um item no formulário de edição, aplicar mudanças agora embaralharia o
   // formulário; no exemplo, os dados na tela nem são os reais.
   editando: () => !!edicao || !!edicaoObj,
+  // Plano da conta (a camada web decide pelos direitos da nuvem).
+  definirPlano: ({ pro }) => { if (planoPro !== !!pro) { planoPro = !!pro; renderTudo(); } },
   // Apaga os lançamentos deste navegador, inclusive as cópias de recuperação (troca de conta).
   apagarTudo: () => {
     sairExemplo();

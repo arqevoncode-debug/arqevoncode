@@ -54,8 +54,9 @@ export async function navegador() {
  * @param {number} [o.aceleraIdle] divide os timers de 1 min ou mais (bloqueio por inatividade)
  * @param {boolean} [o.sw] deixa o service worker atuar (só no teste do PWA)
  * @param {object} [o.extra] outras chaves do localStorage a gravar antes de abrir
+ * @param {"pro"|"gratis"} [o.plano] plano do motor no modo sem conta (padrão: pro)
  */
-export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { width: 1400, height: 1000 }, aceleraIdle = 1, sw = false, extra = null }) {
+export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { width: 1400, height: 1000 }, aceleraIdle = 1, sw = false, extra = null, plano = "pro" }) {
   // Contra a produção, um ritmo calmo: rajadas de acessos do mesmo IP disparam a proteção contra
   // robôs da Vercel (403 "Security Checkpoint" por uns 10 minutos, só para esse IP).
   if (process.env.ARQEVON_WEB_URL) await espera(2000);
@@ -81,6 +82,9 @@ export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { wi
       window.setTimeout = (fn, ms, ...a) => st(fn, ms >= 60000 ? ms / fator : ms, ...a);
     }
   }, hoje, aceleraIdle);
+  // A maioria dos testes exercita os recursos completos: o motor começa no Pro. Os testes do plano
+  // grátis passam plano: "gratis".
+  if (plano === "pro") await p.evaluateOnNewDocument(() => { window.__ARQEVON_TESTE_PRO__ = true; });
   await p.goto(url);
   await p.evaluate((d, x) => {
     localStorage.clear();

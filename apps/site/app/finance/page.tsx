@@ -20,7 +20,7 @@ const recursos = [
   { titulo: "Projeção dos próximos meses", texto: "Fixos, parcelas que ainda vão cair e a média dos gastos variáveis, somados para os próximos 6 meses." },
   { titulo: "Quanto da renda já está comprometido", texto: "Fixos e parcelas somados, em reais e em porcentagem da sua renda." },
   { titulo: "Objetivos com aportes", texto: "Reserva de emergência, viagem ou um notebook novo: acompanhe quanto falta para cada meta." },
-  { titulo: "Importe o extrato do banco", texto: "Arquivo OFX ou CSV do seu banco, com categorias sugeridas e revisão antes de salvar. O arquivo não sai do seu aparelho." },
+  { titulo: "Importe o extrato do banco (Pro)", texto: "Arquivo OFX ou CSV do seu banco, com categorias sugeridas e revisão antes de salvar. O arquivo não sai do seu aparelho." },
 ];
 
 const passos = [
@@ -137,16 +137,18 @@ export default function Finance() {
       <section className="lp-secao" id="planos">
         <div className="lp-titulo">
           <p className="lp-selo"><i /> Planos</p>
-          <h2>Grátis de verdade.<br /><span>Pro para ter tudo na nuvem.</span></h2>
+          <h2>Comece grátis.<br /><span>Vá além com o Pro.</span></h2>
         </div>
         <div className="lp-planos">
           <article>
             <span className="lp-plano-nome">Grátis</span>
             <strong>R$ 0</strong>
             <ul>
-              <li>Todas as funções do Finance</li>
-              <li>Dados só neste aparelho</li>
-              <li>Backup manual em arquivo</li>
+              <li>Lançamentos e contas fixas sem limite</li>
+              <li>Até 5 compras parceladas ativas</li>
+              <li>Últimos 6 meses na tela e projeção de 3 meses</li>
+              <li>1 objetivo e limite em 2 categorias</li>
+              <li>Dados só neste aparelho, com backup em arquivo</li>
             </ul>
             <a className="lp-botao-sec" href={APP_URL}>Começar grátis</a>
           </article>
@@ -156,9 +158,11 @@ export default function Finance() {
             <p className="lp-plano-anual">ou R$ 119/ano · economize R$ 59,80</p>
             <p className="lp-plano-teste">Teste grátis por 30 dias ao criar sua conta, sem cartão.</p>
             <ul>
-              <li>Tudo do Grátis</li>
-              <li>Acesso em qualquer aparelho, inclusive celular</li>
-              <li>Sincronização automática</li>
+              <li>Parcelados, histórico, objetivos e limites sem restrição</li>
+              <li>Importação do extrato do banco (OFX e CSV)</li>
+              <li>Relatórios completos, com CSV e PDF</li>
+              <li>Projeção de 12 meses</li>
+              <li>Qualquer aparelho, inclusive celular, com sincronização</li>
               <li>Backup na nuvem com criptografia ponta a ponta</li>
             </ul>
             <a className="lp-botao" href={APP_URL}>Testar o Pro grátis</a>
@@ -171,10 +175,10 @@ export default function Finance() {
         <div className="lp-titulo"><p className="lp-selo"><i /> Dúvidas</p><h2>Perguntas frequentes.</h2></div>
         <div className="lp-faq">
           <details><summary>Preciso instalar alguma coisa?<span>+</span></summary><p>Não. O Arqevon Finance funciona no navegador, no computador ou no celular.</p></details>
-          <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não. No Grátis você usa todas as funções, com os dados guardados só no aparelho que estiver usando.</p></details>
+          <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não, o Grátis não expira. Você lança sem limite e tem até 5 compras parceladas ativas, os últimos 6 meses na tela, projeção de 3 meses, 1 objetivo e limite em 2 categorias. Os dados ficam só no aparelho que estiver usando, e você exporta tudo quando quiser.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
           <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
-          <details><summary>O que tem no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
+          <details><summary>O que tem no Pro?<span>+</span></summary><p>Tudo sem limites (parcelados, histórico, objetivos e categorias), importação do extrato do banco, relatórios completos com CSV e PDF, projeção de 12 meses e acesso em qualquer aparelho, inclusive no celular, com sincronização e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
         </div>
       </section>
 
