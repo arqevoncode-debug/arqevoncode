@@ -81,6 +81,16 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   const termos = await readFile(new URL("app/termos/page.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
   const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  // calculadoras: cada uma com página, título próprio e no sitemap
+  const sitemap = await readFile(new URL("app/sitemap.ts", root), "utf8");
+  assert.match(sitemap, /CALCULADORAS/);
+  for (const slug of ["50-30-20", "parcela-e-renda", "reserva-de-emergencia"]) {
+    const calc = await readFile(new URL(`app/calculadoras/${slug}/page.tsx`, root), "utf8");
+    assert.match(calc, new RegExp(`canonical: "/calculadoras/${slug}"`));
+    assert.match(calc, new RegExp(`atual="${slug}"`));
+  }
+  const reserva = await readFile(new URL("app/calculadoras/reserva-de-emergencia/calculadora.tsx", root), "utf8");
+  assert.match(reserva, /não conta rendimento/, "regra da marca: não prometer rendimento");
   assert.match(seguranca, /AES-256-GCM/);
   // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
   const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
@@ -106,6 +116,16 @@ test("oferece software sob encomenda com formulário de orçamento", async () =>
   const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
   const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  // calculadoras: cada uma com página, título próprio e no sitemap
+  const sitemap = await readFile(new URL("app/sitemap.ts", root), "utf8");
+  assert.match(sitemap, /CALCULADORAS/);
+  for (const slug of ["50-30-20", "parcela-e-renda", "reserva-de-emergencia"]) {
+    const calc = await readFile(new URL(`app/calculadoras/${slug}/page.tsx`, root), "utf8");
+    assert.match(calc, new RegExp(`canonical: "/calculadoras/${slug}"`));
+    assert.match(calc, new RegExp(`atual="${slug}"`));
+  }
+  const reserva = await readFile(new URL("app/calculadoras/reserva-de-emergencia/calculadora.tsx", root), "utf8");
+  assert.match(reserva, /não conta rendimento/, "regra da marca: não prometer rendimento");
   assert.match(seguranca, /AES-256-GCM/);
   // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
   const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
