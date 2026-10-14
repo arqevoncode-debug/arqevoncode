@@ -39,6 +39,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
      recomeçar (anual de valor fixo renovado antes de vencer).
    - `202610050006_alerta_reembolso.sql`: `payment_events.alert_sent_at`.
    - `202610050007_quote_requests.sql`: pedidos de orçamento (`quote_requests`, `request_quote`).
+   - `202610130001_teste_fundador_metricas.sql`: teste grátis de 30 dias (`trial_claims`, `claim_trial`), plano `pro_fundador` com vagas (`plan_slots_left`), `trial` em `my_entitlements` e `admin_metrics`.
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres

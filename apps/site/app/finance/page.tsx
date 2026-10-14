@@ -158,13 +158,14 @@ export default function Finance() {
             <span className="lp-plano-nome">Pro</span>
             <strong>R$ 14,90<small className="lp-plano-mes">/mês</small></strong>
             <p className="lp-plano-anual">ou R$ 119/ano · economize R$ 59,80</p>
+            <p className="lp-plano-teste">Teste grátis por 30 dias ao criar sua conta, sem cartão.</p>
             <ul>
               <li>Tudo do Grátis</li>
               <li>Acesso em qualquer aparelho, inclusive celular</li>
               <li>Sincronização automática</li>
               <li>Backup na nuvem com criptografia ponta a ponta</li>
             </ul>
-            <a className="lp-botao" href={APP_URL}>Assinar o Pro</a>
+            <a className="lp-botao" href={APP_URL}>Testar o Pro grátis</a>
           </article>
         </div>
       </section>
@@ -194,7 +195,7 @@ export default function Finance() {
           <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não. No Grátis você usa todas as funções, com os dados guardados só no aparelho que estiver usando.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
           <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
-          <details><summary>O que tem no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
+          <details><summary>O que tem no Pro?<span>+</span></summary><p>Acesso em qualquer aparelho, inclusive no celular, com sincronização automática e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
         </div>
       </section>
 

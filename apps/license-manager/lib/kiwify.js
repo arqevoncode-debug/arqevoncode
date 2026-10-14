@@ -96,8 +96,10 @@ export function classificarKiwify(eventType, saleStatus) {
   return "ignored";
 }
 
-/** Plano pela frequência da assinatura, pelo nome do plano ou pelo produto (KIWIFY_PRODUCT_PLANS). */
+/** Plano pelo nome (Fundador), pela frequência da assinatura, pelo nome do plano ou pelo produto (KIWIFY_PRODUCT_PLANS). */
 export function planoKiwify({ frequency, planName, productId }, mapa = process.env.KIWIFY_PRODUCT_PLANS) {
+  // O Fundador também é mensal: o nome do plano na Kiwify decide antes da frequência.
+  if (/fundador/i.test(planName || "")) return "pro_fundador";
   if (/^(monthly|month|mensal)$/.test(frequency || "")) return "pro_mensal";
   if (/^(yearly|year|annually|annual|anual)$/.test(frequency || "")) return "pro_anual";
   if (/anual/i.test(planName || "")) return "pro_anual";

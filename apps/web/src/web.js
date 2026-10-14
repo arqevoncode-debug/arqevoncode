@@ -24,6 +24,7 @@ const ICONE_CONTA = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.9" str
 
 const brl = centavos => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataBr = iso => new Date(iso).toLocaleDateString("pt-BR");
+const diasAte = iso => Math.max(Math.ceil((new Date(iso) - Date.now()) / 86400000), 0);
 
 let estado = { modo: null, email: null, uid: null, direitos: null, planos: [] };
 
@@ -73,22 +74,29 @@ function montarLayout() {
 // ---------- Conta e plano ----------
 function planoAtual() {
   const sub = estado.direitos?.subscription;
+  const trial = estado.direitos?.trial || null;
   const temNuvem = estado.direitos?.entitlements?.some(e => e.product === "finance" && e.feature === "cloud");
-  return { sub, pro: !!temNuvem };
+  const pago = sub && ["active", "past_due"].includes(sub.status);
+  // Pro só por causa do teste grátis: continua podendo assinar.
+  const soTeste = !!temNuvem && !!trial?.active && !pago;
+  return { sub, pro: !!temNuvem, trial, soTeste };
 }
 
 function atualizarCartao() {
   const local = estado.modo === "local";
-  const { pro } = planoAtual();
+  const { pro, trial, soTeste } = planoAtual();
   $("webQuem").textContent = local ? "Sem conta" : estado.email || "";
+  const dias = soTeste ? diasAte(trial.ends_at) : 0;
+  const rotuloTeste = `Pro grátis · ${dias === 1 ? "falta 1 dia" : `faltam ${dias} dias`}`;
   $("webPlano").textContent = local ? "Dados só neste navegador"
-    : nuvem.ativa() ? `Pro · ${nuvem.texto() || "nuvem ativa"}`
+    : nuvem.ativa() ? `${soTeste ? rotuloTeste : "Pro"} · ${nuvem.texto() || "nuvem ativa"}`
+    : soTeste ? rotuloTeste
     : pro ? "Plano Pro" : "Plano Grátis";
 }
 
 function atualizarConta() {
   const local = estado.modo === "local";
-  const { sub, pro } = planoAtual();
+  const { sub, pro, trial, soTeste } = planoAtual();
   atualizarCartao();
   $("wcEmail").textContent = local
     ? "Você está usando sem conta: os dados ficam só neste navegador."
@@ -98,7 +106,7 @@ function atualizarConta() {
   $("wcPro").classList.toggle("wc-atual", pro);
   $("wcSair").textContent = local ? "Voltar ao login" : "Sair";
 
-  const mensal = estado.planos.find(p => p.interval === "month");
+  const mensal = planoMensal();
   $("wcProPreco").innerHTML = mensal ? `${brl(mensal.price_cents)}<small>/mês</small>` : "—";
 
   const status = $("wcProStatus");
@@ -108,10 +116,19 @@ function atualizarConta() {
   if (sub?.status === "past_due") status.textContent = "Pagamento pendente: regularize para não perder o Pro.";
   if (sub?.status === "canceled" && pro) status.textContent = `Cancelado · acesso até ${dataBr(sub.current_period_end)}`;
   if (sub?.status === "canceled" && !pro) status.hidden = true;
+  if (soTeste) { status.hidden = false; status.textContent = `Teste grátis até ${dataBr(trial.ends_at)} · assine para continuar depois`; }
+  const testeAcabou = !local && !pro && trial && !trial.active;
+  if (testeAcabou) { status.hidden = false; status.textContent = "Seu teste grátis terminou. Seus dados na nuvem continuam guardados: assine para voltar a sincronizar."; }
 
-  $("wcAssinar").hidden = !VENDER_PRO || local || pro;
+  const podeAssinar = !local && (!pro || soTeste);
+  $("wcAssinar").hidden = !VENDER_PRO || !podeAssinar;
   $("wcBreve").hidden = VENDER_PRO || pro;
-  if (VENDER_PRO && !local && !pro) montarCiclos();
+  if (VENDER_PRO && podeAssinar) montarCiclos();
+}
+
+// Mensal "normal": o Fundador também é mensal, mas tem vagas limitadas.
+function planoMensal() {
+  return estado.planos.find(p => p.interval === "month" && p.slots_left == null) || estado.planos.find(p => p.interval === "month");
 }
 
 function montarCiclos() {
@@ -119,9 +136,12 @@ function montarCiclos() {
   if (caixa.childElementCount) return;
   estado.planos.forEach((p, i) => {
     // Formas de pagamento de cada gateway: a Kiwify aceita Pix e cartão nos dois ciclos.
-    const mensal = estado.planos.find(x => x.interval === "month");
+    const mensal = planoMensal();
     const economia = mensal && p.interval === "year" ? mensal.price_cents * 12 - p.price_cents : 0;
-    const rotulo = p.interval === "month"
+    const vagas = p.slots_left == null ? "" : ` · ${p.slots_left === 1 ? "resta 1 vaga" : `restam ${p.slots_left} vagas`}`;
+    const rotulo = p.slots_left != null
+      ? `<b>Fundador</b> · ${brl(p.price_cents)}/mês para sempre, só para os primeiros assinantes${vagas}`
+      : p.interval === "month"
       ? `<b>Mensal</b> · ${brl(p.price_cents)}/mês ${VIA_KIWIFY ? "no Pix ou cartão" : "no cartão"}, renova sozinho`
       : `<b>Anual</b> · ${brl(p.price_cents)}/ano ${VIA_KIWIFY ? "no Pix ou cartão em até 12x" : "no Pix, boleto ou cartão"}${economia > 0 ? ` · economize ${brl(economia)}` : ""}`;
     caixa.insertAdjacentHTML("beforeend",
@@ -129,7 +149,28 @@ function montarCiclos() {
   });
 }
 
+// O teste grátis de 30 dias começa no primeiro login de uma conta elegível. O banco decide quem
+// pode (uma vez por conta, nunca para quem já assinou); aqui só pedimos uma vez por sessão.
+let testePedido = false;
+async function pedirTeste() {
+  if (testePedido || estado.modo !== "conta") return;
+  testePedido = true;
+  const { data, error } = await supabase.rpc("claim_trial");
+  if (!error && data?.status === "started") avisar(`Você ganhou 30 dias de Pro grátis, sem cartão. Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
+}
+
+function avisar(texto, acao, aoClicar) {
+  const el = $("webAviso");
+  $("webAvisoTexto").textContent = texto;
+  $("webAvisoAcao").textContent = acao || "";
+  $("webAvisoAcao").hidden = !acao;
+  $("webAvisoAcao").onclick = () => { el.hidden = true; aoClicar?.(); };
+  el.hidden = false;
+}
+$("webAvisoFechar").addEventListener("click", () => { $("webAviso").hidden = true; });
+
 async function carregarConta() {
+  await pedirTeste();
   const [planos, direitos] = await Promise.all([
     supabase.rpc("list_plans"),
     estado.modo === "conta" ? supabase.rpc("my_entitlements") : Promise.resolve({ data: null }),
@@ -220,6 +261,7 @@ $("wcSair").addEventListener("click", async () => {
   if (estado.modo === "conta") await supabase.auth.signOut().catch(() => {});
   localStorage.removeItem(MODO_LOCAL);
   estado = { ...estado, modo: null, email: null, direitos: null };
+  testePedido = false;
   $("webConta").close();
   mostrarLogin();
 });

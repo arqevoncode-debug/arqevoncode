@@ -12,7 +12,7 @@ const raiz = resolve(import.meta.dirname, "../..");
 const base = process.env.REGRESSAO_BASE || "origin/main";
 const tmp = mkdtempSync(join(tmpdir(), "arqevon-regressao-"));
 writeFileSync(join(tmp, "motor.html"), execFileSync("git", ["show", `${base}:apps/finance-desktop/meu-financeiro.html`], { cwd: raiz, maxBuffer: 1 << 26 }));
-execFileSync("node", ["scripts/build.mjs"], { cwd: raiz, env: { ...process.env, ARQEVON_MOTOR: join(tmp, "motor.html"), ARQEVON_SAIDA: tmp }, stdio: "ignore" });
+execFileSync("node", ["scripts/build.mjs"], { cwd: raiz, env: { ...process.env, ARQEVON_BILLING: "1", ARQEVON_MOTOR: join(tmp, "motor.html"), ARQEVON_SAIDA: tmp }, stdio: "ignore" });
 
 const ROTEIRO = [
   { nome: "despesa sem dia no mês atual", tipo: "despesa", rep: "unico", mes: "2026-10", desc: "Mercado", valor: "250,00", cat: "alimentacao" },
