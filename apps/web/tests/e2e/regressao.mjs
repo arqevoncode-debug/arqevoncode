@@ -112,6 +112,17 @@ for (const hoje of ["2026-10-13T12:00:00", "2026-10-31T12:00:00"]) {
   const pn = await abrir(browser, { url: srvNovo.url, hoje });
   for (const a of [{ nome: "tela inicial", tipo: "nada" }, ...ROTEIRO]) {
     await passo(pb, a); await passo(pn, a);
+    // perguntas (ex.: conta fixa "a partir deste mês" ou "em todos os meses"): a mesma resposta nas
+    // duas versões, como a pessoa faria, para nenhuma ficar com um envio pendente
+    for (const pg of [pb, pn]) {
+      await new Promise(r => setTimeout(r, 50));
+      await pg.evaluate(() => {
+        if (!document.querySelector("#modalConfirmacao")?.open) return;
+        const alt = document.querySelector("#confirmacaoAlternativa");
+        (alt && !alt.hidden ? alt : document.querySelector("#confirmacaoAceitar")).click();
+      });
+      await new Promise(r => setTimeout(r, 50));
+    }
     const [fb, fn] = [await foto(pb), await foto(pn)];
     const campos = Object.keys(fb).filter(k => JSON.stringify(fb[k]) !== JSON.stringify(fn[k]));
     if (!campos.length) { console.log(`  ✓ ${a.nome}`); continue; }
