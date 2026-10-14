@@ -38,7 +38,9 @@ const motor = {
   pronto: () => !!ponte() && $("telaBloqueio")?.hidden !== false && !ponte().emExemplo?.(),
   editando: () => {
     const ativo = document.activeElement;
-    const campo = ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName) && ativo.closest(".app");
+    // só campos de formulário que gravam algo (lançamento, objetivo, aporte); um seletor de
+    // período ou de tema com foco não pode segurar a sincronização indefinidamente
+    const campo = ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName) && ativo.closest(".app form, .app .aporte-form");
     const janela = document.querySelector(".app dialog[open], dialog[open]:not(#webConta)");
     return !!campo || !!janela || !!ponte()?.editando?.();
   },

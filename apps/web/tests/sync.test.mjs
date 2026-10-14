@@ -250,3 +250,27 @@ test("outro aparelho grava entre o pull e o push: nada é pulado", async () => {
   await a.sync.sincronizar();
   assert.deepEqual(a.dados.lancamentos.map(l => l.id).sort(), ["a", "b"]);
 });
+
+test("lançamento feito durante a rodada não é apagado pela mescla", async () => {
+  const { chaves } = await criarCofre("s", gerarChaveRecuperacao(), ITER);
+  const srv = servidor();
+  const a = aparelho(srv, chaves, { lancamentos: Array.from({ length: 300 }, (_, i) => lanc("a" + i, "Item " + i)) });
+  await a.sync.sincronizar();
+  const b = aparelho(srv, chaves);
+  // a pessoa grava algo logo depois que a rodada leu os dados, enquanto ela ainda calcula
+  const lerOriginal = b.sync.motor.ler;
+  let primeira = true;
+  b.sync.motor.ler = () => {
+    const d = lerOriginal();
+    if (primeira) { primeira = false; setTimeout(() => { b.dados = { ...b.dados, lancamentos: [...b.dados.lancamentos, lanc("novo", "Digitado agora")] }; }, 0); }
+    return d;
+  };
+  const r = await b.sync.sincronizar();
+  assert.equal(r.resultado, "adiado", "a rodada percebe a mudança e não grava por cima");
+  assert.ok(b.dados.lancamentos.some(l => l.id === "novo"), "o lançamento novo continua lá");
+  // na rodada seguinte tudo se acerta: os 300 de A chegam e o novo vai para a nuvem
+  await b.sync.sincronizar();
+  assert.equal(b.dados.lancamentos.length, 301);
+  await a.sync.sincronizar();
+  assert.ok(a.dados.lancamentos.some(l => l.id === "novo"));
+});

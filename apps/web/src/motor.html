@@ -172,6 +172,7 @@ section.painel > * + * { margin-top: 14px; }
   text-transform: uppercase; color: var(--muted);
 }
 .tile .valor {
+  white-space: nowrap;
   font-size: 29px; font-weight: 800; letter-spacing: -0.03em; margin-top: 5px;
   font-variant-numeric: tabular-nums;
 }
@@ -471,14 +472,21 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
   .rel-meses td:nth-child(2)::before { content: "Receitas "; color: var(--muted); font-weight: 400; }
   .rel-meses td:nth-child(3)::before { content: "Despesas "; color: var(--muted); }
 }
+/* Só quando o botão "Imprimir" do relatório é usado (classe no <html>): o Ctrl+P em outra aba
+   imprime a tela normalmente, em vez de uma página em branco. */
 @media print {
-  body * { visibility: hidden; }
-  #aba-relatorios, #aba-relatorios * { visibility: visible; }
-  #aba-relatorios { position: absolute; inset: 0 auto auto 0; width: 100%; color: #111; }
-  #aba-relatorios .card { background: #fff; border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
-  #aba-relatorios .rel-acoes { display: none; }
-  #aba-relatorios .tabela-wrap { overflow: visible; }
-  #aba-relatorios td, #aba-relatorios th { color: #111; }
+  @page { size: A4 landscape; margin: 10mm; }
+  html.imprimindo-relatorio body * { visibility: hidden; }
+  html.imprimindo-relatorio #aba-relatorios, html.imprimindo-relatorio #aba-relatorios * { visibility: visible; }
+  html.imprimindo-relatorio #aba-relatorios { position: absolute; inset: 0 auto auto 0; width: 100%; color: #111; font-size: 10pt; }
+  html.imprimindo-relatorio #aba-relatorios .card { background: #fff; border: 1px solid #ccc; box-shadow: none; break-inside: avoid; padding: 10px 12px; margin-bottom: 8px; max-width: 100%; }
+  html.imprimindo-relatorio #aba-relatorios .grid.tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  html.imprimindo-relatorio #aba-relatorios .tile .valor { font-size: 15pt; }
+  html.imprimindo-relatorio #aba-relatorios .rel-acoes { display: none; }
+  html.imprimindo-relatorio #aba-relatorios .tabela-wrap { overflow: visible; }
+  html.imprimindo-relatorio #aba-relatorios table { font-size: 8pt; width: 100%; }
+  html.imprimindo-relatorio #aba-relatorios th, html.imprimindo-relatorio #aba-relatorios td { color: #111; padding: 3px 4px; }
+  html.imprimindo-relatorio #aba-relatorios .chip { font-size: 8pt; padding: 0 4px; border: 0; }
 }
 
 /* ---------- Importar extrato ---------- */
@@ -788,7 +796,7 @@ dialog#modalGuia { max-width: 560px; }
   <div class="sec-bloco">
     <label for="sgNova"><span id="lblNova">Nova senha</span> (mín. 6 caracteres)</label>
     <input id="sgNova" type="password" autocomplete="new-password" placeholder="••••••">
-    <input id="sgConf" type="password" autocomplete="new-password" placeholder="confirme a senha" style="margin-top:6px">
+    <input id="sgConf" type="password" autocomplete="new-password" placeholder="confirme a senha" aria-label="Confirme a senha" style="margin-top:6px">
   </div>
 
   <div class="sec-bloco sec-toggle">
@@ -958,6 +966,7 @@ const catPorId = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS.find(c =>
 let blobPendente = null; // dados criptografados aguardando a senha
 let exemplo = null; // { real } enquanto o exemplo com dados fictícios está aberto
 // Descarta registros sem os campos que os cálculos usam: um item quebrado não pode travar o app inteiro.
+let idsCriados = false; // normalizar() criou ids que precisam ser gravados
 function normalizar(d) {
   const lista = v => (Array.isArray(v) ? v : []).filter(x => x && typeof x === "object");
   const num = v => Number.isFinite(v);
@@ -965,20 +974,37 @@ function normalizar(d) {
   // que não existe mais (backup antigo, edição à mão) não pode quebrar a tela.
   const texto = (v, padrao) => (typeof v === "string" && v.trim() ? v : padrao);
   const categoria = c => (CATEGORIAS.some(x => x.id === c) ? c : "outros");
+  // id sempre texto e sempre presente: a lista compara com o id guardado no botão (texto), e um
+  // registro sem id não poderia ser editado nem excluído sozinho. Ids criados aqui são gravados.
+  const comId = x => {
+    if (x.id === undefined || x.id === null || x.id === "") { idsCriados = true; return { ...x, id: uid() }; }
+    return typeof x.id === "string" ? x : { ...x, id: String(x.id) };
+  };
+  // valor em texto ("50") e negativo (dados antigos ou editados à mão)
+  const valorNum = v => { const n = typeof v === "string" && v.trim() !== "" ? Number(v.replace(",", ".")) : v; return Number.isFinite(n) ? Math.abs(n) : NaN; };
+  const tipo = t => (String(t).toLowerCase() === "receita" ? "receita" : "despesa");
+  d = { ...d,
+    lancamentos: lista(d.lancamentos).map(l => ({ ...l, valor: valorNum(l.valor) })),
+    fixos: lista(d.fixos).map(f => ({ ...f, valor: valorNum(f.valor) })),
+    parcelamentos: lista(d.parcelamentos).map(p => ({ ...p, valorTotal: valorNum(p.valorTotal), numParcelas: parseInt(p.numParcelas, 10) })),
+  };
   return {
     lancamentos: lista(d.lancamentos).filter(l => typeof l.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.data) && num(l.valor))
-      .map(l => ({ ...l, tipo: l.tipo === "receita" ? "receita" : "despesa", descricao: texto(l.descricao, "Lançamento"), categoria: categoria(l.categoria) })),
+      .map(l => comId({ ...l, tipo: tipo(l.tipo), descricao: texto(l.descricao, "Lançamento"), categoria: categoria(l.categoria) })),
     fixos: lista(d.fixos).filter(f => num(f.valor))
-      .map(f => ({ ...f, tipo: f.tipo === "receita" ? "receita" : "despesa", descricao: texto(f.descricao, "Conta fixa"), categoria: categoria(f.categoria) })),
+      .map(f => comId({ ...f, tipo: tipo(f.tipo), descricao: texto(f.descricao, "Conta fixa"), categoria: categoria(f.categoria) })),
     parcelamentos: lista(d.parcelamentos).filter(p => typeof p.inicio === "string" && /^\d{4}-\d{2}$/.test(p.inicio)
       && num(p.valorTotal) && Number.isInteger(p.numParcelas) && p.numParcelas >= 1)
-      .map(p => ({ ...p, descricao: texto(p.descricao, "Compra parcelada"), categoria: categoria(p.categoria) })),
-    objetivos: lista(d.objetivos).map(o => ({ ...o, nome: texto(o.nome, "Objetivo"), aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)) })),
+      .map(p => comId({ ...p, descricao: texto(p.descricao, "Compra parcelada"), categoria: categoria(p.categoria) })),
+    objetivos: lista(d.objetivos).map(o => comId({ ...o, nome: texto(o.nome, "Objetivo"),
+      aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)).map(comId) })),
     // Limite mensal por categoria: um registro por categoria (id = categoria), para sincronizar.
     orcamentos: lista(d.orcamentos).filter(o => typeof o.categoria === "string" && num(o.limite) && o.limite > 0),
   };
 }
 let dados = carregar();
+// ids criados para registros antigos sem id: gravados logo, para não mudarem a cada abertura
+const gravarIdsCriados = () => { if (idsCriados) { idsCriados = false; salvar(); } };
 function carregar() {
   // tenta a chave principal; se estiver corrompida, recupera da cópia de segurança
   for (const k of [CHAVE, CHAVE + "-backup", CHAVE + "-pre-import"]) {
@@ -1034,13 +1060,14 @@ function recifrarCopias() {
     } catch (e) {}
   }
 }
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+// declaração de função (e não const): normalizar() a usa ao carregar, antes desta linha
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
 /* ================= Datas / dinheiro ================= */
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dinheiro = v => fmtBRL.format(v || 0);
 
-const hoje = new Date();
+let hoje = new Date(); // atualizado na virada do dia (app instalado fica aberto por dias)
 let mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() }; // mes 0-11
 
 const chaveMes = (a, m) => `${a}-${String(m + 1).padStart(2, "0")}`;
@@ -1082,11 +1109,12 @@ function resumoDoMes(mk) {
   const fixDesp = fixos.filter(f => f.tipo === "despesa").reduce((s, f) => s + f.valor, 0);
   const fixRec  = fixos.filter(f => f.tipo === "receita").reduce((s, f) => s + f.valor, 0);
   const parcTot = parcelasDoMes(mk).reduce((s, { p, indice }) => s + valorParcela(p, indice), 0);
+  const c = v => Math.round(v * 100) / 100; // soma em centavos: 0,30 − 0,10 − 0,20 é zero, não −0,00
   return {
-    receitas: varRec + fixRec,
-    despesas: varDesp + fixDesp + parcTot,
-    variaveis: varDesp, fixas: fixDesp, parcelas: parcTot,
-    saldo: (varRec + fixRec) - (varDesp + fixDesp + parcTot),
+    receitas: c(varRec + fixRec),
+    despesas: c(varDesp + fixDesp + parcTot),
+    variaveis: c(varDesp), fixas: c(fixDesp), parcelas: c(parcTot),
+    saldo: c((varRec + fixRec) - (varDesp + fixDesp + parcTot)),
   };
 }
 function gastosPorCategoria(mk) {
@@ -1095,7 +1123,7 @@ function gastosPorCategoria(mk) {
   lancamentosDoMes(mk).filter(l => l.tipo === "despesa").forEach(l => add(l.categoria, l.valor));
   fixosDoMes(mk).filter(f => f.tipo === "despesa").forEach(f => add(f.categoria, f.valor));
   parcelasDoMes(mk).forEach(({ p, indice }) => add(p.categoria, valorParcela(p, indice)));
-  return CATEGORIAS.map(c => ({ cat: c, valor: mapa[c.id] || 0 })).filter(x => x.valor > 0)
+  return CATEGORIAS.map(c => ({ cat: c, valor: Math.round((mapa[c.id] || 0) * 100) / 100 })).filter(x => x.valor > 0)
     .sort((a, b) => b.valor - a.valor);
 }
 function mediaVariaveis(mkRef, n = 3) {
@@ -1291,7 +1319,8 @@ function renderPainel() {
     const m = somaMes(mesAtual.ano, mesAtual.mes, -i);
     const kk = chaveMes(m.ano, m.mes);
     // mês passado sem nenhum lançamento nem parcela = sem dados (não empurra fixos retroativos)
-    const temDadosMes = i === 0 || lancamentosDoMes(kk).length > 0 || parcelasDoMes(kk).length > 0;
+    const temDadosMes = i === 0 || lancamentosDoMes(kk).length > 0 || parcelasDoMes(kk).length > 0
+      || fixosDoMes(kk).some(f => f.inicio); // conta fixa com início é dado real daquele mês
     const rr = resumoDoMes(kk);
     serie.push({
       rotulo: rotuloCurto(m), valor: temDadosMes ? rr.despesas : 0, atual: i === 0,
@@ -1478,6 +1507,7 @@ function renderLista() {
 // Edição em andamento é cancelada (campos limpos) quando os dados por baixo dela mudam.
 function cancelarEdicaoAberta() {
   if (edicao) (edicao.form === "entrada" ? $("#eCancelar") : $("#lCancelar")).click();
+  if (edicaoObj) cancelarEdicaoObj();
 }
 // Item excluído que estava no formulário de edição: o formulário volta ao normal (senão salvar o recriaria).
 function cancelarEdicaoDe(id) {
@@ -1552,8 +1582,10 @@ $("#cardLista").addEventListener("click", async e => {
 
 /* ================= Abas / navegação ================= */
 window.ativarAba = nome => {
-  document.querySelectorAll("nav.abas button").forEach(b =>
-    b.classList.toggle("ativa", b.dataset.aba === nome));
+  document.querySelectorAll("nav.abas button").forEach(b => {
+    b.classList.toggle("ativa", b.dataset.aba === nome);
+    if (b.dataset.aba === nome) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
   ["painel", "lancamentos", "relatorios", "objetivos"].forEach(a => $("#aba-" + a).hidden = a !== nome);
 };
 $("#abas").addEventListener("click", e => {
@@ -1763,6 +1795,7 @@ $("#formLanc").addEventListener("submit", async e => {
   try { await enviarDespesa(); } finally { enviando.lanc = false; }
 });
 async function enviarDespesa() {
+  const editandoAntes = !!(edicao && edicao.form === "lanc");
   const valor = valorDe($("#lValor"));
   if (!(valor > 0)) return;
   const rep = $("#lRep").value;
@@ -1794,7 +1827,7 @@ async function enviarDespesa() {
   $("#formLanc").reset();
   $("#lNum").value = 10;
   $("#lRep").dispatchEvent(new Event("change"));
-  mesAtual = deChave(mk); // mostra o mês do lançamento
+  if (!editandoAntes) mesAtual = deChave(mk); // lançamento novo: mostra o mês dele; edição: fica onde está
   renderTudo();
   avisarSeChegouNoLimite(cat, mk, gastoAntes);
 }
@@ -1807,6 +1840,7 @@ $("#formEntrada").addEventListener("submit", async e => {
   try { await enviarEntrada(); } finally { enviando.entrada = false; }
 });
 async function enviarEntrada() {
+  const editandoAntes = !!(edicao && edicao.form === "entrada");
   const valor = valorDe($("#eValor"));
   if (!(valor > 0)) return;
   const desc = $("#eDesc").value.trim();
@@ -1826,7 +1860,7 @@ async function enviarEntrada() {
   }
   salvar();
   $("#formEntrada").reset();
-  mesAtual = deChave(mk);
+  if (!editandoAntes) mesAtual = deChave(mk);
   renderTudo();
 }
 
@@ -1901,17 +1935,20 @@ window.excluirAporte = (objId, apId) => {
 };
 
 // Botões dos objetivos por delegação: ids vindos de um backup nunca viram código num onclick.
-$("#listaObjetivos").addEventListener("click", e => {
+$("#listaObjetivos").addEventListener("click", async e => {
   const botao = e.target.closest("button[data-acao-obj]");
   if (!botao) return;
   const card = botao.closest(".obj-card");
   const o = dados.objetivos.find(x => String(x.id) === card?.dataset.obj);
   if (!o) return;
   const acao = botao.dataset.acaoObj;
-  if (acao === "excluir" && confirm(`Excluir o objetivo "${o.nome}" e todo o seu histórico?`)) excluirObjetivo(o.id);
+  if (acao === "excluir" && await confirmarNoApp(`Excluir o objetivo "${o.nome}" e todo o seu histórico?`)) excluirObjetivo(o.id);
   if (acao === "editar") editarObjetivo(o.id);
   if (acao === "guardar" || acao === "retirar") aportar(o.id, acao === "guardar" ? 1 : -1, card.querySelector("input[data-aporte]"));
-  if (acao === "excluir-aporte") excluirAporte(o.id, o.aportes.find(a => String(a.id) === botao.dataset.aporteId)?.id);
+  if (acao === "excluir-aporte") {
+    const a = o.aportes.find(x => String(x.id) === botao.dataset.aporteId);
+    if (a && await confirmarNoApp(`Excluir o movimento de ${dinheiro(Math.abs(a.valor))} de ${fmtDataCurta(a.data)} em "${o.nome}"?`)) excluirAporte(o.id, a.id);
+  }
 });
 function renderObjetivos() {
   const alvo = $("#listaObjetivos");
@@ -1942,15 +1979,15 @@ function renderObjetivos() {
       <div class="hist-linha">
         <span>${fmtDataCurta(a.data)}</span>
         <span class="${a.valor >= 0 ? "pos" : "neg"}">${a.valor >= 0 ? "+" : "−"} ${dinheiro(Math.abs(a.valor))}</span>
-        <button class="excluir" title="Excluir movimento" data-acao-obj="excluir-aporte" data-aporte-id="${esc(String(a.id))}">✕</button>
+        <button class="excluir" title="Excluir movimento" aria-label="Excluir o movimento de ${esc(dinheiro(Math.abs(a.valor)))} de ${fmtDataCurta(a.data)}" data-acao-obj="excluir-aporte" data-aporte-id="${esc(String(a.id))}">✕</button>
       </div>`).join("");
 
     return `<div class="card obj-card" data-obj="${esc(String(o.id))}">
       <div class="obj-top">
         <h2>${esc(o.nome)}</h2>
         <span style="white-space:nowrap">
-          <button class="editar" title="Editar" data-acao-obj="editar">✎</button>
-          <button class="excluir" title="Excluir" data-acao-obj="excluir">✕</button>
+          <button class="editar" title="Editar" aria-label="Editar o objetivo ${esc(o.nome)}" data-acao-obj="editar">✎</button>
+          <button class="excluir" title="Excluir" aria-label="Excluir o objetivo ${esc(o.nome)}" data-acao-obj="excluir">✕</button>
         </span>
       </div>
       <div class="obj-valores">${dinheiro(guardado)}
@@ -1982,30 +2019,38 @@ function primeiroMesComDados() {
     ...dados.parcelamentos.map(p => p.inicio),
     ...dados.fixos.map(f => f.inicio).filter(Boolean),
   ];
-  return meses.length ? meses.sort()[0] : null;
+  if (meses.length) return meses.sort()[0];
+  // só contas fixas antigas, sem início: o relatório mostra a partir do mês de referência
+  return dados.fixos.length ? chaveMes(mesAtual.ano, mesAtual.mes) : null;
 }
 /** Meses do período (AAAA-MM), do mais antigo ao mais novo, sem meses antes do primeiro registro. */
 function mesesDoRelatorio(periodo) {
   const fim = periodo === "ano-1" ? { ano: mesAtual.ano - 1, mes: 11 } : mesAtual;
   const n = periodo === "ano" ? mesAtual.mes + 1 : periodo === "ano-1" ? 12 : Number(periodo) || 6;
   const primeiro = primeiroMesComDados();
-  if (!primeiro) return []; // sem nenhum registro datado, não há o que mostrar
   const out = [];
+  if (!primeiro) return out; // sem nenhum registro, não há o que mostrar
+  // relatório é do que já aconteceu: meses futuros ficam para a projeção da Visão geral
+  const mesReal = chaveMes(hoje.getFullYear(), hoje.getMonth());
   for (let i = n - 1; i >= 0; i--) {
     const m = somaMes(fim.ano, fim.mes, -i);
     const mk = chaveMes(m.ano, m.mes);
+    if (mk > mesReal) { out.cortouFuturo = true; continue; }
     if (mk >= primeiro) out.push(mk);
   }
   return out;
 }
+const maiuscula = t => t.charAt(0).toUpperCase() + t.slice(1);
 const rotuloMk = mk => rotuloCurto(deChave(mk));
 
 function renderRelatorios() {
   const alvo = $("#relConteudo");
   const meses = mesesDoRelatorio($("#relPeriodo").value);
-  $("#relPeriodoTexto").textContent = meses.length
-    ? `De ${rotuloMes(deChave(meses[0]))} a ${rotuloMes(deChave(meses.at(-1)))}`
-    : "Sem lançamentos neste período";
+  const futuro = meses.cortouFuturo ? " · meses futuros ficam de fora (veja a projeção na Visão geral)" : "";
+  $("#relPeriodoTexto").textContent = (meses.length === 1
+    ? maiuscula(rotuloMes(deChave(meses[0])))
+    : meses.length ? `De ${rotuloMes(deChave(meses[0]))} a ${rotuloMes(deChave(meses.at(-1)))}`
+    : "Sem lançamentos neste período") + futuro;
   $("#relCsv").disabled = $("#relImprimir").disabled = !meses.length;
   if (!meses.length) {
     alvo.innerHTML = `<div class="card"><div class="vazio">Nada para mostrar neste período. Os relatórios se montam a partir dos seus lançamentos.</div></div>`;
@@ -2014,6 +2059,7 @@ function renderRelatorios() {
   const resumos = meses.map(mk => ({ mk, ...resumoDoMes(mk) }));
   const soma = k => resumos.reduce((s, r) => s + r[k], 0);
   const receitas = soma("receitas"), despesas = soma("despesas");
+  const saldoPeriodo = Math.round((receitas - despesas) * 100) / 100;
   const maxDesp = Math.max(...resumos.map(r => r.despesas), 1);
   const maior = resumos.reduce((a, b) => (b.despesas > a.despesas ? b : a));
 
@@ -2040,7 +2086,7 @@ function renderRelatorios() {
       .filter(x => Math.abs(x.dif) >= 1)
       .sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif)).slice(0, 6);
     variacao = `<div class="card">
-      <h2>${esc(rotuloMes(mesAtual))} × média dos ${anteriores.length === 1 ? "mês anterior" : `${anteriores.length} meses anteriores`}</h2>
+      <h2>${esc(maiuscula(rotuloMes(mesAtual)))} × ${anteriores.length === 1 ? "mês anterior" : `média dos ${anteriores.length} meses anteriores`}</h2>
       <p class="hint">Onde você gastou mais ou menos do que costuma.</p>
       ${linhas.length ? `<ul class="rel-variacao">${linhas.map(x => `<li><span>${chipCategoria(x.c.id)} ${dinheiro(x.agora)}</span>
         <span class="${x.dif > 0 ? "subiu" : "caiu"}">${x.dif > 0 ? "+" : "−"} ${dinheiro(Math.abs(x.dif))}${x.antes > 0 ? ` (${x.dif > 0 ? "+" : "−"}${Math.round(Math.abs(x.dif) / x.antes * 100)}%)` : ""}</span></li>`).join("")}</ul>`
@@ -2052,7 +2098,7 @@ function renderRelatorios() {
     <div class="grid tiles">
       <div class="card tile"><div class="rotulo">Receitas no período</div><div class="valor pos">${dinheiro(receitas)}</div><div class="extra">${meses.length} ${meses.length === 1 ? "mês" : "meses"}</div></div>
       <div class="card tile"><div class="rotulo">Despesas no período</div><div class="valor neg">${dinheiro(despesas)}</div><div class="extra">maior mês: ${rotuloMk(maior.mk)} (${dinheiro(maior.despesas)})</div></div>
-      <div class="card tile"><div class="rotulo">Saldo do período</div><div class="valor ${receitas - despesas >= 0 ? "pos" : "neg"}">${dinheiro(receitas - despesas)}</div><div class="extra">${receitas - despesas >= 0 ? "sobrou" : "faltou"} no total</div></div>
+      <div class="card tile"><div class="rotulo">Saldo do período</div><div class="valor ${saldoPeriodo >= 0 ? "pos" : "neg"}">${dinheiro(saldoPeriodo)}</div><div class="extra">${saldoPeriodo >= 0 ? "sobrou" : "faltou"} no total</div></div>
       <div class="card tile"><div class="rotulo">Média de despesas</div><div class="valor">${dinheiro(despesas / meses.length)}</div><div class="extra">por mês</div></div>
     </div>
     <div class="card">
@@ -2081,11 +2127,23 @@ function renderRelatorios() {
     </div>`;
 }
 $("#relPeriodo").addEventListener("change", renderRelatorios);
-$("#relImprimir").onclick = () => { ativarAba("relatorios"); window.print(); };
+$("#relImprimir").onclick = () => {
+  ativarAba("relatorios");
+  document.documentElement.classList.add("imprimindo-relatorio");
+  window.print();
+  // print() espera a janela fechar na maioria dos navegadores; afterprint cobre os outros
+  setTimeout(() => document.documentElement.classList.remove("imprimindo-relatorio"), 0);
+};
+addEventListener("afterprint", () => document.documentElement.classList.remove("imprimindo-relatorio"));
 
 /** CSV com tudo o que compõe o período, mês a mês: avulsos, contas fixas e parcelas. */
 function csvRelatorio(meses) {
-  const cel = v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  // texto que começa com = + - @ vira fórmula no Excel (descrições vêm do banco): vai com apóstrofo
+  const cel = (v, texto = true) => {
+    let t = String(v);
+    if (texto && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
+    return /[;"\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
   const num = v => v.toFixed(2).replace(".", ",");
   const linhas = [["Mês", "Data", "Tipo", "Descrição", "Categoria", "Origem", "Valor"]];
   for (const mk of meses) {
@@ -2103,10 +2161,10 @@ function csvRelatorio(meses) {
     }
   }
   // BOM para o Excel reconhecer os acentos; ponto e vírgula e vírgula decimal, como no Brasil
-  return "﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n");
+  // a última coluna é o valor (número com sinal): não leva apóstrofo
+  return "\uFEFF" + linhas.map(l => l.map((v, i) => cel(v, i < l.length - 1)).join(";")).join("\r\n");
 }
 $("#relCsv").onclick = () => {
-  sairExemplo();
   const meses = mesesDoRelatorio($("#relPeriodo").value);
   if (!meses.length) return;
   const blob = new Blob([csvRelatorio(meses)], { type: "text/csv;charset=utf-8" });
@@ -2135,7 +2193,7 @@ function dataExtrato(t, mesPrimeiro = false) {
   let a, m, d, x;
   if ((x = t.match(/^(\d{4})(\d{2})(\d{2})/))) [, a, m, d] = x;
   else if ((x = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) [, a, m, d] = x;
-  else if ((x = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))) { [, d, m, a] = x; if (mesPrimeiro === true) [d, m] = [m, d]; if (a.length === 2) a = "20" + a; }
+  else if ((x = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))) { [, d, m, a] = x; if (mesPrimeiro === true) [d, m] = [m, d]; if (a.length === 2) a = String(2000 + Number(a) > hoje.getFullYear() + 5 ? 1900 + Number(a) : 2000 + Number(a)); }
   else return null;
   const iso = `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   const dt = new Date(`${iso}T12:00:00`);
@@ -2157,15 +2215,17 @@ function valorExtrato(t) {
   const v = s.includes(",") && s.includes(".")
     ? (s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, ""))
     : s.includes(",") ? s.replace(/\.(?=\d{3})/g, "").replace(",", ".")
-    : /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s;
+    : /^[1-9]\d{0,2}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s; // "0.500" é meio, não quinhentos
   const n = Number(v);
   return Number.isFinite(n) ? (neg ? -n : n) : null;
 }
 
+const entidades = t => t.replace(/&(amp|lt|gt|quot|apos|#\d+);/g, (_, e) =>
+  ({ amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" })[e] ?? String.fromCharCode(Number(e.slice(1))));
 function lerOFX(texto) {
   const out = [];
   for (const bloco of texto.match(/<STMTTRN>[\s\S]*?(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>|$)/gi) || []) {
-    const campo = tag => { const x = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, "i")); return x ? x[1].trim() : ""; };
+    const campo = tag => { const x = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, "i")); return x ? entidades(x[1].trim()) : ""; };
     const data = dataExtrato(campo("DTPOSTED"));
     const valor = valorExtrato(campo("TRNAMT")) ?? NaN;
     if (!data || !Number.isFinite(valor) || valor === 0) continue;
@@ -2177,9 +2237,15 @@ function lerOFX(texto) {
 }
 
 function linhasCSV(texto) {
-  const primeira = texto.split(/\r?\n/).find(l => l.trim()) || "";
-  const fora = primeira.replace(/"[^"]*"/g, "");
-  const sep = [";", "\t", ","].sort((x, y) => fora.split(y).length - fora.split(x).length)[0];
+  // separador: o que aparece com a mesma contagem no maior número das primeiras linhas (uma linha
+  // de título antes do cabeçalho não decide sozinha)
+  const amostra = texto.split(/\r?\n/).filter(l => l.trim()).slice(0, 30).map(l => l.replace(/"[^"]*"/g, ""));
+  const pontuar = c => {
+    const freq = new Map();
+    for (const l of amostra) { const n = l.split(c).length - 1; if (n > 0) freq.set(n, (freq.get(n) || 0) + 1); }
+    return Math.max(0, ...[...freq.entries()].map(([n, vezes]) => vezes * 1000 + n));
+  };
+  const sep = [";", "\t", ","].sort((x, y) => pontuar(y) - pontuar(x))[0];
   const linhas = []; let linha = [], campo = "", aspas = false;
   for (let i = 0; i < texto.length; i++) {
     const c = texto[i];
@@ -2187,7 +2253,7 @@ function linhasCSV(texto) {
       if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
       else if (c === '"') aspas = false;
       else campo += c;
-    } else if (c === '"') aspas = true;
+    } else if (c === '"' && !campo.trim()) aspas = true; // aspa só abre no começo do campo: 'TV 50" SAMSUNG' é texto
     else if (c === sep) { linha.push(campo.trim()); campo = ""; }
     else if (c === "\n" || c === "\r") {
       if (c === "\r" && texto[i + 1] === "\n") i++;
@@ -2252,7 +2318,9 @@ function transacoesCSV({ linhas }, mapa) {
       else if (/^(c|cred|credito)\b/.test(dc)) valor = Math.abs(valor);
     }
     const desc = String(l[mapa.desc] ?? "").replace(/\s+/g, " ").trim();
-    if (/^saldo\b/i.test(semAcento(desc))) continue; // linhas de saldo não são lançamentos
+    // linhas de saldo do banco não são lançamentos ("Saldo anterior", "SALDO DO DIA"); uma compra
+    // chamada "Saldo Restaurante" é
+    if (/^saldo( (anterior|do dia|final|inicial|disponivel|em conta|bloqueado)|$)/.test(semAcento(desc))) continue;
     if (!data || !valor) { if (l.some(c => String(c).trim())) ignoradas++; continue; }
     out.push({ data, desc: desc || "Lançamento", valor, ref: null });
   }
@@ -2288,7 +2356,7 @@ $("#arqExtrato").addEventListener("change", async e => {
   const f = e.target.files[0];
   e.target.value = "";
   if (!f) return;
-  limparEdicao();
+  cancelarEdicaoAberta();
   const texto = decodificarExtrato(await f.arrayBuffer());
   ext = { nome: f.name, csv: null, mapa: null, itens: [], ignoradas: 0, cortadas: 0 };
   let brutas;
@@ -2309,6 +2377,7 @@ $("#arqExtrato").addEventListener("change", async e => {
 });
 // Fatura de cartão em CSV costuma trazer as compras positivas: sugere inverter os sinais.
 function sugerirInversao(brutas) {
+  if (ext.inverterManual) return; // a pessoa já escolheu
   const positivos = brutas.filter(t => t.valor > 0).length;
   $("#extInverter").checked = !!ext.csv && brutas.length >= 3 && positivos / brutas.length >= 0.8;
 }
@@ -2333,7 +2402,10 @@ for (const [id] of SELECTS_COLUNAS) $(id).addEventListener("change", () => {
 const LIMITE_EXTRATO = 5000;
 function prepararItens(brutas) {
   const importados = new Set(dados.lancamentos.map(l => l.imp).filter(Boolean));
-  const manuais = new Set(dados.lancamentos.filter(l => !l.imp).map(l => `${l.data}|${Math.round(l.valor * 100)}`));
+  // quantos lançamentos manuais há com cada data e valor: cada um "cobre" só uma compra do arquivo
+  const manuais = new Map();
+  for (const l of dados.lancamentos.filter(l => !l.imp)) { const k = `${l.data}|${Math.round(l.valor * 100)}`; manuais.set(k, (manuais.get(k) || 0) + 1); }
+  const cobre = k => { const n = manuais.get(k) || 0; if (n > 0) manuais.set(k, n - 1); return n > 0; };
   ext.ignoradas = brutas.ignoradas || 0;
   ext.cortadas = Math.max(brutas.length - LIMITE_EXTRATO, 0);
   // Três cafés iguais no mesmo dia são três compras: a chave leva a ordem de aparição no arquivo,
@@ -2345,7 +2417,7 @@ function prepararItens(brutas) {
     vezes.set(base, n);
     const chave = n === 1 ? base : `${base}#${n}`;
     const aviso = importados.has(chave) ? "já importado"
-      : manuais.has(`${t.data}|${Math.round(Math.abs(t.valor) * 100)}`) ? "parece já lançado (mesma data e valor)" : "";
+      : cobre(`${t.data}|${Math.round(Math.abs(t.valor) * 100)}`) ? "parece já lançado (mesma data e valor)" : "";
     return { ...t, chave, cat: categoriaSugerida(t.desc), marcado: !aviso, aviso };
   });
   // sem nenhuma linha lida, a pessoa precisa poder escolher as colunas
@@ -2381,6 +2453,8 @@ function atualizarResumoExtrato() {
   $("#extResumo").textContent = itens.length
     ? `${itens.length} lançamento${itens.length === 1 ? "" : "s"} de ${fmtDataCurta(datas[0])}/${datas[0].slice(0, 4)} a ${fmtDataCurta(datas.at(-1))}/${datas.at(-1).slice(0, 4)}. ${extras}`.trim()
     : `Nenhum lançamento lido. ${ext.csv ? "Indique as colunas abaixo." : "Confira se o arquivo é o extrato em OFX ou CSV."} ${extras}`.trim();
+  $("#extTodos").checked = itens.length > 0 && marcados.length === itens.length;
+  $("#extTodos").indeterminate = marcados.length > 0 && marcados.length < itens.length;
   $("#extImportar").textContent = `Importar ${marcados.length} lançamento${marcados.length === 1 ? "" : "s"}`;
   $("#extImportar").disabled = marcados.length === 0;
 }
@@ -2391,7 +2465,7 @@ $("#extLista").addEventListener("change", e => {
   else ext.itens[i].cat = e.target.value;
   atualizarResumoExtrato();
 });
-$("#extInverter").addEventListener("change", renderExtrato);
+$("#extInverter").addEventListener("change", () => { ext.inverterManual = true; renderExtrato(); });
 $("#extTodos").addEventListener("change", e => { ext.itens.forEach(t => { t.marcado = e.target.checked; }); renderExtrato(); });
 $("#extFechar").onclick = $("#extCancelar").onclick = () => { ext = null; $("#modalExtrato").close(); };
 $("#extImportar").onclick = () => {
@@ -2457,7 +2531,7 @@ window.verExemplo = () => {
   if (exemplo) return;
   // o convite de criptografia pode ter aberto um instante antes (primeira visita pelo /#exemplo)
   if ($("#modalSeg").open && !$("#sgConvite").hidden) { $("#modalSeg").close(); conviteAdiado = true; }
-  limparEdicao();
+  cancelarEdicaoAberta();
   exemplo = { real: dados };
   dados = dadosExemplo();
   $("#faixaExemplo").hidden = false;
@@ -2469,7 +2543,7 @@ function sairExemplo() {
   if (!exemplo) return;
   dados = exemplo.real;
   exemplo = null;
-  limparEdicao();
+  cancelarEdicaoAberta();
   $("#faixaExemplo").hidden = true;
   renderTudo();
   if (conviteAdiado) { conviteAdiado = false; setTimeout(() => abrirModalSeg(true), 0); }
@@ -2551,8 +2625,14 @@ $("#guiaAvancar").onclick = () => {
   const gravar = campos => {
     const igual = dados.fixos.find(f => f.tipo === campos.tipo && fixoNoMes(f, inicio)
       && semAcento(f.descricao) === semAcento(campos.descricao));
-    if (igual) Object.assign(igual, campos);
-    else dados.fixos.push({ id: uid(), ...campos, inicio });
+    if (!igual) { dados.fixos.push({ id: uid(), ...campos, inicio }); return; }
+    const mudou = igual.valor !== campos.valor || (igual.dia || null) !== (campos.dia || null);
+    if (!mudou) return;
+    // mudou o valor: vale a partir deste mês; os meses anteriores continuam como estavam
+    if (!igual.inicio || igual.inicio < inicio) {
+      igual.fim = mesAnterior(inicio);
+      dados.fixos.push({ id: uid(), ...campos, inicio });
+    } else Object.assign(igual, campos);
   };
   if (renda > 0) gravar({ tipo: "receita", descricao: "Salário", valor: renda, categoria: "outros", dia: diaGuia($("#gRendaDia")) });
   GUIA_FIXOS.forEach(([descricao, categoria], i) => {
@@ -2908,7 +2988,7 @@ $("#resetAceitar").onclick = () => {
   localStorage.removeItem(CHAVE + "-pre-import");
   dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] };
   salvar();
-  limparEdicao();
+  cancelarEdicaoAberta();
   mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
   renderTudo();
   $("#modalReset").close();
@@ -2957,7 +3037,21 @@ $("#arqImportar").addEventListener("change", e => {
 
 /* ================= Boot ================= */
 preencherCategorias($("#lCat"));
-const dataHoje = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const isoLocal = d => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+let dataHoje = isoLocal(hoje);
+/** Virada do dia com o app aberto: datas novas caem no dia certo e o topo acompanha o mês. */
+function atualizarHoje(agora = new Date()) {
+  if (isoLocal(agora) === dataHoje) return;
+  const mesDeHoje = chaveMes(hoje.getFullYear(), hoje.getMonth());
+  const viaMesAtual = chaveMes(mesAtual.ano, mesAtual.mes) === mesDeHoje;
+  hoje = agora;
+  dataHoje = isoLocal(agora);
+  if (viaMesAtual) mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+  renderTudo();
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") atualizarHoje(); });
+addEventListener("focus", () => atualizarHoje());
+setInterval(() => atualizarHoje(), 60000);
 
 function renderTudo() {
   atualizarMesLabel();
@@ -2984,7 +3078,7 @@ window.MyFinanceBridge = {
   },
   // A nuvem espera: com um item no formulário de edição, aplicar mudanças agora embaralharia o
   // formulário; no exemplo, os dados na tela nem são os reais.
-  editando: () => !!edicao,
+  editando: () => !!edicao || !!edicaoObj,
   emExemplo: () => !!exemplo,
 };
 // Novo nome público; o alias anterior continua disponível para instalações existentes.
@@ -2992,6 +3086,7 @@ window.ArqevonFinanceBridge = window.MyFinanceBridge;
 renderTudo();
 atualizarBotoesSeg();
 reiniciarIdle();
+gravarIdsCriados();
 if (blobPendente) {
   bloquearTela();
   $("#tbMsg").textContent = "Seus dados estão criptografados. Digite a senha para abrir.";
