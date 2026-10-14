@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Arqevon Finance — Suas contas do mês, claras em uma tela",
   description: "Organize receitas, contas fixas e parcelas do cartão. Veja quanto sobra e como ficam os próximos meses. Grátis, no navegador, com seus dados no seu aparelho.",
   alternates: { canonical: "/finance" },
-  openGraph: { url: "/finance", siteName: "Arqevon Finance", title: "Arqevon Finance — Suas contas do mês, claras em uma tela", description: "Receitas, contas fixas e parcelas organizadas, com projeção dos próximos meses. Grátis e no navegador.", images: [{ url: "/og.png", width: 1536, height: 1024 }] },
+  openGraph: { url: "/finance", siteName: "Arqevon Finance", title: "Arqevon Finance — Suas contas do mês, claras em uma tela", description: "Receitas, contas fixas e parcelas organizadas, com projeção dos próximos meses. Grátis e no navegador.", images: [{ url: "/og-finance.png", width: 1200, height: 630, alt: "Arqevon Finance: suas contas do mês, claras em uma tela" }] },
 };
 
 const windowsDownloadPath =
@@ -133,6 +133,7 @@ export default function Finance() {
         <ul>
           <li><strong>Guardados no seu aparelho.</strong> No plano grátis, seus lançamentos não saem do seu navegador ou computador.</li>
           <li><strong>Protegidos por senha.</strong> Ative a criptografia (AES-256) e só quem tem a senha abre os dados.</li>
+          <li><strong>Na nuvem, cifrados no seu aparelho.</strong> No Pro, os dados saem do aparelho já cifrados e nem a Arqevon consegue lê-los. <a href="/seguranca">Veja como funciona</a>.</li>
           <li><strong>Sem venda de dados, sem anúncios.</strong> O produto é o app, não você.</li>
           <li><strong>Exporte quando quiser.</strong> Seus dados num arquivo, para guardar ou levar para onde quiser.</li>
         </ul>
@@ -213,6 +214,7 @@ export default function Finance() {
         <nav className="lp-rodape-links" aria-label="Documentos legais">
           <a href="/termos">Termos de Uso</a>
           <a href="/privacidade">Política de Privacidade</a>
+          <a href="/seguranca">Segurança</a>
         </nav>
         <small>© {new Date().getFullYear()} Arqevon Code.</small>
       </footer>

@@ -56,6 +56,9 @@ export async function navegador() {
  * @param {object} [o.extra] outras chaves do localStorage a gravar antes de abrir
  */
 export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { width: 1400, height: 1000 }, aceleraIdle = 1, sw = false, extra = null }) {
+  // Contra a produção, um ritmo calmo: rajadas de acessos do mesmo IP disparam a proteção contra
+  // robôs da Vercel (403 "Security Checkpoint" por uns 10 minutos, só para esse IP).
+  if (process.env.ARQEVON_WEB_URL) await espera(2000);
   const ctx = await browser.createBrowserContext();
   const p = await ctx.newPage();
   await p.setViewport(vp);

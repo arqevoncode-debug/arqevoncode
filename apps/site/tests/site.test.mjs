@@ -80,6 +80,12 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   const termos = await readFile(new URL("app/termos/page.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
+  const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  assert.match(seguranca, /AES-256-GCM/);
+  // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
+  const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
+  const iteracoes = Number(cofre.match(/ITERACOES_SENHA = ([\d_]+)/)[1].replace(/_/g, ""));
+  assert.ok(seguranca.includes(`${iteracoes / 1000} mil iterações`), `/seguranca deve citar ${iteracoes} iterações`);
   const layout = await readFile(new URL("app/legal-layout.tsx", root), "utf8");
 
   assert.match(page, /href="\/termos"/);
@@ -99,6 +105,12 @@ test("oferece software sob encomenda com formulário de orçamento", async () =>
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
+  const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  assert.match(seguranca, /AES-256-GCM/);
+  // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
+  const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
+  const iteracoes = Number(cofre.match(/ITERACOES_SENHA = ([\d_]+)/)[1].replace(/_/g, ""));
+  assert.ok(seguranca.includes(`${iteracoes / 1000} mil iterações`), `/seguranca deve citar ${iteracoes} iterações`);
 
   assert.match(page, /id="sob-encomenda"/);
   assert.match(page, /href="#sob-encomenda"/);
