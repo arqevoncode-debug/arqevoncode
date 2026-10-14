@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "esbuild";
 
@@ -37,6 +37,11 @@ const fontes = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a1628'/%3E%3Cpath d='m7 20 6-5 5 3 7-7' stroke='%233fe7c0' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Finance">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <script>document.documentElement.classList.add("web-bloqueado", "desktop-bloqueado");</script>
 `;
 html = html.replace("</head>", `${fontes}</head>`);
@@ -44,4 +49,7 @@ html = html.replace("</body>", `<style id="web-style">\n${css}\n</style>\n${mark
 
 await mkdir(output, { recursive: true });
 await writeFile(resolve(output, "index.html"), html);
+// App instalável (PWA): manifesto, ícones e service worker, servidos na raiz.
+const pwa = resolve(root, "src/pwa");
+for (const arquivo of await readdir(pwa)) await copyFile(resolve(pwa, arquivo), resolve(output, arquivo));
 console.log(`${output === resolve(root, "dist") ? "dist" : output}/index.html gerado (venda do Pro ${venderPro ? `LIGADA via ${pagamento}` : "desligada"}).`);

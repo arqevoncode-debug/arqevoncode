@@ -60,6 +60,7 @@ export function criarNuvem({ supabase, aoMudar }) {
   let timerMudanca = null;
   let timerPeriodico = null;
   let ocupado = false;
+  let pedeSenha = false; // a conta tem dados na nuvem, mas este aparelho ainda não tem as chaves
 
   const rpc = (fn, args) => supabase.rpc(fn, args);
   const store = {
@@ -133,6 +134,7 @@ export function criarNuvem({ supabase, aoMudar }) {
     const chaves = await lerChaves(uid);
     if (chaves) { mostrar("wnAtiva"); informar("Conectando…"); if (await prepararDono()) await iniciarSync(chaves); return; }
     mostrar("wnAbrir");
+    pedeSenha = true;
     informar("Sua conta tem dados na nuvem.");
   }
 
@@ -246,5 +248,6 @@ export function criarNuvem({ supabase, aoMudar }) {
     async sair() { await parar(true); uid = null; $("wcNuvem").hidden = true; },
     texto: () => texto,
     ativa: () => !!sync,
+    pedeSenha: () => pedeSenha && !sync,
   };
 }

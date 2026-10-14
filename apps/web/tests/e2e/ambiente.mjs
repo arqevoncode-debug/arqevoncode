@@ -20,7 +20,18 @@ const CANDIDATOS_CHROME = [
 
 export async function servir(arquivo = process.env.ARQEVON_WEB_HTML || HTML_PADRAO) {
   if (!existsSync(arquivo)) throw new Error(`${arquivo} não existe. Rode npm run build antes.`);
+  // Arquivos do PWA (manifesto, ícones, service worker) ao lado do index.html; o resto é a página.
+  const TIPOS = { ".webmanifest": "application/manifest+json", ".js": "text/javascript", ".png": "image/png" };
   const servidor = createServer(async (req, res) => {
+    const nome = new URL(req.url, "http://x").pathname.slice(1);
+    const tipo = TIPOS[nome.slice(nome.lastIndexOf("."))];
+    if (tipo && /^[\w.-]+$/.test(nome)) {
+      try {
+        const corpo = await readFile(resolve(arquivo, "..", nome));
+        res.writeHead(200, { "content-type": tipo, "cache-control": "no-store" });
+        return res.end(corpo);
+      } catch { res.writeHead(404); return res.end(); }
+    }
     res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
     res.end(await readFile(arquivo));
   });
@@ -41,11 +52,15 @@ export async function navegador() {
  * @param {object} [o.dados] estado inicial do motor
  * @param {string} [o.hoje] data e hora simuladas
  * @param {number} [o.aceleraIdle] divide os timers de 1 min ou mais (bloqueio por inatividade)
+ * @param {boolean} [o.sw] deixa o service worker atuar (só no teste do PWA)
+ * @param {object} [o.extra] outras chaves do localStorage a gravar antes de abrir
  */
-export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { width: 1400, height: 1000 }, aceleraIdle = 1 }) {
+export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { width: 1400, height: 1000 }, aceleraIdle = 1, sw = false, extra = null }) {
   const ctx = await browser.createBrowserContext();
   const p = await ctx.newPage();
   await p.setViewport(vp);
+  // O service worker só entra no teste do PWA: nos outros, as requisições vão direto à rede.
+  if (!sw) await p.setBypassServiceWorker(true);
   p.erros = [];
   p.on("pageerror", e => p.erros.push(e.message));
   p.respostas = []; // respostas para alert/confirm/prompt, na ordem (false = cancelar)
@@ -64,13 +79,14 @@ export async function abrir(browser, { url, dados = null, hoje = HOJE, vp = { wi
     }
   }, hoje, aceleraIdle);
   await p.goto(url);
-  await p.evaluate(d => {
+  await p.evaluate((d, x) => {
     localStorage.clear();
     localStorage.setItem("arqevon-web-local", "1");
     // o convite de criptografia já foi oferecido: a janela não abre em todo teste
     localStorage.setItem("meu-financeiro-v1-seg", JSON.stringify({ convite: true }));
     if (d) localStorage.setItem("meu-financeiro-v1", JSON.stringify(d));
-  }, dados);
+    if (x) for (const [k, v] of Object.entries(x)) localStorage.setItem(k, v);
+  }, dados, extra);
   await p.reload();
   await p.waitForSelector("#formLanc");
   await espera(200);
