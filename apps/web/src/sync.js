@@ -2,14 +2,14 @@
 // para ser testado com dois "aparelhos" e um servidor falso (tests/sync.test.mjs).
 //
 // Regras:
-// - Cada registro (lançamento, fixo, parcelamento, objetivo) é um item cifrado na nuvem.
+// - Cada registro (lançamento, fixo, parcelamento, objetivo, limite) é um item cifrado na nuvem.
 // - Mudança local ainda não enviada vence a remota no mesmo registro: o usuário nunca perde o que
 //   acabou de digitar. Fora disso, vale a ordem do servidor (rev).
 // - Nunca sincroniza com o app bloqueado, nem aplica mudanças enquanto o usuário edita um campo.
 // - Apagar muita coisa de uma vez pede confirmação; recusada, os registros voltam da nuvem.
 import { idDoItem, cifrarItem, decifrarItem, hashRegistro } from "./cofre.js";
 
-export const COLECOES = ["lancamentos", "fixos", "parcelamentos", "objetivos"];
+export const COLECOES = ["lancamentos", "fixos", "parcelamentos", "objetivos", "orcamentos"];
 const LOTE = 500;
 
 export function estadoVazio(owner) {

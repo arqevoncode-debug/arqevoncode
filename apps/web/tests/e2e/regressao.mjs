@@ -81,16 +81,23 @@ function passo(p, a) {
   }, a);
 }
 
-const foto = p => p.evaluate(() => {
+// REGRESSAO_IGNORAR (regex) apaga textos novos conhecidos antes de comparar, para conferir que uma
+// mudança intencional de tela não esconde outra diferença.
+const IGNORAR = process.env.REGRESSAO_IGNORAR || "";
+const foto = p => p.evaluate(ignorar => {
   const d = JSON.parse(localStorage.getItem("meu-financeiro-v1") || "{}");
   const limpa = arr => (arr || []).map(({ id, ...r }) => JSON.stringify(r)).sort();
-  const t = s => document.querySelector(s).innerText.toLowerCase();
+  const t = s => {
+    const v = document.querySelector(s).innerText.toLowerCase();
+    // linhas só com espaços vêm da marcação, não do conteúdo
+    return (ignorar ? v.replace(new RegExp(ignorar, "g"), "") : v).replace(/\n[ \t]*(?=\n)/g, "").replace(/\n{2,}/g, "\n");
+  };
   return {
     dados: { l: limpa(d.lancamentos), f: limpa(d.fixos), p: limpa(d.parcelamentos), o: limpa(d.objetivos) },
     mes: t("#mesLabel"), lista: t("#cardLista"), painel: t("#aba-painel"),
     form: ["#lDesc", "#lValor", "#eDesc", "#eValor", "#lRep", "#eRep", "#lNum"].map(s => document.querySelector(s).value).join("|"),
   };
-});
+}, IGNORAR);
 
 const [srvBase, srvNovo] = [await servir(join(tmp, "index.html")), await servir(HTML_PADRAO)];
 const browser = await navegador();

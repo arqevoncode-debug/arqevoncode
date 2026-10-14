@@ -8,7 +8,7 @@ import puppeteer from "puppeteer-core";
 
 export const HTML_PADRAO = resolve(import.meta.dirname, "../../dist/index.html");
 export const HOJE = "2026-10-13T12:00:00";
-export const VAZIO = () => ({ lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] });
+export const VAZIO = () => ({ lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] });
 
 const CANDIDATOS_CHROME = [
   process.env.CHROME_PATH,

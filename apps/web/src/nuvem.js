@@ -111,7 +111,7 @@ export function criarNuvem({ supabase, aoMudar }) {
     if (dono && dono !== uid && temDados(motor.ler())) {
       const ok = window.confirm("Este navegador tem lançamentos de outra conta. Para abrir os dados da sua nuvem aqui, eles serão substituídos (a outra conta continua com os dela na nuvem). Continuar?");
       if (!ok) return false;
-      motor.gravar({ lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] });
+      motor.gravar({ lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] });
     }
     localStorage.setItem(DONO, uid);
     return true;

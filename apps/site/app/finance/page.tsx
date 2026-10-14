@@ -22,11 +22,11 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.arqevoncode.com.
 
 const recursos = [
   { titulo: "Fixos, avulsos e parcelados", texto: "Salário, aluguel, mercado e a parcela 4 de 12 do cartão entram na mesma lista. As contas do mês se montam sozinhas." },
-  { titulo: "Gastos por categoria", texto: "Veja para onde o dinheiro foi: moradia, alimentação, transporte e o que mais você usar." },
+  { titulo: "Gastos e limites por categoria", texto: "Veja para onde o dinheiro foi e defina um limite por categoria: o app avisa ao chegar em 80% e ao passar do limite." },
   { titulo: "Projeção dos próximos meses", texto: "Fixos, parcelas que ainda vão cair e a média dos gastos variáveis, somados para os próximos 6 meses." },
   { titulo: "Quanto da renda já está comprometido", texto: "Fixos e parcelas somados, em reais e em porcentagem da sua renda." },
   { titulo: "Objetivos com aportes", texto: "Reserva de emergência, viagem ou um notebook novo: acompanhe quanto falta para cada meta." },
-  { titulo: "Backup protegido por senha", texto: "Exporte seus dados em um arquivo criptografado e leve para outro computador quando quiser." },
+  { titulo: "Importe o extrato do banco", texto: "Arquivo OFX ou CSV do seu banco, com categorias sugeridas e revisão antes de salvar. O arquivo não sai do seu aparelho." },
 ];
 
 const passos = [
@@ -76,7 +76,7 @@ export default function Finance() {
         <div className="lp-hero-tela">
           <div className="lp-janela">
             <div className="lp-janela-barra"><i /><i /><i /><span>app.arqevoncode.com.br</span></div>
-            <Image src="/produto/visao-geral.png" alt="Tela Visão geral do Arqevon Finance com receitas, despesas, saldo, gastos por categoria e projeção" width={2800} height={3160} priority sizes="(max-width: 960px) 100vw, 640px" />
+            <Image src="/produto/visao-geral.png" alt="Tela Visão geral do Arqevon Finance com alertas de limite, receitas, despesas, saldo, gastos por categoria e projeção" width={2800} height={3366} priority sizes="(max-width: 960px) 100vw, 640px" />
           </div>
         </div>
       </section>
@@ -134,7 +134,7 @@ export default function Finance() {
           <li><strong>Guardados no seu aparelho.</strong> No plano grátis, seus lançamentos não saem do seu navegador ou computador.</li>
           <li><strong>Protegidos por senha.</strong> Ative a criptografia (AES-256) e só quem tem a senha abre os dados.</li>
           <li><strong>Sem venda de dados, sem anúncios.</strong> O produto é o app, não você.</li>
-          <li><strong>Exporte quando quiser.</strong> Backup protegido em arquivo, para levar seus dados para onde quiser.</li>
+          <li><strong>Exporte quando quiser.</strong> Seus dados num arquivo, para guardar ou levar para onde quiser.</li>
         </ul>
       </section>
 
