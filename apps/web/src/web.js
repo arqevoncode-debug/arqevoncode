@@ -95,9 +95,19 @@ function atualizarCartao() {
     : pro ? "Plano Pro" : "Plano Grátis";
 }
 
+// Plano que o motor usa para liberar os recursos do Pro. Guardado por conta para o app não
+// piscar cadeados enquanto os direitos carregam.
+const PLANO_CACHE = uid => `arqevon-plano:${uid}`;
+function informarPlano(pro) {
+  ponteMotor()?.definirPlano({ pro });
+  if (estado.modo === "conta" && estado.uid) { try { localStorage.setItem(PLANO_CACHE(estado.uid), pro ? "pro" : "gratis"); } catch { /* sem armazenamento */ } }
+}
+
 function atualizarConta() {
   const local = estado.modo === "local";
   const { sub, pro, trial, soTeste } = planoAtual();
+  // só a conta decide o plano; sem conta é grátis (e os testes podem ligar o Pro direto no motor)
+  if (estado.modo === "conta" && estado.direitos) informarPlano(pro);
   atualizarCartao();
   $("wcEmail").textContent = local
     ? "Você está usando sem conta: os dados ficam só neste navegador."
@@ -276,6 +286,11 @@ async function liberarApp() {
     mostrarLogin();
     return;
   }
+  if (estado.modo === "conta" && estado.uid) {
+    let cache = null;
+    try { cache = localStorage.getItem(PLANO_CACHE(estado.uid)); } catch { /* sem armazenamento */ }
+    ponteMotor()?.definirPlano({ pro: cache === "pro" });
+  }
   $("webLogin").hidden = true;
   // "desktop-bloqueado" é o sinal que o motor espera para abrir o convite de criptografia.
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
@@ -301,6 +316,7 @@ function registrosNoAparelho() {
 function irParaLogin() {
   // os lançamentos continuam neste navegador; ao criar a conta, podem ir para a nuvem
   localStorage.removeItem(MODO_LOCAL);
+  ponteMotor()?.definirPlano({ pro: false });
   estado = { ...estado, modo: null, email: null, uid: null, direitos: null };
   mostrarLogin();
 }
@@ -319,7 +335,7 @@ function verificarAvisos() {
     const dias = diasAte(trial.ends_at);
     localStorage.setItem(AVISO_FIM_TESTE, trial.ends_at);
     avisoDaSessao = true;
-    avisar(`Seu Pro grátis termina ${dias <= 0 ? "hoje" : dias === 1 ? "amanhã" : `em ${dias} dias`}. Assine para continuar sincronizando. Seus dados continuam guardados de qualquer forma.`,
+    avisar(`Seu Pro grátis termina ${dias <= 0 ? "hoje" : dias === 1 ? "amanhã" : `em ${dias} dias`}. Depois, a nuvem pausa e voltam os limites do grátis (5 parcelados ativos, 6 meses de histórico, 1 objetivo, sem relatórios nem importação de extrato). Nada é apagado.`,
       VENDER_PRO ? "Ver planos" : "", abrirConta);
     return;
   }
@@ -432,7 +448,18 @@ $("wlLocal").addEventListener("click", () => {
   try { localStorage.setItem(MODO_LOCAL, "1"); }
   catch { erro("wlErro1", "Seu navegador está bloqueando o armazenamento deste site (acontece em algumas janelas anônimas ou com cookies bloqueados). Libere o armazenamento para usar o app."); return; }
   estado = { ...estado, modo: "local", email: null, uid: null, direitos: null };
+  ponteMotor()?.definirPlano({ pro: false });
   liberarApp();
+});
+
+// "Conhecer o Pro" (limite do grátis, cadeado): com conta, abre os planos; sem conta, convida a criar
+// uma, que já vem com 30 dias de Pro grátis.
+addEventListener("arqevon:conhecer-pro", async () => {
+  if (estado.modo === "conta") { abrirConta(); return; }
+  const ok = await ponteMotor()?.escolher("Teste o Pro grátis",
+    "Crie sua conta com o seu e-mail e ganhe 30 dias de Pro grátis, sem cartão. Seus lançamentos continuam aqui.",
+    "Criar conta", "");
+  if (ok) irParaLogin();
 });
 
 $("wcFechar").addEventListener("click", () => $("webConta").close());
@@ -459,6 +486,7 @@ $("wcSair").addEventListener("click", async () => {
     }
   }
   await nuvem.sair();
+  ponteMotor()?.definirPlano({ pro: false });
   if (estado.modo === "conta") await supabase.auth.signOut().catch(() => {});
   localStorage.removeItem(MODO_LOCAL);
   estado = { ...estado, modo: null, email: null, direitos: null };

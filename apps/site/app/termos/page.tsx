@@ -35,16 +35,21 @@ export default function Termos() {
       </p>
       <ul>
         <li>
-          <strong>Plano grátis:</strong> todas as funções de organização, com os dados guardados
-          apenas no aparelho em que você usa o app. Pode ser usado sem conta.
+          <strong>Plano grátis:</strong> lançamentos sem limite, com até 5 compras parceladas
+          ativas, os últimos 6 meses na tela, projeção de 3 meses, 1 objetivo e limite em 2
+          categorias. Os dados ficam apenas no aparelho em que você usa o app. Pode ser usado sem
+          conta. Mudar de plano nunca apaga dados: o que passar dos limites continua guardado e
+          incluído no backup.
         </li>
         <li>
-          <strong>Plano Pro (pago):</strong> acrescenta a sincronização dos seus dados entre
-          aparelhos, pela nuvem, com criptografia de ponta a ponta.
+          <strong>Plano Pro (pago):</strong> tira os limites do grátis e acrescenta a importação de
+          extrato, os relatórios completos com exportação, a projeção de 12 meses e a
+          sincronização dos seus dados entre aparelhos, pela nuvem, com criptografia de ponta a
+          ponta.
         </li>
         <li>
-          <strong>App para Windows:</strong> é ativado por licença, conforme o plano contratado e o
-          limite de dispositivos informado na compra.
+          <strong>App para Windows (descontinuado):</strong> as licenças já emitidas continuam
+          valendo conforme o plano contratado e o limite de dispositivos informado na compra.
         </li>
       </ul>
       <p>
