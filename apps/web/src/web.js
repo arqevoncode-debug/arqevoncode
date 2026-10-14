@@ -372,7 +372,8 @@ $("wlPasso2").addEventListener("submit", async e => {
 
 $("wlVoltar").addEventListener("click", mostrarLogin);
 $("wlLocal").addEventListener("click", () => {
-  localStorage.setItem(MODO_LOCAL, "1");
+  try { localStorage.setItem(MODO_LOCAL, "1"); }
+  catch { erro("wlErro1", "Seu navegador está bloqueando o armazenamento deste site (acontece em algumas janelas anônimas ou com cookies bloqueados). Libere o armazenamento para usar o app."); return; }
   estado = { ...estado, modo: "local", email: null, uid: null, direitos: null };
   liberarApp();
 });

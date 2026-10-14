@@ -140,3 +140,8 @@ dialog.wc { max-height: calc(100vh - 32px); overflow-y: auto; }
 }
 
 .wc-indique-link { font: inherit; font-size: 14px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; width: 100%; }
+
+/* Aviso do motor (limites, erro ao salvar) acima da barra de abas do celular */
+@media (max-width: 960px) {
+  #avisoMotor { bottom: calc(84px + env(safe-area-inset-bottom)); }
+}

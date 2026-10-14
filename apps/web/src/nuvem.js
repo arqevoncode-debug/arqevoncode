@@ -35,15 +35,15 @@ const ponte = () => window.ArqevonFinanceBridge;
 const motor = {
   // Bloqueado (senha local ainda não digitada) os dados em memória estão vazios: sincronizar
   // nesse estado apagaria a nuvem. Por isso o motor só é "pronto" com a tela de bloqueio fechada.
-  pronto: () => !!ponte() && $("telaBloqueio")?.hidden !== false,
+  pronto: () => !!ponte() && $("telaBloqueio")?.hidden !== false && !ponte().emExemplo?.(),
   editando: () => {
     const ativo = document.activeElement;
     const campo = ativo && /^(INPUT|TEXTAREA|SELECT)$/.test(ativo.tagName) && ativo.closest(".app");
     const janela = document.querySelector(".app dialog[open], dialog[open]:not(#webConta)");
-    return !!campo || !!janela;
+    return !!campo || !!janela || !!ponte()?.editando?.();
   },
   ler: () => ponte().obterDados(),
-  gravar: dados => ponte().substituirDados(dados),
+  gravar: dados => ponte().substituirDados(dados, { sync: true }),
 };
 const temDados = d => COLECOES.some(c => (d?.[c] || []).length > 0);
 
@@ -98,7 +98,9 @@ export function criarNuvem({ supabase, aoMudar }) {
       if (r.resultado === "ok") {
         const st = store.ler();
         informar(`Sincronizado às ${new Date(st.ultimaSync).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`);
-      } else if (r.resultado === "bloqueado") informar("Aguardando a senha local do app para sincronizar.");
+      } else if (r.resultado === "bloqueado") informar(ponte()?.emExemplo?.()
+        ? "Sincronização pausada enquanto o exemplo está aberto."
+        : "Aguardando a senha local do app para sincronizar.");
     } catch (e) {
       if (e.code === "NOT_ENTITLED") informar("Sua assinatura Pro não está ativa: os dados da nuvem continuam guardados, mas novas alterações não são enviadas.");
       else if (e.code === "QUOTA_EXCEEDED") informar(e.message);
