@@ -66,7 +66,7 @@ test("sem aviso para quem começou agora ou tem poucos dados", async () => {
   }
   // primeira visita marca o início do uso
   const p = await amb.abrir({ dados: VAZIO() });
-  await espera(400);
+  await p.waitForFunction(() => localStorage.getItem("arqevon-primeiro-uso"), { timeout: 10000 });
   const inicio = await p.evaluate(() => Number(localStorage.getItem("arqevon-primeiro-uso")));
   assert.ok(Math.abs(inicio - agora) < 60000, `início do uso marcado agora (${inicio})`);
   await p.fechar();
