@@ -1677,13 +1677,29 @@ function avisarSeChegouNoLimite(cat, mk, antes) {
 // Editar uma conta que já valia em meses anteriores pergunta se a mudança vale "a partir deste
 // mês" (o histórico fica como estava, ex.: o aluguel aumentou) ou "em todos os meses" (correção).
 // Devolve false se a pessoa cancelou.
-async function decidirFixo(original, mk) {
+// `viraOutro`: a conta fixa vai virar "só este mês" ou parcelamento.
+async function decidirFixo(original, mk, viraOutro = false) {
   if (!original || (original.inicio && original.inicio >= mk) || (original.fim && original.fim < mk)) return "todos";
-  const r = await escolherNoApp("Mudar conta fixa",
-    `"${original.descricao}" já existia antes de ${rotuloMes(deChave(mk))}. A mudança vale a partir deste mês ou em todos os meses?`,
-    "A partir deste mês", "Em todos os meses");
+  const quando = rotuloMes(deChave(mk));
+  const r = viraOutro
+    ? await escolherNoApp("Deixar de ser conta fixa",
+        `"${original.descricao}" é uma conta fixa desde antes de ${quando}. A conta fixa pode terminar no mês anterior (os meses passados continuam como estão) ou ser apagada de todos os meses.`,
+        "A partir deste mês", "Apagar de todos os meses", true)
+    : await escolherNoApp("Mudar conta fixa",
+        `"${original.descricao}" já existia antes de ${quando}. A mudança vale a partir deste mês ou em todos os meses?`,
+        "A partir deste mês", "Em todos os meses");
   return r === "principal" ? "a-partir" : r === "alternativa" ? "todos" : false;
 }
+/** Tira o item original da edição. Conta fixa que vira outra coisa "a partir deste mês" só termina. */
+function substituirOriginal(form, original, mk, modo, viraOutro) {
+  if (original && viraOutro && modo === "a-partir") {
+    original.fim = mesAnterior(mk);
+    limparEdicao();
+    return;
+  }
+  removerOriginal(form);
+}
+const enviando = { lanc: false, entrada: false }; // um envio por vez: o clique duplo não duplica
 function gravarFixo(campos, mk, original, modo) {
   if (!original) { dados.fixos.push({ id: uid(), ...campos, inicio: mk }); return; }
   if (modo === "a-partir") {
@@ -1707,6 +1723,11 @@ $("#lRep").addEventListener("change", () => {
 
 $("#formLanc").addEventListener("submit", async e => {
   e.preventDefault();
+  if (enviando.lanc) return;
+  enviando.lanc = true;
+  try { await enviarDespesa(); } finally { enviando.lanc = false; }
+});
+async function enviarDespesa() {
   const valor = valorDe($("#lValor"));
   if (!(valor > 0)) return;
   const rep = $("#lRep").value;
@@ -1717,11 +1738,11 @@ $("#formLanc").addEventListener("submit", async e => {
   const mk = (edicao && edicao.form === "lanc" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
   const data = montarData(mk, dia);
   const original = fixoEmEdicao("lanc");
-  const modo = rep === "fixo" ? await decidirFixo(original, mk) : null;
+  const modo = original ? await decidirFixo(original, mk, rep !== "fixo") : null;
   if (modo === false) return;
   const gastoAntes = gastosPorCategoria(mk).find(x => x.cat.id === cat)?.valor || 0;
 
-  removerOriginal("lanc");
+  substituirOriginal("lanc", original, mk, modo, rep !== "fixo");
   if (rep === "fixo") {
     gravarFixo({ tipo: "despesa", descricao: desc, valor, categoria: cat, dia }, mk, original, modo);
   } else if (rep === "parcelado") {
@@ -1741,11 +1762,16 @@ $("#formLanc").addEventListener("submit", async e => {
   mesAtual = deChave(mk); // mostra o mês do lançamento
   renderTudo();
   avisarSeChegouNoLimite(cat, mk, gastoAntes);
-});
+}
 
 /* ================= Formulário de entradas ================= */
 $("#formEntrada").addEventListener("submit", async e => {
   e.preventDefault();
+  if (enviando.entrada) return;
+  enviando.entrada = true;
+  try { await enviarEntrada(); } finally { enviando.entrada = false; }
+});
+async function enviarEntrada() {
   const valor = valorDe($("#eValor"));
   if (!(valor > 0)) return;
   const desc = $("#eDesc").value.trim();
@@ -1754,9 +1780,10 @@ $("#formEntrada").addEventListener("submit", async e => {
   const mk = (edicao && edicao.form === "entrada" && edicao.mes) || chaveMes(mesAtual.ano, mesAtual.mes);
   const data = montarData(mk, dia);
   const original = fixoEmEdicao("entrada");
-  const modo = $("#eRep").value === "fixo" ? await decidirFixo(original, mk) : null;
+  const viraOutro = $("#eRep").value !== "fixo";
+  const modo = original ? await decidirFixo(original, mk, viraOutro) : null;
   if (modo === false) return;
-  removerOriginal("entrada");
+  substituirOriginal("entrada", original, mk, modo, viraOutro);
   if ($("#eRep").value === "fixo") {
     gravarFixo({ tipo: "receita", descricao: desc, valor, categoria: "outros", dia }, mk, original, modo);
   } else {
@@ -1766,7 +1793,7 @@ $("#formEntrada").addEventListener("submit", async e => {
   $("#formEntrada").reset();
   mesAtual = deChave(mk);
   renderTudo();
-});
+}
 
 /* ================= Objetivos (reserva e poupança) ================= */
 let edicaoObj = null;
@@ -1817,12 +1844,14 @@ window.excluirObjetivo = id => {
   dados.objetivos = dados.objetivos.filter(o => o.id !== id);
   salvar(); renderTudo();
 };
-window.aportar = (id, sinal) => {
-  const o = dados.objetivos.find(x => x.id === id); if (!o) return;
-  const inp = document.querySelector(`input[data-aporte="${id}"]`);
+// Soma em centavos: 0,70 + 0,10 precisa dar exatamente 0,80.
+const guardadoEm = o => Math.round(o.aportes.reduce((s, a) => s + Math.round(a.valor * 100), 0)) / 100;
+window.aportar = (id, sinal, inp) => {
+  const o = dados.objetivos.find(x => String(x.id) === String(id)); if (!o) return;
+  inp = inp || [...document.querySelectorAll("input[data-aporte]")].find(i => i.dataset.aporte === String(id));
   const v = valorDe(inp);
   if (!(v > 0)) { inp.focus(); return; }
-  const guardado = o.aportes.reduce((s, a) => s + a.valor, 0);
+  const guardado = guardadoEm(o);
   if (sinal < 0 && v > guardado) {
     alert(`Você só tem ${dinheiro(guardado)} guardado em "${o.nome}".`);
     return;
@@ -1836,11 +1865,18 @@ window.excluirAporte = (objId, apId) => {
   salvar(); renderTudo();
 };
 
+// Botões dos objetivos por delegação: ids vindos de um backup nunca viram código num onclick.
 $("#listaObjetivos").addEventListener("click", e => {
-  const botao = e.target.closest("button[data-excluir-objetivo]");
+  const botao = e.target.closest("button[data-acao-obj]");
   if (!botao) return;
-  const o = dados.objetivos.find(x => String(x.id) === botao.dataset.excluirObjetivo);
-  if (o && confirm(`Excluir o objetivo "${o.nome}" e todo o seu histórico?`)) excluirObjetivo(o.id);
+  const card = botao.closest(".obj-card");
+  const o = dados.objetivos.find(x => String(x.id) === card?.dataset.obj);
+  if (!o) return;
+  const acao = botao.dataset.acaoObj;
+  if (acao === "excluir" && confirm(`Excluir o objetivo "${o.nome}" e todo o seu histórico?`)) excluirObjetivo(o.id);
+  if (acao === "editar") editarObjetivo(o.id);
+  if (acao === "guardar" || acao === "retirar") aportar(o.id, acao === "guardar" ? 1 : -1, card.querySelector("input[data-aporte]"));
+  if (acao === "excluir-aporte") excluirAporte(o.id, o.aportes.find(a => String(a.id) === botao.dataset.aporteId)?.id);
 });
 function renderObjetivos() {
   const alvo = $("#listaObjetivos");
@@ -1852,7 +1888,7 @@ function renderObjetivos() {
   const mkH = chaveMes(hoje.getFullYear(), hoje.getMonth());
   let totalGeral = 0, totalMes = 0;
   const cards = dados.objetivos.map(o => {
-    const guardado = o.aportes.reduce((s, a) => s + a.valor, 0);
+    const guardado = guardadoEm(o);
     totalGeral += guardado;
     totalMes += o.aportes.filter(a => a.data.slice(0, 7) === mkH).reduce((s, a) => s + a.valor, 0);
     const pct = o.meta > 0 ? Math.min(guardado / o.meta * 100, 100) : null;
@@ -1871,15 +1907,15 @@ function renderObjetivos() {
       <div class="hist-linha">
         <span>${fmtDataCurta(a.data)}</span>
         <span class="${a.valor >= 0 ? "pos" : "neg"}">${a.valor >= 0 ? "+" : "−"} ${dinheiro(Math.abs(a.valor))}</span>
-        <button class="excluir" title="Excluir movimento" onclick="excluirAporte('${o.id}','${a.id}')">✕</button>
+        <button class="excluir" title="Excluir movimento" data-acao-obj="excluir-aporte" data-aporte-id="${esc(String(a.id))}">✕</button>
       </div>`).join("");
 
-    return `<div class="card obj-card">
+    return `<div class="card obj-card" data-obj="${esc(String(o.id))}">
       <div class="obj-top">
         <h2>${esc(o.nome)}</h2>
         <span style="white-space:nowrap">
-          <button class="editar" title="Editar" onclick="editarObjetivo('${o.id}')">✎</button>
-          <button class="excluir" title="Excluir" data-excluir-objetivo="${esc(String(o.id))}">✕</button>
+          <button class="editar" title="Editar" data-acao-obj="editar">✎</button>
+          <button class="excluir" title="Excluir" data-acao-obj="excluir">✕</button>
         </span>
       </div>
       <div class="obj-valores">${dinheiro(guardado)}
@@ -1888,9 +1924,9 @@ function renderObjetivos() {
       ${o.meta > 0 ? `<div class="trilho-obj"><div class="preench ${guardado >= o.meta ? "cheio" : ""}" style="width:${pct}%"></div></div>` : ""}
       ${previsao ? `<p class="hint" style="margin:0">${previsao}</p>` : ""}
       <div class="aporte-form">
-        <input data-aporte="${o.id}" type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" aria-label="Valor do aporte">
-        <button type="button" class="botao mini entrada" onclick="aportar('${o.id}',1)">Guardar</button>
-        <button type="button" class="botao mini cancelar" onclick="aportar('${o.id}',-1)">Retirar</button>
+        <input data-aporte="${esc(String(o.id))}" type="text" inputmode="numeric" autocomplete="off" placeholder="0,00" aria-label="Valor do aporte">
+        <button type="button" class="botao mini entrada" data-acao-obj="guardar">Guardar</button>
+        <button type="button" class="botao mini cancelar" data-acao-obj="retirar">Retirar</button>
       </div>
       ${o.aportes.length ? `<details class="hist"><summary>Histórico (${o.aportes.length})</summary>${hist}</details>` : ""}
     </div>`;
@@ -2339,6 +2375,8 @@ function dadosExemplo() {
 }
 window.verExemplo = () => {
   if (exemplo) return;
+  // o convite de criptografia pode ter aberto um instante antes (primeira visita pelo /#exemplo)
+  if ($("#modalSeg").open && !$("#sgConvite").hidden) { $("#modalSeg").close(); conviteAdiado = true; }
   limparEdicao();
   exemplo = { real: dados };
   dados = dadosExemplo();
@@ -2354,6 +2392,7 @@ function sairExemplo() {
   limparEdicao();
   $("#faixaExemplo").hidden = true;
   renderTudo();
+  if (conviteAdiado) { conviteAdiado = false; setTimeout(() => abrirModalSeg(true), 0); }
 }
 $("#exemploSair").onclick = sairExemplo;
 $("#exemploConfigurar").onclick = () => { sairExemplo(); abrirGuia(); };
@@ -2495,8 +2534,10 @@ async function verificarSenha(senha) {
 function bloquearTela() {
   if (bloqueado) return;
   bloqueado = true;
-  const modal = $("#modalSeg");
-  if (modal.open) modal.close();
+  // nenhuma janela pode ficar por cima do cadeado (extrato, limites, conta…)
+  if (resolverConfirmacao) encerrarConfirmacao(false);
+  document.querySelectorAll("dialog[open]").forEach(d => d.close());
+  ext = null;
   tooltip.style.display = "none";
   $("#tbMsg").textContent = "Digite sua senha para continuar.";
   $("#tbErro").hidden = true;
@@ -2553,6 +2594,7 @@ function atualizarBotoesSeg() {
   $("#bloqueioEstado").textContent = seg.bloqueio ? `${seg.minutos} min` : "Desativado";
 }
 function abrirModalSeg(convidando = false) {
+  sairExemplo(); // a senha e a criptografia valem para os dados reais
   $("#blocoAtual").hidden = !seg.salt;
   $("#lblNova").textContent = seg.salt ? "Nova senha (deixe em branco para manter)" : "Criar senha";
   $("#sgAtual").value = ""; $("#sgNova").value = ""; $("#sgConf").value = "";
@@ -2570,10 +2612,12 @@ $("#btnBloqueio").onclick = () => abrirModalSeg();
 
 // Convite único para ativar a criptografia. Registrado antes de abrir para que uma recusa
 // (ou fechar a janela) não faça o convite reaparecer nas próximas aberturas.
+let conviteAdiado = false; // o convite espera o exemplo terminar
 function convidarCriptografia() {
   if (seg.convite || seg.cripto || blobPendente) return;
   seg.convite = true;
   salvarSeg();
+  if (exemplo) { conviteAdiado = true; return; }
   abrirModalSeg(true);
 }
 // No desktop o convite espera a liberação da tela de licença; no navegador abre direto.
@@ -2593,6 +2637,7 @@ $("#sgCancelar").onclick = () => $("#modalSeg").close();
 function erroSeg(msg) { const el = $("#sgErro"); el.textContent = msg; el.hidden = false; }
 
 $("#sgSalvar").onclick = async () => {
+  sairExemplo();
   $("#sgErro").hidden = true;
   const atual = $("#sgAtual").value, nova = $("#sgNova").value, conf = $("#sgConf").value;
   const querCripto = $("#sgCripto").checked, querBloqueio = $("#sgBloqueio").checked;
