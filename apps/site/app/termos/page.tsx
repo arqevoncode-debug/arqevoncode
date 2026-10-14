@@ -70,6 +70,8 @@ export default function Termos() {
       <h2>5. Assinatura, preço e pagamento</h2>
       <ul>
         <li>O plano Pro é vendido nas modalidades <strong>mensal</strong> e <strong>anual</strong>, pelos preços exibidos na página de pagamento no momento da compra.</li>
+        <li><strong>Teste grátis:</strong> cada conta nova recebe 30 dias de Pro, uma única vez, sem cartão e sem cobrança automática. No fim, a conta volta ao plano grátis, e os dados guardados na nuvem não são apagados.</li>
+        <li><strong>Oferta Fundador:</strong> quando disponível, tem vagas limitadas e mantém o preço contratado enquanto a assinatura continuar ativa, sem interrupção.</li>
         <li>O pagamento é processado pela <strong>Kiwify</strong>, que aceita Pix e cartão de crédito. Os dados de pagamento ficam com ela, e não conosco.</li>
         <li>A assinatura <strong>renova automaticamente</strong> ao fim de cada período, na mesma modalidade, até ser cancelada.</li>
         <li>Se a renovação não for paga, o Pro continua disponível por até 5 dias de tolerância. Depois disso, a conta volta ao plano grátis.</li>

@@ -173,6 +173,8 @@ assert.equal(kw.classificarKiwify(null, "refunded"), "revoked");
 assert.equal(kw.planoKiwify({ frequency: "monthly" }), "pro_mensal");
 assert.equal(kw.planoKiwify({ frequency: "yearly" }), "pro_anual");
 assert.equal(kw.planoKiwify({ planName: "Plano Anual" }), "pro_anual");
+assert.equal(kw.planoKiwify({ frequency: "monthly", planName: "Pro Fundador" }), "pro_fundador");
+assert.equal(kw.planoKiwify({ frequency: "monthly", planName: "Mensal" }), "pro_mensal");
 assert.equal(kw.planoKiwify({ productId: "p1" }, '{"p1":"pro_anual"}'), "pro_anual");
 assert.equal(kw.planoKiwify({ productId: "p2" }, '{"p1":"pro_anual"}'), null);
 assert.equal(kw.planoKiwify({ productId: "p1" }, "lixo"), null);

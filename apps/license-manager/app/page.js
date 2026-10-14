@@ -7,6 +7,9 @@ const PLAN_LABELS = {
   individual: "Individual",
   multidispositivo: "Multidispositivo",
   familia: "Família",
+  pro_mensal: "Pro mensal",
+  pro_anual: "Pro anual",
+  pro_fundador: "Pro Fundador",
 };
 const STATUS_LABELS = {
   active: "Ativa",
@@ -416,6 +419,49 @@ function LicenseRequests({ items, loading, loadError, onChanged, onEmitir }) {
   </section>;
 }
 
+// Funil do Finance: contas → teste grátis → nuvem → assinatura. Só contagens vindas do banco.
+function Metrics({ onLogout }) {
+  const [m, setM] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    fetch("/api/admin/metrics", { cache: "no-store" })
+      .then(async response => {
+        if (response.status === 401) return onLogout();
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Não foi possível carregar os números.");
+        setM(result.metrics);
+      })
+      .catch(err => setError(err.message));
+  }, [onLogout]);
+  if (error) return <section className="licenses-area"><p className="error load-error">{error}</p></section>;
+  if (!m) return <section className="licenses-area"><p className="loading">Carregando números…</p></section>;
+  const brl = cents => (Number(cents || 0) / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const pct = (a, b) => b > 0 ? `${Math.round(a / b * 100)}%` : "—";
+  const planos = Object.entries(m.assinaturas.por_plano || {}).map(([id, n]) => `${PLAN_LABELS[id] || id}: ${n}`).join(" · ") || "nenhuma";
+  const blocos = [
+    { titulo: "Contas", itens: [["Total", m.contas.total], ["Novas em 7 dias", m.contas.novas_7d], ["Novas em 30 dias", m.contas.novas_30d], ["Entraram em 7 dias", m.contas.entraram_7d]] },
+    { titulo: "Teste grátis de 30 dias", itens: [["Em andamento", m.teste.em_andamento], ["Iniciados em 30 dias", m.teste.iniciados_30d], ["Terminados", m.teste.terminados],
+      ["Assinaram depois", `${m.teste.assinaram} (${pct(m.teste.assinaram, m.teste.terminados + m.teste.em_andamento)})`]] },
+    { titulo: "Nuvem", itens: [["Cofres criados", m.nuvem.cofres], ["Sincronizaram em 7 dias", m.nuvem.ativos_7d]] },
+    { titulo: "Assinaturas", itens: [["Pagantes", m.assinaturas.pagantes], ["Receita mensal", brl(m.assinaturas.receita_mensal_cents)],
+      ["Em atraso", m.assinaturas.em_atraso], ["Canceladas em 30 dias", m.assinaturas.canceladas_30d],
+      ["Vagas do Fundador", m.assinaturas.vagas_fundador ?? "—"]], nota: planos },
+    { titulo: "Pedidos (30 dias)", itens: [["Licenças do desktop", m.pedidos.licencas_30d], ["Orçamentos sob encomenda", m.pedidos.orcamentos_30d]] },
+  ];
+  return <section className="licenses-area">
+    <div className="list-head"><div>
+      <p className="eyebrow">FUNIL DO FINANCE</p><h2>Números</h2>
+      <p className="muted lista-ajuda">Contas, teste grátis, nuvem e assinaturas. Só contagens: os lançamentos dos clientes são cifrados e o servidor não os lê.
+        Atualizado em {new Date(m.gerado_em).toLocaleString("pt-BR")}.</p>
+    </div></div>
+    {blocos.map(b => <section className="panel metric-block" key={b.titulo}>
+      <h3>{b.titulo}</h3>
+      <div className="stats">{b.itens.map(([rotulo, valor]) => <div key={rotulo}><small>{rotulo.toUpperCase()}</small><b>{valor}</b></div>)}</div>
+      {b.nota && <p className="muted">Por plano: {b.nota}</p>}
+    </section>)}
+  </section>;
+}
+
 function Dashboard({ onLogout }) {
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -524,8 +570,12 @@ function Dashboard({ onLogout }) {
         onClick={() => setView("pedidos")}>Solicitações{pedidosPendentes > 0 && <span className="badge">{pedidosPendentes}</span>}</button>
       <button type="button" role="tab" aria-selected={view === "feedbacks"} className={view === "feedbacks" ? "selected" : ""}
         onClick={() => setView("feedbacks")}>Feedbacks{novosFeedbacks > 0 && <span className="badge">{novosFeedbacks}</span>}</button>
+      <button type="button" role="tab" aria-selected={view === "numeros"} className={view === "numeros" ? "selected" : ""}
+        onClick={() => setView("numeros")}>Números</button>
     </nav>
-    {view === "feedbacks"
+    {view === "numeros"
+      ? <Metrics onLogout={onLogout} />
+      : view === "feedbacks"
       ? <Feedbacks items={feedbacks} loading={feedbacksLoading} loadError={feedbacksError} onChanged={loadFeedbacks} />
       : view === "pedidos"
       ? <LicenseRequests items={requests} loading={requestsLoading} loadError={requestsError}

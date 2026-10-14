@@ -486,3 +486,9 @@ input:focus, select:focus {
   .modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .key-modal code { overflow-x: auto; font-size: 15px; }
 }
+
+/* Números */
+.metric-block { margin-bottom: 14px; }
+.metric-block h3 { margin: 0 0 12px; }
+.metric-block .stats { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.metric-block p { margin: 10px 0 0; }
