@@ -45,7 +45,7 @@ export default function Privacidade() {
               <td>Execução de contrato (art. 7º, V)</td>
             </tr>
             <tr>
-              <td><strong>Assinatura:</strong> plano, situação, datas do período e o identificador da compra na plataforma de pagamento</td>
+              <td><strong>Assinatura:</strong> plano, situação, datas do período, datas do teste grátis e o identificador da compra na plataforma de pagamento</td>
               <td>Liberar o plano Pro, renovar, cancelar e reembolsar</td>
               <td>Execução de contrato (art. 7º, V); obrigação legal (art. 7º, II)</td>
             </tr>

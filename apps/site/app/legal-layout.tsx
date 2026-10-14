@@ -23,6 +23,7 @@ export default function LegalLayout({ titulo, children }: { titulo: string; chil
       <div className="legal-rodape">
         <Link href="/termos">Termos de Uso</Link>
         <Link href="/privacidade">Política de Privacidade</Link>
+        <Link href="/seguranca">Como protegemos seus dados</Link>
         <a href={`mailto:${CONTATO}`}>{CONTATO}</a>
       </div>
     </main>

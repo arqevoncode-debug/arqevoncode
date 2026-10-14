@@ -37,6 +37,16 @@ const fontes = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a1628'/%3E%3Cpath d='m7 20 6-5 5 3 7-7' stroke='%233fe7c0' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<meta name="description" content="Organize receitas, contas fixas e parcelas do cartão e veja como ficam os próximos meses. Grátis, no navegador.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Arqevon Finance">
+<meta property="og:title" content="Arqevon Finance — Suas contas do mês, claras em uma tela">
+<meta property="og:description" content="Receitas, contas fixas, parcelas do cartão e a projeção dos próximos meses. Grátis, no navegador.">
+<meta property="og:url" content="https://app.arqevoncode.com.br/">
+<meta property="og:image" content="https://arqevoncode.com.br/og-finance.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
