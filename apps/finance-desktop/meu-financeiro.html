@@ -401,13 +401,13 @@ details.hist summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 }
 
 /* ---------- Segurança ---------- */
-dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia {
+dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia, dialog#modalExtrato {
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--ink);
   padding: 22px; max-width: 420px; width: calc(100vw - 48px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
-dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
 dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0 0 4px; font-size: 17px; }
 .botao.confirmar-perigo { background: var(--bad); box-shadow: none; }
 .reset-campo { display: grid; gap: 5px; margin-top: 16px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
@@ -423,6 +423,38 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
 .sec-toggle .hint { margin: 6px 0 0 24px; }
 .sec-toggle select { width: auto; margin-left: 24px; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* ---------- Importar extrato ---------- */
+.card-importar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.card-importar > div { flex: 1 1 320px; }
+.card-importar .hint { margin: 0; }
+dialog#modalExtrato { max-width: 760px; }
+#modalExtrato h2 { font-size: 18px; margin: 8px 0 4px; }
+#modalExtrato .hint { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.ext-opcoes { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 6px 0 10px; font-size: 13px; color: var(--ink-2); }
+.ext-opcoes label { display: flex; align-items: center; gap: 6px; }
+.ext-colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+.ext-colunas .hint { grid-column: 1 / -1; margin: 0; }
+.ext-colunas label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+#modalExtrato select { font: inherit; font-size: 16px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 7px 9px; width: 100%; min-width: 0; }
+.ext-lista { max-height: 52vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; }
+.ext-item { display: grid; grid-template-columns: 24px 56px minmax(0, 1fr) 150px 112px; gap: 10px; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--grid); font-size: 14px; }
+.ext-item:last-child { border-bottom: 0; }
+.ext-item.repetido { opacity: .6; }
+.ext-item .ext-data { color: var(--muted); font-size: 13px; }
+.ext-item .ext-desc { min-width: 0; overflow-wrap: anywhere; }
+.ext-item .ext-desc small { display: block; color: var(--warn); font-size: 11.5px; font-weight: 600; }
+.ext-item .ext-valor { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ext-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
+@media (max-width: 560px) {
+  .ext-colunas { grid-template-columns: 1fr; }
+  .ext-item { grid-template-columns: 24px minmax(0, 1fr) auto; grid-template-areas: "c d d" "c data v" "c cat cat"; gap: 4px 10px; }
+  .ext-item > input { grid-area: c; align-self: start; margin-top: 2px; }
+  .ext-item .ext-data { grid-area: data; }
+  .ext-item .ext-desc { grid-area: d; font-weight: 600; }
+  .ext-item select, .ext-item .ext-entrada { grid-area: cat; }
+  .ext-item .ext-valor { grid-area: v; }
+}
 
 /* ---------- Boas-vindas, exemplo e configuração guiada ---------- */
 .boas-vindas-acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
@@ -533,6 +565,14 @@ dialog#modalGuia { max-width: 560px; }
 
   <!-- ================= LANÇAMENTOS (formulário único + lista única) ================= -->
   <section id="aba-lancamentos" hidden>
+    <div class="card card-importar">
+      <div>
+        <h2>Importar extrato do banco</h2>
+        <p class="hint">Arquivo OFX ou CSV baixado do app ou site do banco. Você revisa tudo antes de salvar, e o arquivo não sai deste aparelho.</p>
+      </div>
+      <button class="botao cancelar" type="button" id="btnExtrato">Importar extrato</button>
+      <input type="file" id="arqExtrato" accept=".ofx,.qfx,.csv,.txt,text/csv" hidden>
+    </div>
     <div class="card">
       <h2>Nova despesa</h2>
       <p class="hint">Escolha se o gasto acontece <b>só este mês</b>, se <b>repete todo mês</b> (conta fixa) ou se foi <b>parcelado no cartão</b>. Ele entra no mês escolhido no topo.</p>
@@ -731,6 +771,29 @@ dialog#modalGuia { max-width: 560px; }
   <div class="sec-acoes">
     <button class="botao cancelar" type="button" id="guiaVoltar">Voltar</button>
     <button class="botao" type="button" id="guiaAvancar">Continuar</button>
+  </div>
+</dialog>
+
+<dialog id="modalExtrato" aria-labelledby="extTitulo">
+  <div class="guia-topo"><span id="extArquivo"></span>
+    <button type="button" class="guia-fechar" id="extFechar" aria-label="Fechar">✕</button></div>
+  <h2 id="extTitulo">Revise antes de importar</h2>
+  <p class="hint" id="extResumo"></p>
+  <div class="ext-colunas" id="extColunas" hidden>
+    <p class="hint">Não reconhecemos as colunas deste arquivo. Indique quais são:</p>
+    <label>Data<select id="extColData"></select></label>
+    <label>Descrição<select id="extColDesc"></select></label>
+    <label>Valor<select id="extColValor"></select></label>
+  </div>
+  <div class="ext-opcoes">
+    <label><input type="checkbox" id="extInverter"> Valores positivos são gastos (fatura de cartão)</label>
+    <label><input type="checkbox" id="extTodos" checked> Marcar todos</label>
+  </div>
+  <div class="ext-lista" id="extLista"></div>
+  <p class="aviso-seg" id="extErro" hidden></p>
+  <div class="sec-acoes">
+    <button class="botao cancelar" type="button" id="extCancelar">Cancelar</button>
+    <button class="botao" type="button" id="extImportar">Importar</button>
   </div>
 </dialog>
 
@@ -1620,6 +1683,257 @@ function renderObjetivos() {
     <div class="grid obj-grid">${cards}</div>`;
   alvo.querySelectorAll("input[data-aporte]").forEach(mascaraMoeda);
 }
+
+/* ================= Leitura de extratos (OFX e CSV) ================= */
+// Tudo roda aqui no aparelho: o arquivo do banco nunca é enviado.
+const semAcento = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+function decodificarExtrato(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const cabecalho = new TextDecoder("latin1").decode(bytes.subarray(0, 400));
+  if (/CHARSET:\s*1252|ENCODING="?(windows-1252|iso-8859-1)/i.test(cabecalho)) return new TextDecoder("windows-1252").decode(bytes);
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes).replace(/^﻿/, ""); }
+  catch { return new TextDecoder("windows-1252").decode(bytes); } // bancos que gravam em ANSI sem avisar
+}
+
+/** "12/03/2026", "12/03/26", "2026-03-12", "12-03-2026" ou "20260312..." → "2026-03-12". */
+function dataExtrato(t) {
+  t = String(t || "").trim();
+  let a, m, d, x;
+  if ((x = t.match(/^(\d{4})(\d{2})(\d{2})/))) [, a, m, d] = x;
+  else if ((x = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) [, a, m, d] = x;
+  else if ((x = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))) { [, d, m, a] = x; if (a.length === 2) a = "20" + a; }
+  else return null;
+  const iso = `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const dt = new Date(`${iso}T12:00:00`);
+  return Number.isNaN(dt.getTime()) || dt.getDate() !== Number(d) ? null : iso;
+}
+
+/** "R$ -1.234,56", "-1234.56", "(12,30)", "1.234" → número com sinal; null se não for valor. */
+function valorExtrato(t) {
+  let s = String(t ?? "").replace(/R\$|\s| /g, "");
+  if (!s) return null;
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  if (s.endsWith("-")) { neg = true; s = s.slice(0, -1); }
+  if (s.startsWith("-")) { neg = !neg; s = s.slice(1); } else if (s.startsWith("+")) s = s.slice(1);
+  if (!/^[\d.,]+$/.test(s)) return null;
+  const v = s.includes(",") && s.includes(".")
+    ? (s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, ""))
+    : s.includes(",") ? s.replace(/\.(?=\d{3})/g, "").replace(",", ".")
+    : /^\d{1,3}(\.\d{3})+$/.test(s) ? s.replace(/\./g, "") : s;
+  const n = Number(v);
+  return Number.isFinite(n) ? (neg ? -n : n) : null;
+}
+
+function lerOFX(texto) {
+  const out = [];
+  for (const bloco of texto.match(/<STMTTRN>[\s\S]*?(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>|$)/gi) || []) {
+    const campo = tag => { const x = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, "i")); return x ? x[1].trim() : ""; };
+    const data = dataExtrato(campo("DTPOSTED"));
+    const valor = Number(campo("TRNAMT").replace(",", "."));
+    if (!data || !Number.isFinite(valor) || valor === 0) continue;
+    const nome = campo("NAME"), memo = campo("MEMO");
+    const desc = memo && nome && !semAcento(memo).includes(semAcento(nome)) ? `${nome} ${memo}` : memo || nome || "Lançamento";
+    out.push({ data, desc, valor, ref: campo("FITID") || null });
+  }
+  return out;
+}
+
+function linhasCSV(texto) {
+  const primeira = texto.split(/\r?\n/).find(l => l.trim()) || "";
+  const fora = primeira.replace(/"[^"]*"/g, "");
+  const sep = [";", "\t", ","].sort((x, y) => fora.split(y).length - fora.split(x).length)[0];
+  const linhas = []; let linha = [], campo = "", aspas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (aspas) {
+      if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+      else if (c === '"') aspas = false;
+      else campo += c;
+    } else if (c === '"') aspas = true;
+    else if (c === sep) { linha.push(campo.trim()); campo = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && texto[i + 1] === "\n") i++;
+      linha.push(campo.trim()); campo = "";
+      if (linha.some(x => x)) linhas.push(linha);
+      linha = [];
+    } else campo += c;
+  }
+  linha.push(campo.trim());
+  if (linha.some(x => x)) linhas.push(linha);
+  return linhas;
+}
+
+/** Colunas pelo nome do cabeçalho; null no que não reconhecer. */
+function mapaColunasCSV(cab) {
+  const n = cab.map(semAcento);
+  const achar = (re, evitar = /$^/) => { const i = n.findIndex(h => re.test(h) && !evitar.test(h)); return i < 0 ? null : i; };
+  const data = achar(/^(data|date|dt)\b|data (do |de )?(lancamento|movimento|compra)/);
+  const valor = achar(/valor|amount|value|quantia|montante|^r\$$/, /saldo|original|dolar|usd/);
+  let desc = null;
+  for (const re of [/descri/, /historico/, /^title$|titulo/, /estabelecimento|lancamento|memo|detalhe|nome/]) {
+    const i = n.findIndex((h, k) => re.test(h) && k !== data && k !== valor);
+    if (i >= 0) { desc = i; break; }
+  }
+  const credito = achar(/^(credito|entrada|entradas)$/), debito = achar(/^(debito|saida|saidas)$/);
+  return { data, desc, valor, credito, debito };
+}
+
+function lerCSV(texto) {
+  const linhas = linhasCSV(texto);
+  // cabeçalho: primeira linha com uma coluna de data reconhecível; alguns bancos põem títulos antes
+  const iCab = Math.max(linhas.findIndex(l => mapaColunasCSV(l).data !== null), 0);
+  const cab = linhas[iCab] || [];
+  return { colunas: cab, linhas: linhas.slice(iCab + 1).filter(l => l.length >= 2), mapa: mapaColunasCSV(cab) };
+}
+
+function transacoesCSV({ linhas }, mapa) {
+  const out = [];
+  for (const l of linhas) {
+    const data = dataExtrato(l[mapa.data]);
+    let valor = mapa.valor !== null ? valorExtrato(l[mapa.valor]) : null;
+    if (valor === null && (mapa.credito !== null || mapa.debito !== null)) {
+      valor = (valorExtrato(l[mapa.credito]) || 0) - Math.abs(valorExtrato(l[mapa.debito]) || 0);
+    }
+    const desc = String(l[mapa.desc] ?? "").replace(/\s+/g, " ").trim();
+    if (!data || !valor || /^saldo\b/i.test(semAcento(desc))) continue;
+    out.push({ data, desc: desc || "Lançamento", valor, ref: null });
+  }
+  return out;
+}
+
+const CATEGORIA_POR_PALAVRA = [
+  [/mercado|supermerc|atacad|hortifruti|padaria|acougue|ifood|rappi|restaurante|lanchonete|burger|pizza|cafe\b|bar\b/, "alimentacao"],
+  [/uber|\b99\b|99app|posto|combust|ipiranga|shell|petrobras|estacion|pedagio|metro|onibus|cabify|sem parar|veloe/, "transporte"],
+  [/farmac|drogar|droga raia|drogasil|pague menos|hospital|clinica|laborat|odonto|medic|unimed|amil|hapvida|bradesco saude/, "saude"],
+  [/netflix|spotify|prime video|amazon prime|disney|hbo|max\b|youtube|globoplay|deezer|apple\.com|google one|icloud|assinatura/, "assinaturas"],
+  [/aluguel|condominio|energia|enel|light\b|cemig|copel|celesc|sabesp|copasa|agua|esgoto|\bgas\b|comgas|internet|vivo|claro|\btim\b|oi fibra/, "moradia"],
+  [/escola|faculdade|universidade|curso|udemy|alura|livraria|material escolar|mensalidade/, "educacao"],
+  [/cinema|ingresso|show|teatro|steam|playstation|xbox|viagem|hotel|airbnb|booking|decolar|latam|gol\b|azul\b/, "lazer"],
+  [/pagamento (de )?fatura|pgto fatura|fatura cartao/, "cartao"],
+];
+function categoriaSugerida(desc) {
+  const t = semAcento(desc);
+  for (const [re, cat] of CATEGORIA_POR_PALAVRA) if (re.test(t)) return cat;
+  return "outros";
+}
+
+/** Identifica um lançamento importado: pelo FITID do banco ou por data, valor e descrição. */
+function chaveExtrato(t) {
+  return t.ref ? `ref:${t.ref}` : `${t.data}|${Math.round(Math.abs(t.valor) * 100)}|${semAcento(t.desc).replace(/\s+/g, " ").slice(0, 40)}`;
+}
+
+/* ================= Importar extrato: revisão antes de salvar ================= */
+let ext = null; // { nome, csv, mapa, itens: [{data, desc, valor, ref, chave, cat, marcado, aviso}] }
+$("#btnExtrato").onclick = () => { sairExemplo(); $("#arqExtrato").click(); };
+$("#arqExtrato").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  const texto = decodificarExtrato(await f.arrayBuffer());
+  ext = { nome: f.name, csv: null, mapa: null, itens: [] };
+  let brutas;
+  if (/<OFX>|OFXHEADER/i.test(texto)) brutas = lerOFX(texto);
+  else {
+    ext.csv = lerCSV(texto);
+    ext.mapa = ext.csv.mapa;
+    brutas = colunasOk(ext.mapa) ? transacoesCSV(ext.csv, ext.mapa) : [];
+  }
+  $("#extColunas").hidden = !ext.csv || colunasOk(ext.mapa);
+  if (ext.csv) montarSelectsColunas();
+  prepararItens(brutas);
+  // fatura de cartão em CSV costuma trazer as compras positivas
+  const positivos = brutas.filter(t => t.valor > 0).length;
+  $("#extInverter").checked = !!ext.csv && brutas.length >= 3 && positivos / brutas.length >= 0.8;
+  $("#extTodos").checked = true;
+  $("#extArquivo").textContent = f.name;
+  $("#extErro").hidden = true;
+  renderExtrato();
+  $("#modalExtrato").showModal();
+});
+const colunasOk = m => m && m.data !== null && m.desc !== null && (m.valor !== null || m.credito !== null || m.debito !== null);
+function montarSelectsColunas() {
+  const opcoes = ext.csv.colunas.map((c, i) => `<option value="${i}">${esc(c || `Coluna ${i + 1}`)}</option>`).join("");
+  for (const [id, chave] of [["#extColData", "data"], ["#extColDesc", "desc"], ["#extColValor", "valor"]]) {
+    $(id).innerHTML = `<option value="">—</option>${opcoes}`;
+    $(id).value = ext.mapa[chave] ?? "";
+  }
+}
+for (const id of ["#extColData", "#extColDesc", "#extColValor"]) $(id).addEventListener("change", () => {
+  const n = v => v === "" ? null : Number(v);
+  ext.mapa = { data: n($("#extColData").value), desc: n($("#extColDesc").value), valor: n($("#extColValor").value), credito: null, debito: null };
+  prepararItens(colunasOk(ext.mapa) ? transacoesCSV(ext.csv, ext.mapa) : []);
+  renderExtrato();
+});
+function prepararItens(brutas) {
+  const importados = new Set(dados.lancamentos.map(l => l.imp).filter(Boolean));
+  const manuais = new Set(dados.lancamentos.map(l => `${l.data}|${Math.round(l.valor * 100)}`));
+  const vistos = new Set();
+  ext.itens = brutas.slice(0, 3000).map(t => {
+    const chave = chaveExtrato(t);
+    const aviso = importados.has(chave) || vistos.has(chave) ? "já importado"
+      : manuais.has(`${t.data}|${Math.round(Math.abs(t.valor) * 100)}`) ? "parece já lançado (mesma data e valor)" : "";
+    vistos.add(chave);
+    return { ...t, chave, cat: categoriaSugerida(t.desc), marcado: !aviso, aviso };
+  });
+}
+const sinalExtrato = t => ($("#extInverter").checked ? -t.valor : t.valor);
+function renderExtrato() {
+  const itens = ext.itens;
+  const opcoesCat = CATEGORIAS.map(c => `<option value="${c.id}">${c.nome}</option>`).join("");
+  $("#extLista").innerHTML = itens.length ? itens.map((t, i) => {
+    const v = sinalExtrato(t);
+    return `<div class="ext-item${t.aviso ? " repetido" : ""}">
+      <input type="checkbox" data-ext="${i}" ${t.marcado ? "checked" : ""} aria-label="Importar ${esc(t.desc)}">
+      <span class="ext-data">${fmtDataCurta(t.data)}</span>
+      <span class="ext-desc">${esc(t.desc)}${t.aviso ? `<small>${t.aviso}</small>` : ""}</span>
+      ${v < 0 ? `<select data-ext-cat="${i}" aria-label="Categoria">${opcoesCat}</select>` : `<span class="ext-entrada ext-data">Entrada</span>`}
+      <span class="ext-valor ${v > 0 ? "pos" : ""}">${v > 0 ? "+" : "−"} ${dinheiro(Math.abs(v))}</span>
+    </div>`;
+  }).join("") : `<div class="vazio">Nenhum lançamento encontrado neste arquivo.</div>`;
+  $("#extLista").querySelectorAll("[data-ext-cat]").forEach(sel => { sel.value = itens[sel.dataset.extCat].cat; });
+  atualizarResumoExtrato();
+}
+function atualizarResumoExtrato() {
+  const itens = ext.itens, marcados = itens.filter(t => t.marcado);
+  const datas = itens.map(t => t.data).sort();
+  const repetidos = itens.filter(t => t.aviso).length;
+  $("#extResumo").textContent = itens.length
+    ? `${itens.length} lançamento${itens.length === 1 ? "" : "s"} de ${fmtDataCurta(datas[0])}/${datas[0].slice(0, 4)} a ${fmtDataCurta(datas.at(-1))}/${datas.at(-1).slice(0, 4)}.`
+      + (repetidos ? ` ${repetidos} já estava${repetidos === 1 ? "" : "m"} no app e ficou${repetidos === 1 ? "" : "aram"} desmarcado${repetidos === 1 ? "" : "s"}.` : "")
+    : "Confira o arquivo ou indique as colunas abaixo.";
+  $("#extImportar").textContent = `Importar ${marcados.length} lançamento${marcados.length === 1 ? "" : "s"}`;
+  $("#extImportar").disabled = marcados.length === 0;
+}
+$("#extLista").addEventListener("change", e => {
+  const i = e.target.dataset.ext ?? e.target.dataset.extCat;
+  if (i === undefined) return;
+  if (e.target.dataset.ext !== undefined) ext.itens[i].marcado = e.target.checked;
+  else ext.itens[i].cat = e.target.value;
+  atualizarResumoExtrato();
+});
+$("#extInverter").addEventListener("change", renderExtrato);
+$("#extTodos").addEventListener("change", e => { ext.itens.forEach(t => { t.marcado = e.target.checked; }); renderExtrato(); });
+$("#extFechar").onclick = $("#extCancelar").onclick = () => { ext = null; $("#modalExtrato").close(); };
+$("#extImportar").onclick = () => {
+  const marcados = ext.itens.filter(t => t.marcado);
+  if (!marcados.length) return;
+  for (const t of marcados) {
+    const v = sinalExtrato(t);
+    dados.lancamentos.push({
+      id: uid(), tipo: v > 0 ? "receita" : "despesa", descricao: t.desc.slice(0, 120),
+      valor: Math.round(Math.abs(v) * 100) / 100, categoria: v > 0 ? "outros" : t.cat, data: t.data, imp: t.chave,
+    });
+  }
+  salvar();
+  const ultimo = marcados.map(t => t.data).sort().at(-1);
+  ext = null;
+  $("#modalExtrato").close();
+  mesAtual = deChave(ultimo.slice(0, 7));
+  ativarAba("lancamentos");
+  renderTudo();
+};
 
 /* ================= Exemplo com dados fictícios ================= */
 // Mostra o app cheio antes de a pessoa digitar qualquer coisa. Datas relativas a hoje, para o
