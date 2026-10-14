@@ -23,7 +23,7 @@ const linhas = p => p.$$eval("#extLista .ext-item", els => els.map(e => ({
 test("conversões de data e valor", async () => {
   const p = await amb.abrir({ dados: VAZIO() });
   const r = await p.evaluate(() => ({
-    datas: ["03/10/2026", "3/10/26", "2026-10-03", "03-10-2026", "20261003120000[-3:BRT]", "31/02/2026", "texto"].map(dataExtrato),
+    datas: ["03/10/2026", "3/10/26", "2026-10-03", "03-10-2026", "20261003120000[-3:BRT]", "31/02/2026", "texto"].map(t => dataExtrato(t)),
     valores: ["R$ -1.234,56", "-1234.56", "(12,30)", "1.234", "1.234,5", "45,9", "+10", "12-", "abc", ""].map(valorExtrato),
   }));
   assert.deepEqual(r.datas, ["2026-10-03", "2026-10-03", "2026-10-03", "2026-10-03", "2026-10-03", null, null]);

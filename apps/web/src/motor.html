@@ -864,6 +864,9 @@ dialog#modalGuia { max-width: 560px; }
     <label>Data<select id="extColData"></select></label>
     <label>Descrição<select id="extColDesc"></select></label>
     <label>Valor<select id="extColValor"></select></label>
+    <label>Ou entradas<select id="extColCredito"></select></label>
+    <label>e saídas<select id="extColDebito"></select></label>
+    <label>Coluna D/C<select id="extColDC"></select></label>
   </div>
   <div class="ext-opcoes">
     <label><input type="checkbox" id="extInverter"> Valores positivos são gastos (fatura de cartão)</label>
@@ -958,12 +961,19 @@ let exemplo = null; // { real } enquanto o exemplo com dados fictícios está ab
 function normalizar(d) {
   const lista = v => (Array.isArray(v) ? v : []).filter(x => x && typeof x === "object");
   const num = v => Number.isFinite(v);
+  // Texto e categoria corrigidos em vez de descartados: um item sem descrição ou com uma categoria
+  // que não existe mais (backup antigo, edição à mão) não pode quebrar a tela.
+  const texto = (v, padrao) => (typeof v === "string" && v.trim() ? v : padrao);
+  const categoria = c => (CATEGORIAS.some(x => x.id === c) ? c : "outros");
   return {
-    lancamentos: lista(d.lancamentos).filter(l => typeof l.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.data) && num(l.valor)),
-    fixos: lista(d.fixos).filter(f => num(f.valor)),
+    lancamentos: lista(d.lancamentos).filter(l => typeof l.data === "string" && /^\d{4}-\d{2}-\d{2}$/.test(l.data) && num(l.valor))
+      .map(l => ({ ...l, tipo: l.tipo === "receita" ? "receita" : "despesa", descricao: texto(l.descricao, "Lançamento"), categoria: categoria(l.categoria) })),
+    fixos: lista(d.fixos).filter(f => num(f.valor))
+      .map(f => ({ ...f, tipo: f.tipo === "receita" ? "receita" : "despesa", descricao: texto(f.descricao, "Conta fixa"), categoria: categoria(f.categoria) })),
     parcelamentos: lista(d.parcelamentos).filter(p => typeof p.inicio === "string" && /^\d{4}-\d{2}$/.test(p.inicio)
-      && num(p.valorTotal) && Number.isInteger(p.numParcelas) && p.numParcelas >= 1),
-    objetivos: lista(d.objetivos).map(o => ({ ...o, aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)) })),
+      && num(p.valorTotal) && Number.isInteger(p.numParcelas) && p.numParcelas >= 1)
+      .map(p => ({ ...p, descricao: texto(p.descricao, "Compra parcelada"), categoria: categoria(p.categoria) })),
+    objetivos: lista(d.objetivos).map(o => ({ ...o, nome: texto(o.nome, "Objetivo"), aportes: lista(o.aportes).filter(a => typeof a.data === "string" && num(a.valor)) })),
     // Limite mensal por categoria: um registro por categoria (id = categoria), para sincronizar.
     orcamentos: lista(d.orcamentos).filter(o => typeof o.categoria === "string" && num(o.limite) && o.limite > 0),
   };
@@ -987,16 +997,23 @@ function salvar() {
     const json = JSON.stringify(dados);
     cifrar(chaveSessao, json).then(p => {
       const blob = JSON.stringify({ enc: true, salt: seg.salt, iv: p.iv, ct: p.ct });
-      localStorage.setItem(CHAVE, blob);
-      localStorage.setItem(CHAVE + "-backup", blob);
-      agendarBackupArquivo();
+      gravarArmazenamento(blob);
     });
     return;
   }
-  const json = JSON.stringify(dados);
-  localStorage.setItem(CHAVE, json);
-  localStorage.setItem(CHAVE + "-backup", json);
+  gravarArmazenamento(JSON.stringify(dados));
+}
+// Navegador sem espaço (ou bloqueando o armazenamento): a pessoa precisa saber que não foi salvo.
+function gravarArmazenamento(texto) {
+  try {
+    localStorage.setItem(CHAVE, texto);
+  } catch (e) {
+    avisarMotor("Não foi possível salvar: o armazenamento do navegador está cheio ou bloqueado. Exporte um backup agora para não perder o que digitou.", "estourou");
+    return false;
+  }
+  try { localStorage.setItem(CHAVE + "-backup", texto); } catch (e) { /* a cópia é extra; a principal foi gravada */ }
   agendarBackupArquivo();
+  return true;
 }
 // Cópia de recuperação (antes de importar ou resetar): segue a criptografia, se estiver ligada.
 function guardarCopia(chave, d) {
@@ -1044,6 +1061,11 @@ const mesAnterior = mk => { const d = deChave(mk), m = somaMes(d.ano, d.mes, -1)
 function lancamentosDoMes(mk) {
   return dados.lancamentos.filter(l => l.data.slice(0, 7) === mk);
 }
+/** Valor da parcela n (1..N): os centavos que sobram da divisão vão nas primeiras (100 em 3x = 33,34 + 33,33 + 33,33). */
+function valorParcela(p, n) {
+  const total = Math.round(p.valorTotal * 100), base = Math.floor(total / p.numParcelas);
+  return (base + (n <= total - base * p.numParcelas ? 1 : 0)) / 100;
+}
 function parcelasDoMes(mk) {
   const out = [];
   for (const p of dados.parcelamentos) {
@@ -1059,7 +1081,7 @@ function resumoDoMes(mk) {
   const fixos = fixosDoMes(mk);
   const fixDesp = fixos.filter(f => f.tipo === "despesa").reduce((s, f) => s + f.valor, 0);
   const fixRec  = fixos.filter(f => f.tipo === "receita").reduce((s, f) => s + f.valor, 0);
-  const parcTot = parcelasDoMes(mk).reduce((s, { p }) => s + p.valorTotal / p.numParcelas, 0);
+  const parcTot = parcelasDoMes(mk).reduce((s, { p, indice }) => s + valorParcela(p, indice), 0);
   return {
     receitas: varRec + fixRec,
     despesas: varDesp + fixDesp + parcTot,
@@ -1072,7 +1094,7 @@ function gastosPorCategoria(mk) {
   const add = (cat, v) => { mapa[cat] = (mapa[cat] || 0) + v; };
   lancamentosDoMes(mk).filter(l => l.tipo === "despesa").forEach(l => add(l.categoria, l.valor));
   fixosDoMes(mk).filter(f => f.tipo === "despesa").forEach(f => add(f.categoria, f.valor));
-  parcelasDoMes(mk).forEach(({ p }) => add(p.categoria, p.valorTotal / p.numParcelas));
+  parcelasDoMes(mk).forEach(({ p, indice }) => add(p.categoria, valorParcela(p, indice)));
   return CATEGORIAS.map(c => ({ cat: c, valor: mapa[c.id] || 0 })).filter(x => x.valor > 0)
     .sort((a, b) => b.valor - a.valor);
 }
@@ -1096,9 +1118,9 @@ function projecao(nMeses = 6) {
     const m = somaMes(hoje.getFullYear(), hoje.getMonth(), i);
     const mk = chaveMes(m.ano, m.mes);
     const fixos = fixosDoMes(mk);
-    const fixDesp = fixos.filter(f => f.tipo === "despesa" && f.categoria !== "cartao").reduce((s, f) => s + f.valor, 0);
+    const fixDesp = fixos.filter(f => f.tipo === "despesa").reduce((s, f) => s + f.valor, 0);
     const fixRec  = fixos.filter(f => f.tipo === "receita").reduce((s, f) => s + f.valor, 0);
-    const parc = parcelasDoMes(mk).reduce((s, { p }) => s + p.valorTotal / p.numParcelas, 0);
+    const parc = parcelasDoMes(mk).reduce((s, { p, indice }) => s + valorParcela(p, indice), 0);
     out.push({
       m, mk, fixas: fixDesp, parcelas: parc, variaveis: media,
       receitas: fixRec, total: fixDesp + parc + media,
@@ -1402,11 +1424,13 @@ function renderLista() {
     cat: f.tipo === "receita" ? "—" : chipCategoria(f.categoria),
     valor: f.valor, receita: f.tipo === "receita",
     fonte: "fixo", id: f.id,
-    confirmar: "Este item se repete todo mês. Excluir de todos os meses?",
+    confirmar: f.inicio
+      ? `Excluir a conta fixa "${f.descricao}"? Ela vale desde ${rotuloMes(deChave(f.inicio))}; meses anteriores a isso não mudam.`
+      : "Este item se repete todo mês. Excluir de todos os meses?",
   }));
 
   parcelasDoMes(mk).forEach(({ p, indice }) => {
-    const vParc = p.valorTotal / p.numParcelas;
+    const vParc = valorParcela(p, indice);
     itens.push({
       ordem: 0, quando: "cartão",
       desc: esc(p.descricao),
@@ -1427,7 +1451,7 @@ function renderLista() {
   let devedor = 0;
   for (const p of dados.parcelamentos) {
     const pagas = Math.min(Math.max(difMeses(p.inicio, mkHoje) + 1, 0), p.numParcelas);
-    devedor += (p.numParcelas - pagas) * (p.valorTotal / p.numParcelas);
+    for (let n = pagas + 1; n <= p.numParcelas; n++) devedor += valorParcela(p, n);
   }
 
   $("#cardLista").innerHTML = `
@@ -1451,17 +1475,26 @@ function renderLista() {
       </tbody></table></div>`
     : `<div class="vazio">Nada em ${rotuloMes(mesAtual)} ainda. Adicione seu primeiro lançamento acima. 👆</div>`}`;
 }
-window.excluirLanc = id => { dados.lancamentos = dados.lancamentos.filter(l => l.id !== id); salvar(); renderTudo(); };
-window.excluirFixo = id => { dados.fixos = dados.fixos.filter(f => f.id !== id); salvar(); renderTudo(); };
+// Edição em andamento é cancelada (campos limpos) quando os dados por baixo dela mudam.
+function cancelarEdicaoAberta() {
+  if (edicao) (edicao.form === "entrada" ? $("#eCancelar") : $("#lCancelar")).click();
+}
+// Item excluído que estava no formulário de edição: o formulário volta ao normal (senão salvar o recriaria).
+function cancelarEdicaoDe(id) {
+  if (edicao && String(edicao.id) === String(id)) (edicao.form === "entrada" ? $("#eCancelar") : $("#lCancelar")).click();
+}
+window.excluirLanc = id => { cancelarEdicaoDe(id); dados.lancamentos = dados.lancamentos.filter(l => l.id !== id); salvar(); renderTudo(); };
+window.excluirFixo = id => { cancelarEdicaoDe(id); dados.fixos = dados.fixos.filter(f => f.id !== id); salvar(); renderTudo(); };
 /** A conta deixa de valer a partir de `mk`; se não sobrar nenhum mês, é excluída. */
 function encerrarFixo(id, mk) {
   const f = dados.fixos.find(x => x.id === id);
   if (!f) return;
+  cancelarEdicaoDe(id);
   f.fim = mesAnterior(mk);
   if (f.inicio && f.fim < f.inicio) dados.fixos = dados.fixos.filter(x => x !== f);
   salvar(); renderTudo();
 }
-window.excluirParc = id => { dados.parcelamentos = dados.parcelamentos.filter(p => p.id !== id); salvar(); renderTudo(); };
+window.excluirParc = id => { cancelarEdicaoDe(id); dados.parcelamentos = dados.parcelamentos.filter(p => p.id !== id); salvar(); renderTudo(); };
 
 let resolverConfirmacao = null;
 function encerrarConfirmacao(resultado) {
@@ -1645,6 +1678,8 @@ window.abrirLimites = () => {
   $("#modalLimites").showModal();
 };
 $("#limCancelar").onclick = () => $("#modalLimites").close();
+$("#modalLimites").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); $("#limSalvar").click(); } });
+$("#modalGuia").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); $("#guiaAvancar").click(); } });
 $("#limSalvar").onclick = () => {
   dados.orcamentos = [...document.querySelectorAll("[data-limite]")]
     .map(el => ({ id: el.dataset.limite, categoria: el.dataset.limite, limite: valorDe(el) }))
@@ -2064,7 +2099,7 @@ function csvRelatorio(meses) {
         f.tipo === "receita" ? "" : catPorId(f.categoria).nome, "Conta fixa", num(f.tipo === "receita" ? f.valor : -f.valor)]);
     }
     for (const { p, indice } of parcelasDoMes(mk)) {
-      linhas.push([mes, "", "Despesa", p.descricao, catPorId(p.categoria).nome, `Parcela ${indice}/${p.numParcelas}`, num(-p.valorTotal / p.numParcelas)]);
+      linhas.push([mes, "", "Despesa", p.descricao, catPorId(p.categoria).nome, `Parcela ${indice}/${p.numParcelas}`, num(-valorParcela(p, indice))]);
     }
   }
   // BOM para o Excel reconhecer os acentos; ponto e vírgula e vírgula decimal, como no Brasil
@@ -2095,12 +2130,12 @@ function decodificarExtrato(buffer) {
 }
 
 /** "12/03/2026", "12/03/26", "2026-03-12", "12-03-2026" ou "20260312..." → "2026-03-12". */
-function dataExtrato(t) {
+function dataExtrato(t, mesPrimeiro = false) {
   t = String(t || "").trim();
   let a, m, d, x;
   if ((x = t.match(/^(\d{4})(\d{2})(\d{2})/))) [, a, m, d] = x;
   else if ((x = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) [, a, m, d] = x;
-  else if ((x = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))) { [, d, m, a] = x; if (a.length === 2) a = "20" + a; }
+  else if ((x = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/))) { [, d, m, a] = x; if (mesPrimeiro === true) [d, m] = [m, d]; if (a.length === 2) a = "20" + a; }
   else return null;
   const iso = `${a}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
   const dt = new Date(`${iso}T12:00:00`);
@@ -2109,9 +2144,12 @@ function dataExtrato(t) {
 
 /** "R$ -1.234,56", "-1234.56", "(12,30)", "1.234" → número com sinal; null se não for valor. */
 function valorExtrato(t) {
-  let s = String(t ?? "").replace(/R\$|\s| /g, "");
+  let s = String(t ?? "").replace(/R\$|\s|\u00a0/g, "").replace(/[\u2212\u2013\u2014]/g, "-");
   if (!s) return null;
   let neg = false;
+  // "50,00 D" (débito) e "1.000,00 C" (crédito), comum em extratos de bancos
+  const dc = s.match(/^(.*\d)([DC])$/i);
+  if (dc) { s = dc[1].replace(/^[-+]/, ""); neg = dc[2].toUpperCase() === "D"; }
   if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
   if (s.endsWith("-")) { neg = true; s = s.slice(0, -1); }
   if (s.startsWith("-")) { neg = !neg; s = s.slice(1); } else if (s.startsWith("+")) s = s.slice(1);
@@ -2129,7 +2167,7 @@ function lerOFX(texto) {
   for (const bloco of texto.match(/<STMTTRN>[\s\S]*?(?=<\/STMTTRN>|<STMTTRN>|<\/BANKTRANLIST>|$)/gi) || []) {
     const campo = tag => { const x = bloco.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, "i")); return x ? x[1].trim() : ""; };
     const data = dataExtrato(campo("DTPOSTED"));
-    const valor = Number(campo("TRNAMT").replace(",", "."));
+    const valor = valorExtrato(campo("TRNAMT")) ?? NaN;
     if (!data || !Number.isFinite(valor) || valor === 0) continue;
     const nome = campo("NAME"), memo = campo("MEMO");
     const desc = memo && nome && !semAcento(memo).includes(semAcento(nome)) ? `${nome} ${memo}` : memo || nome || "Lançamento";
@@ -2167,37 +2205,58 @@ function linhasCSV(texto) {
 function mapaColunasCSV(cab) {
   const n = cab.map(semAcento);
   const achar = (re, evitar = /$^/) => { const i = n.findIndex(h => re.test(h) && !evitar.test(h)); return i < 0 ? null : i; };
-  const data = achar(/^(data|date|dt)\b|data (do |de )?(lancamento|movimento|compra)/);
-  const valor = achar(/valor|amount|value|quantia|montante|^r\$$/, /saldo|original|dolar|usd/);
+  // "Data", "Data_Mov", "Data Lançamento", "Date", "RELEASE_DATE"; não "update"
+  const data = achar(/(^|[^a-z])(data|date|dt)([^a-z]|$)/);
+  const valor = achar(/valor|amount|value|quantia|montante|^r\$$/, /saldo|balance|original|dolar|us\$|usd/);
   let desc = null;
-  for (const re of [/descri/, /historico/, /^title$|titulo/, /estabelecimento|lancamento|memo|detalhe|nome/]) {
+  for (const re of [/descri/, /historico/, /^title$|titulo/, /estabelecimento|lancamento|memo|detalhe|nome|transaction_type/]) {
     const i = n.findIndex((h, k) => re.test(h) && k !== data && k !== valor);
     if (i >= 0) { desc = i; break; }
   }
-  const credito = achar(/^(credito|entrada|entradas)$/), debito = achar(/^(debito|saida|saidas)$/);
-  return { data, desc, valor, credito, debito };
+  // "Crédito (R$)", "Entradas"; "Débito (R$)", "Saídas"
+  const credito = achar(/^(credito|entrada|entradas)( |\(|$)/), debito = achar(/^(debito|saida|saidas)( |\(|$)/);
+  // coluna que diz se é débito ou crédito ("Deb_Cred", "D/C", "Natureza")
+  const dc = achar(/^(deb_cred|deb\/cred|d\/c|dc|natureza|tipo)$/);
+  return { data, desc, valor, credito, debito, dc };
 }
 
 function lerCSV(texto) {
   const linhas = linhasCSV(texto);
-  // cabeçalho: primeira linha com uma coluna de data reconhecível; alguns bancos põem títulos antes
-  const iCab = Math.max(linhas.findIndex(l => mapaColunasCSV(l).data !== null), 0);
+  // cabeçalho: a primeira linha com coluna de data e de valor; alguns bancos põem títulos ou um
+  // resumo antes (Mercado Pago). Sem isso, a primeira com data; senão, a primeira linha.
+  const ok = l => { const m = mapaColunasCSV(l); return m.data !== null && (m.valor !== null || m.credito !== null || m.debito !== null); };
+  let iCab = linhas.findIndex(ok);
+  if (iCab < 0) iCab = Math.max(linhas.findIndex(l => mapaColunasCSV(l).data !== null), 0);
   const cab = linhas[iCab] || [];
   return { colunas: cab, linhas: linhas.slice(iCab + 1).filter(l => l.length >= 2), mapa: mapaColunasCSV(cab) };
 }
 
+/** Transações do CSV; `.ignoradas` diz quantas linhas não deu para ler (sem data ou valor). */
 function transacoesCSV({ linhas }, mapa) {
   const out = [];
+  let ignoradas = 0;
+  // 13/10 só pode ser dia/mês; 10/13, só mês/dia. O arquivo inteiro segue a mesma ordem.
+  const partes = linhas.map(l => String(l[mapa.data] ?? "").match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-]\d{2,4}/)).filter(Boolean);
+  const mesPrimeiro = !partes.some(x => Number(x[1]) > 12) && partes.some(x => Number(x[2]) > 12);
   for (const l of linhas) {
-    const data = dataExtrato(l[mapa.data]);
+    const data = dataExtrato(l[mapa.data], mesPrimeiro);
     let valor = mapa.valor !== null ? valorExtrato(l[mapa.valor]) : null;
     if (valor === null && (mapa.credito !== null || mapa.debito !== null)) {
-      valor = (valorExtrato(l[mapa.credito]) || 0) - Math.abs(valorExtrato(l[mapa.debito]) || 0);
+      const c = mapa.credito !== null ? valorExtrato(l[mapa.credito]) : null;
+      const d = mapa.debito !== null ? valorExtrato(l[mapa.debito]) : null;
+      valor = c === null && d === null ? null : (c || 0) - Math.abs(d || 0);
+    }
+    if (valor !== null && mapa.dc != null) {
+      const dc = semAcento(l[mapa.dc]);
+      if (/^(d|deb|debito)\b/.test(dc)) valor = -Math.abs(valor);
+      else if (/^(c|cred|credito)\b/.test(dc)) valor = Math.abs(valor);
     }
     const desc = String(l[mapa.desc] ?? "").replace(/\s+/g, " ").trim();
-    if (!data || !valor || /^saldo\b/i.test(semAcento(desc))) continue;
+    if (/^saldo\b/i.test(semAcento(desc))) continue; // linhas de saldo não são lançamentos
+    if (!data || !valor) { if (l.some(c => String(c).trim())) ignoradas++; continue; }
     out.push({ data, desc: desc || "Lançamento", valor, ref: null });
   }
+  out.ignoradas = ignoradas;
   return out;
 }
 
@@ -2229,8 +2288,9 @@ $("#arqExtrato").addEventListener("change", async e => {
   const f = e.target.files[0];
   e.target.value = "";
   if (!f) return;
+  limparEdicao();
   const texto = decodificarExtrato(await f.arrayBuffer());
-  ext = { nome: f.name, csv: null, mapa: null, itens: [] };
+  ext = { nome: f.name, csv: null, mapa: null, itens: [], ignoradas: 0, cortadas: 0 };
   let brutas;
   if (/<OFX>|OFXHEADER/i.test(texto)) brutas = lerOFX(texto);
   else {
@@ -2238,43 +2298,58 @@ $("#arqExtrato").addEventListener("change", async e => {
     ext.mapa = ext.csv.mapa;
     brutas = colunasOk(ext.mapa) ? transacoesCSV(ext.csv, ext.mapa) : [];
   }
-  $("#extColunas").hidden = !ext.csv || colunasOk(ext.mapa);
   if (ext.csv) montarSelectsColunas();
   prepararItens(brutas);
-  // fatura de cartão em CSV costuma trazer as compras positivas
-  const positivos = brutas.filter(t => t.valor > 0).length;
-  $("#extInverter").checked = !!ext.csv && brutas.length >= 3 && positivos / brutas.length >= 0.8;
+  sugerirInversao(brutas);
   $("#extTodos").checked = true;
   $("#extArquivo").textContent = f.name;
   $("#extErro").hidden = true;
   renderExtrato();
   $("#modalExtrato").showModal();
 });
+// Fatura de cartão em CSV costuma trazer as compras positivas: sugere inverter os sinais.
+function sugerirInversao(brutas) {
+  const positivos = brutas.filter(t => t.valor > 0).length;
+  $("#extInverter").checked = !!ext.csv && brutas.length >= 3 && positivos / brutas.length >= 0.8;
+}
 const colunasOk = m => m && m.data !== null && m.desc !== null && (m.valor !== null || m.credito !== null || m.debito !== null);
+const SELECTS_COLUNAS = [["#extColData", "data"], ["#extColDesc", "desc"], ["#extColValor", "valor"],
+  ["#extColCredito", "credito"], ["#extColDebito", "debito"], ["#extColDC", "dc"]];
 function montarSelectsColunas() {
   const opcoes = ext.csv.colunas.map((c, i) => `<option value="${i}">${esc(c || `Coluna ${i + 1}`)}</option>`).join("");
-  for (const [id, chave] of [["#extColData", "data"], ["#extColDesc", "desc"], ["#extColValor", "valor"]]) {
+  for (const [id, chave] of SELECTS_COLUNAS) {
     $(id).innerHTML = `<option value="">—</option>${opcoes}`;
     $(id).value = ext.mapa[chave] ?? "";
   }
 }
-for (const id of ["#extColData", "#extColDesc", "#extColValor"]) $(id).addEventListener("change", () => {
+for (const [id] of SELECTS_COLUNAS) $(id).addEventListener("change", () => {
   const n = v => v === "" ? null : Number(v);
-  ext.mapa = { data: n($("#extColData").value), desc: n($("#extColDesc").value), valor: n($("#extColValor").value), credito: null, debito: null };
-  prepararItens(colunasOk(ext.mapa) ? transacoesCSV(ext.csv, ext.mapa) : []);
+  ext.mapa = Object.fromEntries(SELECTS_COLUNAS.map(([sel, chave]) => [chave, n($(sel).value)]));
+  const brutas = colunasOk(ext.mapa) ? transacoesCSV(ext.csv, ext.mapa) : [];
+  prepararItens(brutas);
+  sugerirInversao(brutas);
   renderExtrato();
 });
+const LIMITE_EXTRATO = 5000;
 function prepararItens(brutas) {
   const importados = new Set(dados.lancamentos.map(l => l.imp).filter(Boolean));
-  const manuais = new Set(dados.lancamentos.map(l => `${l.data}|${Math.round(l.valor * 100)}`));
-  const vistos = new Set();
-  ext.itens = brutas.slice(0, 3000).map(t => {
-    const chave = chaveExtrato(t);
-    const aviso = importados.has(chave) || vistos.has(chave) ? "já importado"
+  const manuais = new Set(dados.lancamentos.filter(l => !l.imp).map(l => `${l.data}|${Math.round(l.valor * 100)}`));
+  ext.ignoradas = brutas.ignoradas || 0;
+  ext.cortadas = Math.max(brutas.length - LIMITE_EXTRATO, 0);
+  // Três cafés iguais no mesmo dia são três compras: a chave leva a ordem de aparição no arquivo,
+  // e importar o mesmo arquivo de novo continua reconhecendo cada um.
+  const vezes = new Map();
+  ext.itens = brutas.slice(0, LIMITE_EXTRATO).map(t => {
+    const base = chaveExtrato(t);
+    const n = (vezes.get(base) || 0) + 1;
+    vezes.set(base, n);
+    const chave = n === 1 ? base : `${base}#${n}`;
+    const aviso = importados.has(chave) ? "já importado"
       : manuais.has(`${t.data}|${Math.round(Math.abs(t.valor) * 100)}`) ? "parece já lançado (mesma data e valor)" : "";
-    vistos.add(chave);
     return { ...t, chave, cat: categoriaSugerida(t.desc), marcado: !aviso, aviso };
   });
+  // sem nenhuma linha lida, a pessoa precisa poder escolher as colunas
+  $("#extColunas").hidden = !ext.csv || (colunasOk(ext.mapa) && ext.itens.length > 0);
 }
 const sinalExtrato = t => ($("#extInverter").checked ? -t.valor : t.valor);
 function renderExtrato() {
@@ -2297,10 +2372,15 @@ function atualizarResumoExtrato() {
   const itens = ext.itens, marcados = itens.filter(t => t.marcado);
   const datas = itens.map(t => t.data).sort();
   const repetidos = itens.filter(t => t.aviso).length;
+  const um = repetidos === 1;
+  const extras = [
+    repetidos ? `${repetidos} ${um ? "parece já estar" : "parecem já estar"} no app e ${um ? "ficou desmarcado" : "ficaram desmarcados"}.` : "",
+    ext.ignoradas ? `${ext.ignoradas} ${ext.ignoradas === 1 ? "linha não foi lida" : "linhas não foram lidas"} (sem data ou valor reconhecível).` : "",
+    ext.cortadas ? `O arquivo passa do limite de ${LIMITE_EXTRATO.toLocaleString("pt-BR")} lançamentos: ${ext.cortadas.toLocaleString("pt-BR")} ficaram de fora. Divida o período em arquivos menores.` : "",
+  ].filter(Boolean).join(" ");
   $("#extResumo").textContent = itens.length
-    ? `${itens.length} lançamento${itens.length === 1 ? "" : "s"} de ${fmtDataCurta(datas[0])}/${datas[0].slice(0, 4)} a ${fmtDataCurta(datas.at(-1))}/${datas.at(-1).slice(0, 4)}.`
-      + (repetidos ? ` ${repetidos} já estava${repetidos === 1 ? "" : "m"} no app e ficou${repetidos === 1 ? "" : "aram"} desmarcado${repetidos === 1 ? "" : "s"}.` : "")
-    : "Confira o arquivo ou indique as colunas abaixo.";
+    ? `${itens.length} lançamento${itens.length === 1 ? "" : "s"} de ${fmtDataCurta(datas[0])}/${datas[0].slice(0, 4)} a ${fmtDataCurta(datas.at(-1))}/${datas.at(-1).slice(0, 4)}. ${extras}`.trim()
+    : `Nenhum lançamento lido. ${ext.csv ? "Indique as colunas abaixo." : "Confira se o arquivo é o extrato em OFX ou CSV."} ${extras}`.trim();
   $("#extImportar").textContent = `Importar ${marcados.length} lançamento${marcados.length === 1 ? "" : "s"}`;
   $("#extImportar").disabled = marcados.length === 0;
 }
@@ -2467,10 +2547,17 @@ $("#guiaAvancar").onclick = () => {
 
   const renda = valorDe($("#gRenda"));
   const inicio = chaveMes(hoje.getFullYear(), hoje.getMonth());
-  if (renda > 0) dados.fixos.push({ id: uid(), tipo: "receita", descricao: "Salário", valor: renda, categoria: "outros", dia: diaGuia($("#gRendaDia")), inicio });
+  // Rodar a configuração de novo atualiza a conta que já existe, em vez de criar outra igual.
+  const gravar = campos => {
+    const igual = dados.fixos.find(f => f.tipo === campos.tipo && fixoNoMes(f, inicio)
+      && semAcento(f.descricao) === semAcento(campos.descricao));
+    if (igual) Object.assign(igual, campos);
+    else dados.fixos.push({ id: uid(), ...campos, inicio });
+  };
+  if (renda > 0) gravar({ tipo: "receita", descricao: "Salário", valor: renda, categoria: "outros", dia: diaGuia($("#gRendaDia")) });
   GUIA_FIXOS.forEach(([descricao, categoria], i) => {
     const valor = valorDe(document.querySelector(`[data-fixo="${i}"]`));
-    if (valor > 0) dados.fixos.push({ id: uid(), tipo: "despesa", descricao, valor, categoria, dia: diaGuia(document.querySelector(`[data-fixo-dia="${i}"]`)), inicio });
+    if (valor > 0) gravar({ tipo: "despesa", descricao, valor, categoria, dia: diaGuia(document.querySelector(`[data-fixo-dia="${i}"]`)) });
   });
   dados.parcelamentos.push(...parcelas);
   salvar();
@@ -2497,7 +2584,7 @@ let seg = (() => {
   } catch (e) {}
   return { salt: null, verif: null, cripto: false, bloqueio: false, minutos: 5, convite: false };
 })();
-function salvarSeg() { localStorage.setItem(CHAVE + "-seg", JSON.stringify(seg)); }
+function salvarSeg() { try { localStorage.setItem(CHAVE + "-seg", JSON.stringify(seg)); } catch (e) { /* armazenamento bloqueado */ } }
 
 const enc8 = s => new TextEncoder().encode(s);
 function b64(buf) {
@@ -2857,6 +2944,7 @@ $("#arqImportar").addEventListener("change", e => {
       }
       if (!novo || !Array.isArray(novo.lancamentos)) throw 0;
       if (confirm("Substituir os dados atuais pelos dados do arquivo?")) {
+        cancelarEdicaoAberta();
         guardarCopia(CHAVE + "-pre-import", dados); // guarda o estado anterior
         dados = normalizar(novo);
         salvar(); renderTudo();
@@ -2884,13 +2972,20 @@ window.MyFinanceBridge = {
   versaoDados: 1,
   // Durante o exemplo, quem pergunta (nuvem, backup do desktop) recebe sempre os dados reais.
   obterDados: () => structuredClone(exemplo ? exemplo.real : dados),
-  substituirDados: novo => {
+  // `sync`: a nuvem aplicando mudanças de outro aparelho. Não vira "cópia antes de importar"
+  // (senão cada sincronização apagaria a cópia de uma importação de verdade).
+  substituirDados: (novo, { sync = false } = {}) => {
     if (!novo || !Array.isArray(novo.lancamentos)) throw new Error("Dados inválidos");
     sairExemplo();
-    guardarCopia(CHAVE + "-pre-import", dados);
+    if (!sync) guardarCopia(CHAVE + "-pre-import", dados);
+    cancelarEdicaoAberta();
     dados = normalizar(novo);
-    salvar(); limparEdicao(); renderTudo();
+    salvar(); renderTudo();
   },
+  // A nuvem espera: com um item no formulário de edição, aplicar mudanças agora embaralharia o
+  // formulário; no exemplo, os dados na tela nem são os reais.
+  editando: () => !!edicao,
+  emExemplo: () => !!exemplo,
 };
 // Novo nome público; o alias anterior continua disponível para instalações existentes.
 window.ArqevonFinanceBridge = window.MyFinanceBridge;
