@@ -131,3 +131,35 @@ test("sem conta não pede teste e o aviso não cobre a barra do celular", async 
   assert.ok(aviso <= abas, `aviso (${aviso}) passa da barra (${abas})`);
   await p.fechar();
 });
+
+test("aparelho novo de quem já tem dados na nuvem: convite para abrir", async () => {
+  const p = await abrirLogado({ rpc: {
+    claim_trial: { ok: true, status: "not_eligible" },
+    my_entitlements: direitos({ cloud: true, sub: { plan: "pro_mensal", status: "active", current_period_end: emDias(20) } }),
+    list_plans: PLANOS, vault_status: { ok: true, entitled: true, exists: true, key_params: {}, wrapped_key: "x".repeat(20), recovery_wrapped_key: "y".repeat(20), key_version: 1 },
+  } });
+  await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
+  assert.match(await texto(p, "#webAvisoTexto"), /já tem dados na nuvem/);
+  await p.click("#webAvisoAcao");
+  await p.waitForFunction(() => document.querySelector("#webConta").open);
+  await espera(300);
+  assert.ok(await p.$eval("#wnAbrir", e => !e.hidden), "abre direto no pedido da senha da nuvem");
+  await p.fechar();
+});
+
+test("teste grátis acabando: aviso uma vez só", async () => {
+  const rpc = {
+    claim_trial: { ok: true, status: "used", ends_at: emDias(2) },
+    my_entitlements: direitos({ cloud: true, trial: { ends_at: emDias(2), active: true } }),
+    list_plans: PLANOS, vault_status: COFRE,
+  };
+  const p = await abrirLogado({ rpc });
+  await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
+  assert.match(await texto(p, "#webAvisoTexto"), /Seu Pro grátis termina em 2 dias/);
+  assert.equal(await texto(p, "#webAvisoAcao"), "Ver planos");
+  await p.reload();
+  await p.waitForFunction(() => document.querySelector("#webLogin")?.hidden === true);
+  await espera(800);
+  assert.ok(await p.$eval("#webAviso", e => e.hidden), "não repete");
+  await p.fechar();
+});

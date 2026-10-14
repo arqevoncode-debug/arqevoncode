@@ -124,6 +124,7 @@ function atualizarConta() {
   $("wcAssinar").hidden = !VENDER_PRO || !podeAssinar;
   $("wcBreve").hidden = VENDER_PRO || pro;
   if (VENDER_PRO && podeAssinar) montarCiclos();
+  atualizarInstalar();
 }
 
 // Mensal "normal": o Fundador também é mensal, mas tem vagas limitadas.
@@ -156,6 +157,7 @@ async function pedirTeste() {
   if (testePedido || estado.modo !== "conta") return;
   testePedido = true;
   const { data, error } = await supabase.rpc("claim_trial");
+  if (!error && data?.status === "started") avisoDaSessao = true;
   if (!error && data?.status === "started") avisar(`Você ganhou 30 dias de Pro grátis, sem cartão. Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
 }
 
@@ -192,8 +194,84 @@ function liberarApp() {
   // "desktop-bloqueado" é o sinal que o motor espera para abrir o convite de criptografia.
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
   atualizarConta();
-  carregarConta();
-  if (estado.modo === "conta" && estado.uid) nuvem.entrar(estado.uid);
+  // Os avisos esperam a conta e a nuvem: sem isso, quem já sincroniza ouviria "dados só aqui".
+  Promise.all([carregarConta(), estado.modo === "conta" && estado.uid ? nuvem.entrar(estado.uid) : null])
+    .then(verificarAvisos).catch(() => {});
+}
+
+// ---------- Avisos no momento certo ----------
+const PRIMEIRO_USO = "arqevon-primeiro-uso";
+const AVISO_LOCAL = "arqevon-aviso-dados-locais";
+const AVISO_FIM_TESTE = "arqevon-aviso-fim-teste";
+const DIA = 86400000;
+let avisoDaSessao = false; // no máximo um aviso por visita
+const lerNumero = k => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+function registrosNoAparelho() {
+  try {
+    const d = window.MyFinanceBridge?.obterDados();
+    return ["lancamentos", "fixos", "parcelamentos", "objetivos"].reduce((s, c) => s + (d?.[c]?.length || 0), 0);
+  } catch { return 0; }
+}
+function irParaLogin() {
+  // os lançamentos continuam neste navegador; ao criar a conta, podem ir para a nuvem
+  localStorage.removeItem(MODO_LOCAL);
+  estado = { ...estado, modo: null, email: null, uid: null, direitos: null };
+  mostrarLogin();
+}
+function verificarAvisos() {
+  if (avisoDaSessao || !estado.modo || !$("webAviso").hidden) return;
+  const agora = Date.now();
+  if (!lerNumero(PRIMEIRO_USO)) localStorage.setItem(PRIMEIRO_USO, String(agora));
+  const { pro, trial, soTeste } = planoAtual();
+
+  if (estado.modo === "conta" && nuvem.pedeSenha()) {
+    avisoDaSessao = true;
+    avisar("Sua conta já tem dados na nuvem. Digite a senha da nuvem para abri-los neste aparelho.", "Abrir meus dados", abrirConta);
+    return;
+  }
+  if (soTeste && diasAte(trial.ends_at) <= 3 && localStorage.getItem(AVISO_FIM_TESTE) !== trial.ends_at) {
+    const dias = diasAte(trial.ends_at);
+    localStorage.setItem(AVISO_FIM_TESTE, trial.ends_at);
+    avisoDaSessao = true;
+    avisar(`Seu Pro grátis termina ${dias <= 0 ? "hoje" : dias === 1 ? "amanhã" : `em ${dias} dias`}. Assine para continuar sincronizando. Seus dados continuam guardados de qualquer forma.`,
+      VENDER_PRO ? "Ver planos" : "", abrirConta);
+    return;
+  }
+  // Dados só neste navegador há uma semana: o argumento mais honesto para a nuvem.
+  const soAqui = estado.modo === "local" || !nuvem.ativa();
+  if (soAqui && agora - lerNumero(PRIMEIRO_USO) >= 7 * DIA && registrosNoAparelho() >= 10 && agora - lerNumero(AVISO_LOCAL) >= 14 * DIA) {
+    localStorage.setItem(AVISO_LOCAL, String(agora));
+    avisoDaSessao = true;
+    if (estado.modo === "local") avisar("Seus lançamentos estão só neste navegador: se ele for limpo ou você trocar de aparelho, eles se perdem. Crie uma conta para guardar uma cópia cifrada na nuvem.", "Criar conta", irParaLogin);
+    else if (pro) avisar("Seus lançamentos estão só neste aparelho. Ative a nuvem para ter uma cópia cifrada e usar em qualquer aparelho.", "Ativar a nuvem", abrirConta);
+    else avisar("Seus lançamentos estão só neste aparelho: se o navegador for limpo, eles se perdem. Com o Pro, ficam guardados na nuvem, cifrados.", VENDER_PRO ? "Conhecer o Pro" : "", abrirConta);
+  }
+}
+
+// ---------- App instalável (PWA) ----------
+let pedidoInstalar = null;
+const instalado = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+const ehIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); pedidoInstalar = e; atualizarInstalar(); });
+addEventListener("appinstalled", () => { pedidoInstalar = null; atualizarInstalar(); });
+function atualizarInstalar() {
+  const sec = $("wcInstalar");
+  if (instalado() || (!pedidoInstalar && !ehIOS)) { sec.hidden = true; return; }
+  sec.hidden = false;
+  $("wcInstalarBotao").hidden = !pedidoInstalar;
+  $("wcInstalarTexto").textContent = pedidoInstalar
+    ? "Instale o Arqevon Finance na tela inicial: abre como um app, em tela cheia, e funciona sem internet."
+    : "No iPhone: toque em Compartilhar (o quadrado com a seta para cima) e depois em \"Adicionar à Tela de Início\".";
+}
+$("wcInstalarBotao").addEventListener("click", async () => {
+  if (!pedidoInstalar) return;
+  pedidoInstalar.prompt();
+  await pedidoInstalar.userChoice.catch(() => {});
+  pedidoInstalar = null;
+  atualizarInstalar();
+});
+if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
 }
 
 function mostrarLogin() {
@@ -262,6 +340,7 @@ $("wcSair").addEventListener("click", async () => {
   localStorage.removeItem(MODO_LOCAL);
   estado = { ...estado, modo: null, email: null, direitos: null };
   testePedido = false;
+  avisoDaSessao = false;
   $("webConta").close();
   mostrarLogin();
 });
