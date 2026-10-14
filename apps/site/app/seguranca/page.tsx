@@ -4,6 +4,9 @@ import LegalLayout, { CONTATO } from "../legal-layout";
 export const metadata: Metadata = {
   title: "Como protegemos seus dados — Arqevon Finance",
   description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem. Veja o que a Arqevon vê, o que não vê e como a proteção funciona.",
+  // sem isto a página herda canonical e og:url da página inicial e some das buscas
+  alternates: { canonical: "/seguranca" },
+  openGraph: { url: "/seguranca", siteName: "Arqevon Finance", title: "Como protegemos seus dados — Arqevon Finance", description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem. Veja o que a Arqevon vê, o que não vê e como a proteção funciona.", images: [{ url: "/og-finance.png", width: 1200, height: 630 }] },
 };
 
 // Cada afirmação daqui foi conferida no código (apps/web/src/cofre.js, apps/web/src/motor.html,

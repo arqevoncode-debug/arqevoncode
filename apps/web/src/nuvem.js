@@ -156,7 +156,11 @@ export function criarNuvem({ supabase, aoMudar }) {
   });
 
   $("wnCopiar").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(criando?.chave || ""); $("wnCopiar").textContent = "Copiada"; } catch { /* sem permissão */ }
+    try {
+      await navigator.clipboard.writeText(criando?.chave || "");
+      $("wnCopiar").textContent = "Copiada";
+      setTimeout(() => { $("wnCopiar").textContent = "Copiar chave"; }, 2500);
+    } catch { /* sem permissão */ }
   });
 
   $("wnGuardar").addEventListener("submit", async e => {
@@ -213,9 +217,13 @@ export function criarNuvem({ supabase, aoMudar }) {
     try {
       let r;
       try { r = await recuperarComChave(status, chave, nova); } catch { throw new Error("Chave de recuperação incorreta."); }
+      // A pergunta sobre dados de outra conta vem antes de trocar a senha no servidor:
+      // cancelar aqui não pode deixar a senha trocada e o aparelho sem as chaves.
+      if (!(await prepararDono())) throw new Error("Cancelado. A senha da nuvem não foi alterada.");
       const { data, error } = await rpc("vault_rekey", { p_expected_version: status.key_version, p_key_params: r.params, p_wrapped_key: r.wrapped, p_recovery_wrapped_key: r.recovery });
       if (error || !data?.ok) throw new Error(data?.message || "Não foi possível salvar a nova senha.");
-      if (!(await prepararDono())) throw new Error("Cancelado.");
+      const novo = await rpc("vault_status");
+      if (!novo.error && novo.data?.ok) status = novo.data;
       await gravarChaves(uid, r.chaves);
       $("wnChaveRec").value = ""; $("wnNovaSenha").value = "";
       mostrar("wnAtiva");
@@ -249,7 +257,20 @@ export function criarNuvem({ supabase, aoMudar }) {
       await atualizar();
     },
     atualizar,
-    async sair() { await parar(true); uid = null; $("wcNuvem").hidden = true; },
+    /** Envia o que falta antes de sair. Devolve se a nuvem estava ligada e se ficou tudo enviado. */
+    async preparaSaida() {
+      if (!sync) return { nuvem: false, enviado: false };
+      try { const r = await sync.sincronizar(); return { nuvem: true, enviado: r.resultado === "ok" }; }
+      catch { return { nuvem: true, enviado: false }; }
+    },
+    async sair() {
+      const saindo = uid;
+      await parar(true);
+      // o estado de sincronização desta conta sai do navegador: ao voltar, a mescla recomeça do zero
+      // e nada daqui é tomado como "apagado"
+      if (saindo) localStorage.removeItem(chaveEstado(saindo));
+      uid = null; $("wcNuvem").hidden = true;
+    },
     texto: () => texto,
     ativa: () => !!sync,
     pedeSenha: () => pedeSenha && !sync,

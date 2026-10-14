@@ -2719,6 +2719,8 @@ async function tentarDesbloquear() {
   $("#tbErro").hidden = true;
   try {
     if (blobPendente) {
+      // outra aba pode ter gravado depois que esta abriu: usa a versão mais nova
+      try { const atual = JSON.parse(localStorage.getItem(CHAVE)); if (atual && atual.enc === true && atual.ct) blobPendente = atual; } catch (e) {}
       const chave = await derivarChave(senha, blobPendente.salt || seg.salt);
       const json = await decifrar(chave, blobPendente);
       dados = normalizar(JSON.parse(json));
@@ -3061,6 +3063,25 @@ function renderTudo() {
   renderObjetivos();
 }
 
+// Outra aba gravou: esta acompanha. Sem isso, a próxima gravação desta aba apagaria o que a
+// outra lançou (e, com a nuvem ligada, reenviaria registros já apagados).
+addEventListener("storage", async e => {
+  if (e.key !== CHAVE || !e.newValue) return;
+  try {
+    let novo = JSON.parse(e.newValue);
+    if (novo && novo.enc === true) {
+      if (!chaveSessao) { blobPendente = novo; return; } // trancada: lê ao desbloquear
+      novo = JSON.parse(await decifrar(chaveSessao, novo));
+    }
+    if (!novo || !Array.isArray(novo.lancamentos)) return;
+    const normal = normalizar(novo);
+    if (exemplo) { exemplo.real = normal; return; }
+    cancelarEdicaoAberta();
+    dados = normal;
+    renderTudo();
+  } catch (err) { /* valor que não abre: ignora */ }
+});
+
 // Interface estável usada pelo empacotador desktop para backups portáteis.
 window.MyFinanceBridge = {
   versaoDados: 1,
@@ -3079,6 +3100,18 @@ window.MyFinanceBridge = {
   // A nuvem espera: com um item no formulário de edição, aplicar mudanças agora embaralharia o
   // formulário; no exemplo, os dados na tela nem são os reais.
   editando: () => !!edicao || !!edicaoObj,
+  // Apaga os lançamentos deste navegador, inclusive as cópias de recuperação (troca de conta).
+  apagarTudo: () => {
+    sairExemplo();
+    cancelarEdicaoAberta();
+    dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] };
+    salvar();
+    for (const k of ["-pre-import", "-pre-reset"]) { try { localStorage.removeItem(CHAVE + k); } catch (e) {} }
+    renderTudo();
+  },
+  // Janela de escolha do app para a camada web (sair da conta, dados de outra conta).
+  escolher: (titulo, mensagem, principal, alternativa, perigo = false) => escolherNoApp(titulo, mensagem, principal, alternativa, perigo),
+  temDados: () => { const d = exemplo ? exemplo.real : dados; return ["lancamentos", "fixos", "parcelamentos", "objetivos", "orcamentos"].some(c => d[c].length > 0); },
   emExemplo: () => !!exemplo,
 };
 // Novo nome público; o alias anterior continua disponível para instalações existentes.

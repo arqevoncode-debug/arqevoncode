@@ -63,6 +63,11 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   const termos = await readFile(new URL("app/termos/page.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
   const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  // páginas legais com canonical próprio (senão herdam o da página inicial e somem das buscas)
+  for (const slug of ["seguranca", "termos", "privacidade"]) {
+    const pagina = await readFile(new URL(`app/${slug}/page.tsx`, root), "utf8");
+    assert.match(pagina, new RegExp(`canonical: "/${slug}"`), `/${slug} sem canonical próprio`);
+  }
   // calculadoras: cada uma com página, título próprio e no sitemap
   const sitemap = await readFile(new URL("app/sitemap.ts", root), "utf8");
   assert.match(sitemap, /CALCULADORAS/);
@@ -98,6 +103,11 @@ test("oferece software sob encomenda com formulário de orçamento", async () =>
   const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
   const seguranca = await readFile(new URL("app/seguranca/page.tsx", root), "utf8");
+  // páginas legais com canonical próprio (senão herdam o da página inicial e somem das buscas)
+  for (const slug of ["seguranca", "termos", "privacidade"]) {
+    const pagina = await readFile(new URL(`app/${slug}/page.tsx`, root), "utf8");
+    assert.match(pagina, new RegExp(`canonical: "/${slug}"`), `/${slug} sem canonical próprio`);
+  }
   // calculadoras: cada uma com página, título próprio e no sitemap
   const sitemap = await readFile(new URL("app/sitemap.ts", root), "utf8");
   assert.match(sitemap, /CALCULADORAS/);

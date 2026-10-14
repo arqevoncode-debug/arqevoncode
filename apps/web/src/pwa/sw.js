@@ -2,7 +2,7 @@
 // sem internet. A página vem sempre da rede primeiro: um deploy novo chega na próxima abertura,
 // e a cópia guardada só é usada offline. Nada de dados do usuário passa por aqui: os lançamentos
 // ficam no localStorage, e as chamadas ao Supabase não são interceptadas.
-const CACHE = "arqevon-finance-v1";
+const CACHE = "arqevon-finance-v2";
 const ARQUIVOS = ["/", "/manifest.webmanifest", "/icone-192.png", "/icone-512.png"];
 
 self.addEventListener("install", e => {
@@ -20,7 +20,9 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || url.origin !== self.location.origin) return;
   if (e.request.mode === "navigate") {
     e.respondWith(fetch(e.request)
-      .then(r => { const copia = r.clone(); caches.open(CACHE).then(c => c.put("/", copia)); return r; })
+      // só guarda páginas que deram certo: um 403 de proteção da Vercel ou um erro 5xx viraria a
+      // página offline do app
+      .then(r => { if (r.ok) { const copia = r.clone(); caches.open(CACHE).then(c => c.put("/", copia)); } return r; })
       .catch(() => caches.match("/")));
     return;
   }

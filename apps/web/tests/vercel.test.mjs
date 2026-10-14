@@ -23,3 +23,9 @@ test("todas as páginas com CSP rígido e o service worker sem cache", () => {
   const sw = cfg.headers.find(r => r.source === "/sw.js").headers;
   assert.equal(sw.find(h => h.key === "Cache-Control").value, "no-cache");
 });
+
+test("service worker só guarda páginas que deram certo", () => {
+  const sw = readFileSync(new URL("../src/pwa/sw.js", import.meta.url), "utf8");
+  // um 403 de proteção ou um erro 5xx não pode virar a página offline do app
+  assert.match(sw, /if \(r\.ok\)[^\n]*c\.put\("\/"/);
+});

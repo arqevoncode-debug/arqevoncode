@@ -274,3 +274,45 @@ test("lançamento feito durante a rodada não é apagado pela mescla", async () 
   await a.sync.sincronizar();
   assert.ok(a.dados.lancamentos.some(l => l.id === "novo"));
 });
+
+test("aportes no mesmo objetivo em dois aparelhos: os dois ficam", async () => {
+  const { chaves } = await criarCofre("s", gerarChaveRecuperacao(), ITER);
+  const srv = servidor();
+  const obj = { id: "o1", nome: "Reserva", meta: 0, aporteMensal: 0, aportes: [] };
+  const a = aparelho(srv, chaves, { objetivos: [obj] });
+  await a.sync.sincronizar();
+  const b = aparelho(srv, chaves);
+  await b.sync.sincronizar();
+  // A guarda 100 e sincroniza; B, offline, guarda 200
+  a.dados = { ...a.dados, objetivos: [{ ...obj, aportes: [{ id: "x1", valor: 100, data: "2026-10-01" }] }] };
+  await a.sync.sincronizar();
+  b.dados = { ...b.dados, objetivos: [{ ...obj, aportes: [{ id: "x2", valor: 200, data: "2026-10-02" }] }] };
+  await b.sync.sincronizar();
+  await a.sync.sincronizar();
+  const soma = d => d.objetivos[0].aportes.map(x => x.valor).sort((p, q) => p - q);
+  assert.deepEqual(soma(b.dados), [100, 200]);
+  assert.deepEqual(soma(a.dados), [100, 200]);
+});
+
+test("item ilegível na nuvem é pulado sem travar o resto", async () => {
+  const { chaves } = await criarCofre("s", gerarChaveRecuperacao(), ITER);
+  const srv = servidor();
+  const a = aparelho(srv, chaves, { lancamentos: [lanc("1", "Bom")] });
+  await a.sync.sincronizar();
+  srv.itens.set("lixo-1234", { id: "lixo-1234", rev: 999, deleted: false, ct: "isto-nao-e-cifrado" });
+  const b = aparelho(srv, chaves);
+  const r = await b.sync.sincronizar();
+  assert.equal(r.resultado, "ok");
+  assert.deepEqual(b.dados.lancamentos.map(l => l.descricao), ["Bom"]);
+});
+
+test("apagar 30% ou mais dos registros pede confirmação", async () => {
+  const { chaves } = await criarCofre("s", gerarChaveRecuperacao(), ITER);
+  const srv = servidor();
+  const a = aparelho(srv, chaves, { lancamentos: Array.from({ length: 20 }, (_, i) => lanc("l" + i, "L" + i)) });
+  await a.sync.sincronizar();
+  a.dados = { ...a.dados, lancamentos: a.dados.lancamentos.slice(6) }; // 6 de 20
+  await a.sync.sincronizar();
+  assert.equal(a.confirmacoes.length, 1);
+  assert.equal(a.dados.lancamentos.length, 20, "recusado: os registros voltam da nuvem");
+});

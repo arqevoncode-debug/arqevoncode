@@ -4,6 +4,9 @@ import LegalLayout, { CONTATO } from "../legal-layout";
 export const metadata: Metadata = {
   title: "Política de Privacidade — Arqevon Finance",
   description: "Quais dados o Arqevon Finance trata, por quê, com quem compartilha e como exercer seus direitos pela LGPD.",
+  // sem isto a página herda canonical e og:url da página inicial e some das buscas
+  alternates: { canonical: "/privacidade" },
+  openGraph: { url: "/privacidade", siteName: "Arqevon Finance", title: "Política de Privacidade — Arqevon Finance", description: "Quais dados o Arqevon Finance trata, por quê, com quem compartilha e como exercer seus direitos pela LGPD.", images: [{ url: "/og-finance.png", width: 1200, height: 630 }] },
 };
 
 // Ao mudar o que o sistema coleta, guarda ou compartilha (novo fornecedor, novo campo, outra
