@@ -1,0 +1,7 @@
+Extrato Conta Corrente
+Conta ;123456
+
+Data Lançamento;Histórico;Descrição;Valor;Saldo
+03/10/2026;Pix enviado;Fulano de Tal;-1.250,00;3.000,00
+04/10/2026;Compra no débito;POSTO IPIRANGA;-200,50;2.799,50
+05/10/2026;Pix recebido;Cliente;1.000,00;3.799,50
