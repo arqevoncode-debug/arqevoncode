@@ -76,7 +76,7 @@ nav.abas button svg { width: 19px; height: 19px; flex: none; stroke: currentColo
 /* ---------- Celular: barra de abas embaixo ---------- */
 @media (max-width: 960px) {
   body { padding-bottom: 86px; }
-  .web-shell nav.abas { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border: 0; border-top: 1px solid var(--border); box-shadow: 0 -8px 24px rgba(0,0,0,.12); }
+  .web-shell nav.abas { position: fixed; z-index: 50; left: 0; right: 0; bottom: 0; margin: 0; border-radius: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 8px 8px calc(10px + env(safe-area-inset-bottom)); background: var(--surface); border: 0; border-top: 1px solid var(--border); box-shadow: 0 -8px 24px rgba(0,0,0,.12); }
   .web-shell nav.abas button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px; min-height: 52px; font-size: 11.5px; border-radius: 12px; }
   .web-shell nav.abas button.ativa { background: none; color: var(--accent); box-shadow: none; }
   .web-conta-topo { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--ink-2); cursor: pointer; box-shadow: var(--shadow); }

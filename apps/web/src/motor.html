@@ -444,6 +444,43 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
 .sec-toggle select { width: auto; margin-left: 24px; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
+/* ---------- Relatórios ---------- */
+.rel-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; }
+.rel-topo .hint { margin: 4px 0 0; }
+.rel-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rel-acoes select { font: inherit; font-size: 14px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
+.rel-barra { display: block; height: 8px; min-width: 2px; border-radius: 4px; background: var(--bad); opacity: .75; }
+.rel-matriz td.acima { color: var(--bad); font-weight: 700; }
+.rel-matriz th:first-child, .rel-matriz td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.rel-variacao { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rel-variacao li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: var(--page); font-size: 14px; }
+.rel-variacao .subiu { color: var(--bad); font-weight: 600; }
+.rel-variacao .caiu { color: var(--good); font-weight: 600; }
+@media (max-width: 560px) {
+  .rel-variacao li { flex-direction: column; }
+  /* mês a mês vira cartão: mês e saldo em cima, receitas e despesas embaixo */
+  .rel-meses thead { display: none; }
+  .rel-meses tbody tr { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "mes saldo" "rec desp"; gap: 4px 12px; padding: 10px 2px; border-bottom: 1px solid var(--grid); }
+  .rel-meses tbody tr:last-child { border-bottom: 0; }
+  .rel-meses td { padding: 0; border: 0; }
+  .rel-meses td:nth-child(1) { grid-area: mes; font-weight: 600; }
+  .rel-meses td:nth-child(2) { grid-area: rec; text-align: left; font-size: 13px; }
+  .rel-meses td:nth-child(3) { grid-area: desp; font-size: 13px; }
+  .rel-meses td:nth-child(4) { grid-area: saldo; font-weight: 700; }
+  .rel-meses td:nth-child(5) { display: none; }
+  .rel-meses td:nth-child(2)::before { content: "Receitas "; color: var(--muted); font-weight: 400; }
+  .rel-meses td:nth-child(3)::before { content: "Despesas "; color: var(--muted); }
+}
+@media print {
+  body * { visibility: hidden; }
+  #aba-relatorios, #aba-relatorios * { visibility: visible; }
+  #aba-relatorios { position: absolute; inset: 0 auto auto 0; width: 100%; color: #111; }
+  #aba-relatorios .card { background: #fff; border: 1px solid #ccc; box-shadow: none; break-inside: avoid; }
+  #aba-relatorios .rel-acoes { display: none; }
+  #aba-relatorios .tabela-wrap { overflow: visible; }
+  #aba-relatorios td, #aba-relatorios th { color: #111; }
+}
+
 /* ---------- Importar extrato ---------- */
 .card-importar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
 .card-importar > div { flex: 1 1 320px; }
@@ -577,6 +614,7 @@ dialog#modalGuia { max-width: 560px; }
   <nav class="abas" id="abas">
     <button data-aba="painel" class="ativa">Visão geral</button>
     <button data-aba="lancamentos">Lançamentos</button>
+    <button data-aba="relatorios">Relatórios</button>
     <button data-aba="objetivos">Objetivos</button>
   </nav>
 
@@ -660,6 +698,27 @@ dialog#modalGuia { max-width: 560px; }
   </section>
 
   <!-- ================= OBJETIVOS (reserva e poupança) ================= -->
+  <!-- ================= RELATÓRIOS (período, mês a mês, categorias, exportar) ================= -->
+  <section id="aba-relatorios" hidden>
+    <div class="card rel-topo">
+      <div>
+        <h2>Relatórios</h2>
+        <p class="hint" id="relPeriodoTexto"></p>
+      </div>
+      <div class="rel-acoes">
+        <select id="relPeriodo" aria-label="Período do relatório">
+          <option value="6">Últimos 6 meses</option>
+          <option value="12">Últimos 12 meses</option>
+          <option value="ano">Este ano</option>
+          <option value="ano-1">Ano passado</option>
+        </select>
+        <button class="botao mini cancelar" type="button" id="relCsv">Exportar CSV</button>
+        <button class="botao mini cancelar" type="button" id="relImprimir">Imprimir ou salvar PDF</button>
+      </div>
+    </div>
+    <div id="relConteudo"></div>
+  </section>
+
   <section id="aba-objetivos" hidden>
     <div class="card" style="margin-bottom:14px">
       <h2 id="objTitulo">Novo objetivo</h2>
@@ -1462,7 +1521,7 @@ $("#cardLista").addEventListener("click", async e => {
 window.ativarAba = nome => {
   document.querySelectorAll("nav.abas button").forEach(b =>
     b.classList.toggle("ativa", b.dataset.aba === nome));
-  ["painel", "lancamentos", "objetivos"].forEach(a => $("#aba-" + a).hidden = a !== nome);
+  ["painel", "lancamentos", "relatorios", "objetivos"].forEach(a => $("#aba-" + a).hidden = a !== nome);
 };
 $("#abas").addEventListener("click", e => {
   const b = e.target.closest("button[data-aba]");
@@ -1842,6 +1901,150 @@ function renderObjetivos() {
     <div class="grid obj-grid">${cards}</div>`;
   alvo.querySelectorAll("input[data-aporte]").forEach(mascaraMoeda);
 }
+
+/* ================= Relatórios ================= */
+// Primeiro mês com algum registro datado. Contas fixas antigas, sem início, não contam: senão o
+// relatório começaria no início dos tempos.
+function primeiroMesComDados() {
+  const meses = [
+    ...dados.lancamentos.map(l => l.data.slice(0, 7)),
+    ...dados.parcelamentos.map(p => p.inicio),
+    ...dados.fixos.map(f => f.inicio).filter(Boolean),
+  ];
+  return meses.length ? meses.sort()[0] : null;
+}
+/** Meses do período (AAAA-MM), do mais antigo ao mais novo, sem meses antes do primeiro registro. */
+function mesesDoRelatorio(periodo) {
+  const fim = periodo === "ano-1" ? { ano: mesAtual.ano - 1, mes: 11 } : mesAtual;
+  const n = periodo === "ano" ? mesAtual.mes + 1 : periodo === "ano-1" ? 12 : Number(periodo) || 6;
+  const primeiro = primeiroMesComDados();
+  if (!primeiro) return []; // sem nenhum registro datado, não há o que mostrar
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const m = somaMes(fim.ano, fim.mes, -i);
+    const mk = chaveMes(m.ano, m.mes);
+    if (mk >= primeiro) out.push(mk);
+  }
+  return out;
+}
+const rotuloMk = mk => rotuloCurto(deChave(mk));
+
+function renderRelatorios() {
+  const alvo = $("#relConteudo");
+  const meses = mesesDoRelatorio($("#relPeriodo").value);
+  $("#relPeriodoTexto").textContent = meses.length
+    ? `De ${rotuloMes(deChave(meses[0]))} a ${rotuloMes(deChave(meses.at(-1)))}`
+    : "Sem lançamentos neste período";
+  $("#relCsv").disabled = $("#relImprimir").disabled = !meses.length;
+  if (!meses.length) {
+    alvo.innerHTML = `<div class="card"><div class="vazio">Nada para mostrar neste período. Os relatórios se montam a partir dos seus lançamentos.</div></div>`;
+    return;
+  }
+  const resumos = meses.map(mk => ({ mk, ...resumoDoMes(mk) }));
+  const soma = k => resumos.reduce((s, r) => s + r[k], 0);
+  const receitas = soma("receitas"), despesas = soma("despesas");
+  const maxDesp = Math.max(...resumos.map(r => r.despesas), 1);
+  const maior = resumos.reduce((a, b) => (b.despesas > a.despesas ? b : a));
+
+  // categorias × meses
+  const porMes = Object.fromEntries(meses.map(mk => [mk, Object.fromEntries(gastosPorCategoria(mk).map(x => [x.cat.id, x.valor]))]));
+  const cats = CATEGORIAS.map(c => {
+    const valores = meses.map(mk => porMes[mk][c.id] || 0);
+    const total = valores.reduce((a, b) => a + b, 0);
+    return { cat: c, valores, total, media: total / meses.length };
+  }).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+
+  // mês de referência × média dos 3 meses anteriores com dados (dentro do histórico)
+  const ref = chaveMes(mesAtual.ano, mesAtual.mes);
+  const primeiro = primeiroMesComDados();
+  const anteriores = [1, 2, 3].map(i => { const d = deChave(ref), m = somaMes(d.ano, d.mes, -i); return chaveMes(m.ano, m.mes); })
+    .filter(mk => primeiro && mk >= primeiro);
+  let variacao = "";
+  if (anteriores.length && $("#relPeriodo").value !== "ano-1") {
+    const atual = Object.fromEntries(gastosPorCategoria(ref).map(x => [x.cat.id, x.valor]));
+    const media = {};
+    for (const mk of anteriores) for (const x of gastosPorCategoria(mk)) media[x.cat.id] = (media[x.cat.id] || 0) + x.valor / anteriores.length;
+    const linhas = CATEGORIAS.map(c => ({ c, agora: atual[c.id] || 0, antes: media[c.id] || 0 }))
+      .map(x => ({ ...x, dif: x.agora - x.antes }))
+      .filter(x => Math.abs(x.dif) >= 1)
+      .sort((a, b) => Math.abs(b.dif) - Math.abs(a.dif)).slice(0, 6);
+    variacao = `<div class="card">
+      <h2>${esc(rotuloMes(mesAtual))} × média dos ${anteriores.length === 1 ? "mês anterior" : `${anteriores.length} meses anteriores`}</h2>
+      <p class="hint">Onde você gastou mais ou menos do que costuma.</p>
+      ${linhas.length ? `<ul class="rel-variacao">${linhas.map(x => `<li><span>${chipCategoria(x.c.id)} ${dinheiro(x.agora)}</span>
+        <span class="${x.dif > 0 ? "subiu" : "caiu"}">${x.dif > 0 ? "+" : "−"} ${dinheiro(Math.abs(x.dif))}${x.antes > 0 ? ` (${x.dif > 0 ? "+" : "−"}${Math.round(Math.abs(x.dif) / x.antes * 100)}%)` : ""}</span></li>`).join("")}</ul>`
+        : `<div class="vazio">Gastos iguais à média: nada mudou de forma relevante.</div>`}
+    </div>`;
+  }
+
+  alvo.innerHTML = `
+    <div class="grid tiles">
+      <div class="card tile"><div class="rotulo">Receitas no período</div><div class="valor pos">${dinheiro(receitas)}</div><div class="extra">${meses.length} ${meses.length === 1 ? "mês" : "meses"}</div></div>
+      <div class="card tile"><div class="rotulo">Despesas no período</div><div class="valor neg">${dinheiro(despesas)}</div><div class="extra">maior mês: ${rotuloMk(maior.mk)} (${dinheiro(maior.despesas)})</div></div>
+      <div class="card tile"><div class="rotulo">Saldo do período</div><div class="valor ${receitas - despesas >= 0 ? "pos" : "neg"}">${dinheiro(receitas - despesas)}</div><div class="extra">${receitas - despesas >= 0 ? "sobrou" : "faltou"} no total</div></div>
+      <div class="card tile"><div class="rotulo">Média de despesas</div><div class="valor">${dinheiro(despesas / meses.length)}</div><div class="extra">por mês</div></div>
+    </div>
+    <div class="card">
+      <h2>Mês a mês</h2>
+      <div class="tabela-wrap"><table class="rel-meses">
+        <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th style="width:30%"></th></tr></thead>
+        <tbody>${resumos.map(r => `<tr>
+          <td>${rotuloMk(r.mk)}</td>
+          <td class="num pos">${dinheiro(r.receitas)}</td>
+          <td class="num">${dinheiro(r.despesas)}</td>
+          <td class="num ${r.saldo >= 0 ? "pos" : "neg"}">${dinheiro(r.saldo)}</td>
+          <td><span class="rel-barra" style="width:${(r.despesas / maxDesp * 100).toFixed(1)}%"></span></td>
+        </tr>`).join("")}</tbody>
+      </table></div>
+    </div>
+    ${variacao}
+    <div class="card">
+      <h2>Despesas por categoria</h2>
+      <p class="hint">Em vermelho, meses pelo menos 25% acima da média da categoria. Inclui avulsos, contas fixas e parcelas.</p>
+      ${cats.length ? `<div class="tabela-wrap"><table class="rel-matriz">
+        <thead><tr><th>Categoria</th>${meses.map(mk => `<th class="num">${rotuloMk(mk)}</th>`).join("")}<th class="num">Total</th><th class="num">Média</th></tr></thead>
+        <tbody>${cats.map(x => `<tr><td>${chipCategoria(x.cat.id)}</td>${x.valores.map(v =>
+          `<td class="num${v > x.media * 1.25 && x.valores.filter(Boolean).length > 1 ? " acima" : ""}">${v ? dinheiro(v) : "—"}</td>`).join("")}
+          <td class="num" style="font-weight:700">${dinheiro(x.total)}</td><td class="num">${dinheiro(x.media)}</td></tr>`).join("")}</tbody>
+      </table></div>` : `<div class="vazio">Nenhuma despesa no período.</div>`}
+    </div>`;
+}
+$("#relPeriodo").addEventListener("change", renderRelatorios);
+$("#relImprimir").onclick = () => { ativarAba("relatorios"); window.print(); };
+
+/** CSV com tudo o que compõe o período, mês a mês: avulsos, contas fixas e parcelas. */
+function csvRelatorio(meses) {
+  const cel = v => /[;"\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const num = v => v.toFixed(2).replace(".", ",");
+  const linhas = [["Mês", "Data", "Tipo", "Descrição", "Categoria", "Origem", "Valor"]];
+  for (const mk of meses) {
+    const mes = rotuloMes(deChave(mk));
+    for (const l of lancamentosDoMes(mk).slice().sort((a, b) => a.data.localeCompare(b.data))) {
+      linhas.push([mes, fmtDataCurta(l.data) + "/" + l.data.slice(0, 4), l.tipo === "receita" ? "Entrada" : "Despesa", l.descricao,
+        l.tipo === "receita" ? "" : catPorId(l.categoria).nome, "Avulso", num(l.tipo === "receita" ? l.valor : -l.valor)]);
+    }
+    for (const f of fixosDoMes(mk)) {
+      linhas.push([mes, f.dia ? montarData(mk, f.dia).split("-").reverse().join("/") : "", f.tipo === "receita" ? "Entrada" : "Despesa", f.descricao,
+        f.tipo === "receita" ? "" : catPorId(f.categoria).nome, "Conta fixa", num(f.tipo === "receita" ? f.valor : -f.valor)]);
+    }
+    for (const { p, indice } of parcelasDoMes(mk)) {
+      linhas.push([mes, "", "Despesa", p.descricao, catPorId(p.categoria).nome, `Parcela ${indice}/${p.numParcelas}`, num(-p.valorTotal / p.numParcelas)]);
+    }
+  }
+  // BOM para o Excel reconhecer os acentos; ponto e vírgula e vírgula decimal, como no Brasil
+  return "﻿" + linhas.map(l => l.map(cel).join(";")).join("\r\n");
+}
+$("#relCsv").onclick = () => {
+  sairExemplo();
+  const meses = mesesDoRelatorio($("#relPeriodo").value);
+  if (!meses.length) return;
+  const blob = new Blob([csvRelatorio(meses)], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `arqevon-finance-relatorio-${meses[0]}_${meses.at(-1)}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 
 /* ================= Leitura de extratos (OFX e CSV) ================= */
 // Tudo roda aqui no aparelho: o arquivo do banco nunca é enviado.
@@ -2627,6 +2830,7 @@ function renderTudo() {
   atualizarMesLabel();
   renderPainel();
   renderLista();
+  renderRelatorios();
   renderObjetivos();
 }
 
