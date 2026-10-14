@@ -42,18 +42,20 @@ test("excluir objetivos com aspas e apóstrofo no nome", async () => {
   const nomes = ["Viagem d'água", 'Carro "novo"', "Casa <própria>"];
   const p = await amb.abrir({ dados: { ...VAZIO(), objetivos: nomes.map((nome, i) => ({ id: "o" + i, nome, meta: 0, aporteMensal: 0, aportes: [] })) } });
   await aba(p, "objetivos");
-  // cancelar a confirmação não exclui
-  p.respostas.push(false);
+  // cancelar a confirmação (janela do app) não exclui
   await p.click(".obj-card button.excluir");
+  await p.waitForFunction(() => document.querySelector("#modalConfirmacao").open);
+  await p.click("#confirmacaoCancelar");
   assert.equal((await lerDados(p))?.objetivos?.length ?? 3, 3);
   for (const nome of nomes) {
-    p.respostas.push(true);
     await p.evaluate(n => [...document.querySelectorAll(".obj-card")].find(c => c.querySelector("h2").textContent === n)
       .querySelector("button.excluir").click(), nome);
+    await p.waitForFunction(() => document.querySelector("#modalConfirmacao").open);
+    if (nome === "Viagem d'água") assert.match(await p.$eval("#confirmacaoMensagem", e => e.textContent), /"Viagem d'água"/, "a confirmação mostra o nome certo");
+    await p.click("#confirmacaoAceitar");
     await espera(50);
     assert.ok(!(await lerDados(p)).objetivos.some(o => o.nome === nome), `excluiu ${nome}`);
   }
-  assert.ok(p.vistos.some(v => v.includes(`"Viagem d'água"`)), "a confirmação mostra o nome certo");
   assert.deepEqual(p.erros, []);
   await p.fechar();
 });

@@ -120,8 +120,9 @@ test("id malicioso num backup não executa código nos objetivos", async () => {
   await limparEDigitar(p, "input[data-aporte]", "2000");
   await p.click(".obj-card .botao.entrada");
   await p.click(".obj-card details summary");
-  p.respostas.push(true);
   await p.evaluate(() => [...document.querySelectorAll(".hist-linha")].find(l => l.innerText.includes("10,00")).querySelector("button.excluir").click());
+  await p.waitForFunction(() => document.querySelector("#modalConfirmacao").open);
+  await p.click("#confirmacaoAceitar");
   await espera(100);
   assert.equal(await p.evaluate(() => window.__xss), undefined);
   assert.deepEqual((await lerDados(p)).objetivos[0].aportes.map(a => a.valor), [20], "guardou 20 e excluiu o movimento antigo");
@@ -265,8 +266,15 @@ test("rodar a configuração guiada de novo atualiza em vez de duplicar", async 
   await p.type("#gRenda", "550000"); await p.click("#guiaAvancar");
   await p.type('[data-fixo="4"]', "10000"); await p.click("#guiaAvancar"); await p.click("#guiaAvancar");
   const d = await lerDados(p);
-  assert.deepEqual(d.fixos.map(f => [f.descricao, f.valor]), [["Salário", 5500], ["Internet", 100]]);
-  assert.equal(await p.evaluate(() => resumoDoMes("2026-10").receitas), 5500);
+  assert.deepEqual(d.fixos.map(f => [f.descricao, f.valor, f.inicio, f.fim ?? null]),
+    [["Salário", 5000, "2026-01", "2026-09"], ["Salário", 5500, "2026-10", null], ["Internet", 100, "2026-10", null]],
+    "o salário novo vale a partir deste mês; o histórico continua");
+  assert.equal(await p.evaluate(() => resumoDoMes("2026-10").receitas), 5500, "sem duplicar em outubro");
+  assert.equal(await p.evaluate(() => resumoDoMes("2026-03").receitas), 5000, "março continua com 5.000");
+  // rodar de novo com os mesmos valores não muda nada
+  await p.evaluate(() => abrirGuia());
+  await p.type("#gRenda", "550000"); await p.click("#guiaAvancar"); await p.click("#guiaAvancar"); await p.click("#guiaAvancar");
+  assert.equal((await lerDados(p)).fixos.length, 3);
   await p.fechar();
 });
 

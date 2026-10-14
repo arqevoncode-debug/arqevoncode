@@ -87,6 +87,10 @@ export class Sincronizador {
 
     // 2. Mescla na cópia local. Mudança local pendente vence.
     const atual = this.motor.ler();
+    const lido = JSON.stringify(atual);
+    // A pessoa pode ter lançado algo enquanto a rodada decifrava e calculava: gravar a mescla por
+    // cima apagaria o que acabou de entrar. Nesse caso a rodada fica para a próxima.
+    const mudouAqui = () => JSON.stringify(this.motor.ler()) !== lido;
     const local = await this.mapaLocal(atual);
     const novo = copiar(atual);
     let mudou = false;
@@ -117,7 +121,7 @@ export class Sincronizador {
 
     if (mudou) {
       // Aplicar agora apagaria o formulário em edição; tenta na próxima rodada sem avançar o rev.
-      if (this.motor.editando()) return { resultado: "adiado" };
+      if (this.motor.editando() || mudouAqui()) return { resultado: "adiado" };
       this.motor.gravar(novo);
     }
     st.lastRev = ate;
@@ -135,6 +139,7 @@ export class Sincronizador {
     if (exclusoes.length > 5 && exclusoes.length > conhecidos / 2) {
       const ok = await this.confirmar(`Isto vai apagar ${exclusoes.length} registros também na nuvem, em todos os seus aparelhos. Continuar?`);
       if (!ok) {
+        if (mudouAqui()) return { resultado: "adiado" };
         await this.restaurar(exclusoes, novo, st);
         exclusoes = [];
       }
