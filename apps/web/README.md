@@ -1,8 +1,8 @@
 # Arqevon Finance — Web
 
-O Finance no navegador, em `app.arqevoncode.com.br`. O motor financeiro é o mesmo do desktop:
-`scripts/build.mjs` lê `../finance-desktop/meu-financeiro.html` e acrescenta o login (Supabase Auth,
-código de 6 dígitos por e-mail), o layout web e a janela "Sua conta".
+O Finance no navegador, em `app.arqevoncode.com.br`. O motor financeiro fica em `src/motor.html`
+(HTML+JS único, herdado do app desktop): `scripts/build.mjs` acrescenta o login (Supabase Auth,
+código de 6 dígitos por e-mail), o layout web, a janela "Sua conta" e o PWA.
 
 ```bash
 npm ci

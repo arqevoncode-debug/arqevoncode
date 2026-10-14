@@ -125,30 +125,6 @@ main { overflow: hidden; }
 .product-description { margin: 0; color: var(--ink-2); line-height: 1.65; }
 .product-copy ul { display: grid; gap: 12px; padding: 0; margin: 28px 0; list-style: none; }
 .product-copy li { color: var(--ink-2); font-size: 12px; }.product-copy li span { color: var(--mint); margin-right: 10px; }
-.download-actions { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
-.button.download { justify-content: flex-start; min-width: 250px; }
-.button.download > span:not(.platform-mark) { display: grid; gap: 2px; text-align: left; color: #fff; }
-.button.download small { color: rgba(255,255,255,.66); font-size: 11px; letter-spacing: .1em; }
-.button.download b { margin-left: auto; color: var(--mint); }
-.platform-mark { width: 22px; height: 22px; color: #fff!important; font-size: 15px; }
-.windows-mark { font-size: 20px; line-height: 1; }
-/* Plataforma ainda sem instalador assinado: mantém o mesmo formato dos demais botões,
-   mas sem aparência clicável nem reação ao ponteiro. */
-.button.download.indisponivel {
-  border: 1px dashed rgba(255, 255, 255, .22);
-  background: rgba(255, 255, 255, .04);
-  box-shadow: none;
-  cursor: not-allowed;
-}
-.button.download.indisponivel > span:not(.platform-mark) { color: rgba(255, 255, 255, .58); }
-.button.download.indisponivel .platform-mark { color: rgba(255, 255, 255, .5)!important; }
-.button.download.indisponivel small { color: rgba(255, 255, 255, .38); }
-.button.download.indisponivel b { color: rgba(255, 255, 255, .42); font-size: 12px; }
-.button.download.indisponivel:hover { transform: none; }
-
-.download-actions .version { flex-basis: 100%; }
-.version { color: var(--muted); font: 620 12px/1.4 var(--font-geist-mono), monospace; }
-
 .product-preview { position: relative; min-height: 690px; display: grid; place-items: center; padding: 42px; overflow: hidden; border-left: 1px solid var(--line); background: radial-gradient(circle at 58% 45%, rgba(82, 109, 255, .16), transparent 40%), linear-gradient(150deg, #091626, #060f1b); }
 .product-preview::before { content: ""; position: absolute; inset: 0; opacity: .26; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 46px 46px; mask-image: linear-gradient(to bottom, transparent, black 18%, black 80%, transparent); }
 .preview-window { position: relative; z-index: 2; width: min(100%, 610px); padding: 18px; transform: perspective(1100px) rotateY(-5deg) rotateX(2deg); border: 1px solid var(--line-strong); border-radius: 20px; background: #0d1a2b; box-shadow: 0 36px 80px rgba(0,0,0,.45); }
@@ -192,39 +168,6 @@ main { overflow: hidden; }
 .final-cta > div:last-child p { color: var(--muted); line-height: 1.7; }.final-cta .button { margin-top: 17px; }
 footer { width: min(var(--max), calc(100% - 40px)); min-height: 150px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 footer p { margin: 0; } footer > div { display: flex; gap: 18px; } footer a:hover { color: var(--ink); } footer small { color: rgba(127,142,164,.6); }
-
-/* Pedido de licença antes do download. O aplicativo não abre sem chave, então é
-   melhor coletar o e-mail aqui do que entregar um instalador que fica travado. */
-.modal-fundo {
-  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px;
-  background: rgba(3, 8, 15, .78); backdrop-filter: blur(6px);
-}
-.modal-caixa {
-  width: min(470px, 100%); max-height: calc(100vh - 40px); overflow-y: auto;
-  padding: 30px; border-radius: 20px;
-  background: linear-gradient(158deg, #0d1c2e, #08131f);
-  border: 1px solid var(--line-strong);
-  box-shadow: 0 34px 90px rgba(0, 0, 0, .6);
-}
-.modal-caixa h2 { font-size: 24px; letter-spacing: -.02em; margin-bottom: 10px; }
-.modal-caixa > p { color: var(--muted); line-height: 1.65; font-size: 13.5px; }
-.modal-caixa form { display: grid; gap: 14px; margin-top: 22px; }
-.modal-caixa label { display: grid; gap: 7px; font-size: 12px; font-weight: 750; color: var(--ink-2); }
-.modal-caixa .opcional { display: inline; margin-left: 6px; color: var(--muted); font-weight: 600; text-transform: none; }
-.modal-caixa input {
-  font: inherit; font-size: 14px; color: var(--ink); padding: 13px 14px; border-radius: 11px;
-  background: rgba(4, 10, 18, .7); border: 1px solid var(--line-strong); width: 100%;
-}
-.modal-caixa input:focus { outline: none; border-color: var(--blue-soft); }
-.modal-erro { margin: 0; padding: 11px 13px; border-radius: 10px; font-size: 12.5px; color: #ffb4bd; background: rgba(255, 107, 125, .12); border: 1px solid rgba(255, 107, 125, .3); }
-.modal-nota { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.6; }
-.modal-nota a { color: var(--mint); text-decoration: underline; }
-.modal-acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
-.button.ghost { color: var(--ink-2); border: 1px solid var(--line-strong); background: transparent; }
-.modal-ok {
-  width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 16px;
-  border-radius: 50%; color: var(--mint); background: rgba(63, 231, 192, .14); font-size: 21px; font-weight: 900;
-}
 
 @media (max-width: 980px) {
   .site-header nav { display: none; }

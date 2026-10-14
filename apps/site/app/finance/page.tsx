@@ -1,7 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
-import DownloadWindows from "../download-windows";
 import "../landing.css";
 
 export const metadata: Metadata = {
@@ -11,11 +10,6 @@ export const metadata: Metadata = {
   openGraph: { url: "/finance", siteName: "Arqevon Finance", title: "Arqevon Finance — Suas contas do mês, claras em uma tela", description: "Receitas, contas fixas e parcelas organizadas, com projeção dos próximos meses. Grátis e no navegador.", images: [{ url: "/og-finance.png", width: 1200, height: 630, alt: "Arqevon Finance: suas contas do mês, claras em uma tela" }] },
 };
 
-const windowsDownloadPath =
-  "/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe";
-// O .dmg da 1.0.6 continua hospedado em /downloads para links já enviados, mas não é
-// oferecido na página: sem certificado Developer ID o macOS o recusa como danificado.
-// Ao publicar um instalador assinado, restaure o botão e aponte para o arquivo novo.
 
 // Endereço do sistema web. Em teste local: NEXT_PUBLIC_APP_URL=http://localhost:4300
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://app.arqevoncode.com.br";
@@ -172,28 +166,11 @@ export default function Finance() {
         </div>
       </section>
 
-      <section className="lp-secao lp-windows" id="download">
-        <div>
-          <h2>Prefere instalar no computador?</h2>
-          <p>O aplicativo para Windows continua disponível para quem já usa ou prefere a versão instalada.</p>
-        </div>
-        <div className="download-actions">
-          <DownloadWindows href={windowsDownloadPath} />
-          {/* Sem certificado Developer ID o macOS recusa o download como danificado.
-              O botão fica inerte até haver instalador assinado. */}
-          <span className="button download indisponivel" role="link" aria-disabled="true">
-            <span className="platform-mark" aria-hidden="true">●</span>
-            <span><small>MACOS APPLE SILICON</small>Em breve</span>
-            <b aria-hidden="true">⏳</b>
-          </span>
-          <span className="version">Versão 1.0.6 · requer licença</span>
-        </div>
-      </section>
 
       <section className="lp-secao" id="perguntas">
         <div className="lp-titulo"><p className="lp-selo"><i /> Dúvidas</p><h2>Perguntas frequentes.</h2></div>
         <div className="lp-faq">
-          <details><summary>Preciso instalar alguma coisa?<span>+</span></summary><p>Não. O Arqevon Finance funciona no navegador, no computador ou no celular. Se preferir, existe também o aplicativo para Windows.</p></details>
+          <details><summary>Preciso instalar alguma coisa?<span>+</span></summary><p>Não. O Arqevon Finance funciona no navegador, no computador ou no celular.</p></details>
           <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não. No Grátis você usa todas as funções, com os dados guardados só no aparelho que estiver usando.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
           <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>

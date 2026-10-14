@@ -2,11 +2,11 @@ import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises"
 import { resolve } from "node:path";
 import { build } from "esbuild";
 
-// O motor financeiro é o mesmo do desktop: lemos meu-financeiro.html direto de lá, sem cópia,
-// para que as duas versões nunca divirjam. Aqui só entram a tela de login e o layout web.
+// O motor financeiro (src/motor.html, HTML+JS único) recebe aqui a tela de login, o layout web e
+// o PWA. Ele veio do app desktop, descontinuado em 2026-10-14.
 const root = resolve(import.meta.dirname, "..");
 // ARQEVON_MOTOR e ARQEVON_SAIDA só servem ao teste de regressão, que monta a versão de main ao lado.
-const motor = resolve(process.env.ARQEVON_MOTOR || resolve(root, "../finance-desktop/meu-financeiro.html"));
+const motor = resolve(process.env.ARQEVON_MOTOR || resolve(root, "src/motor.html"));
 const output = resolve(process.env.ARQEVON_SAIDA || resolve(root, "dist"));
 
 // ARQEVON_BILLING=1 libera a venda do Pro na interface. Fica desligado até a sincronização existir.
@@ -30,7 +30,7 @@ const bundle = await build({
 const js = bundle.outputFiles[0].text.replaceAll("</script", "<\\/script");
 
 if (!html.includes("</head>") || !html.includes("</body>")) {
-  throw new Error("meu-financeiro.html mudou de estrutura: </head> ou </body> não encontrado.");
+  throw new Error("motor.html mudou de estrutura: </head> ou </body> não encontrado.");
 }
 
 const fontes = `<link rel="preconnect" href="https://fonts.googleapis.com">

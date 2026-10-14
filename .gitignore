@@ -28,9 +28,6 @@
 **/*.p12
 **/*.key
 
-# Esta chave é pública e necessária para builds reproduzíveis do desktop.
-!apps/finance-desktop/config/license-public.pem
-
 # Logs e temporários
 *.log
 npm-debug.log*
@@ -39,9 +36,8 @@ yarn-error.log*
 .cache/
 tmp/
 
-# Artefatos locais de build. Somente os instaladores efetivamente publicados na
-# landing page são versionados, um por linha, para que nenhum binário entre no
-# repositório por acidente.
+# Instaladores do desktop descontinuado: só os que já foram publicados continuam versionados (sem
+# link no site), um por linha, para que nenhum binário novo entre no repositório por acidente.
 *.exe
 *.dmg
 !apps/site/public/downloads/Arqevon-Finance-1.0.5-Windows-x64-Setup-v3.exe
