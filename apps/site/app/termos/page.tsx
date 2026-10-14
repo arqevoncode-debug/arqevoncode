@@ -71,6 +71,7 @@ export default function Termos() {
       <ul>
         <li>O plano Pro é vendido nas modalidades <strong>mensal</strong> e <strong>anual</strong>, pelos preços exibidos na página de pagamento no momento da compra.</li>
         <li><strong>Teste grátis:</strong> cada conta nova recebe 30 dias de Pro, uma única vez, sem cartão e sem cobrança automática. No fim, a conta volta ao plano grátis, e os dados guardados na nuvem não são apagados.</li>
+        <li><strong>Indique e ganhe:</strong> quem cria a conta pelo link de convite de outra pessoa recebe 60 dias de teste grátis em vez de 30 (só contas novas, uma vez). Quem convidou recebe 1 mês de Pro quando a pessoa convidada faz o primeiro pagamento, somado ao fim do acesso que já tiver, até 12 meses por ano. Contas criadas só para ganhar a recompensa podem ter o benefício cancelado.</li>
         <li><strong>Oferta Fundador:</strong> quando disponível, tem vagas limitadas e mantém o preço contratado enquanto a assinatura continuar ativa, sem interrupção.</li>
         <li>O pagamento é processado pela <strong>Kiwify</strong>, que aceita Pix e cartão de crédito. Os dados de pagamento ficam com ela, e não conosco.</li>
         <li>A assinatura <strong>renova automaticamente</strong> ao fim de cada período, na mesma modalidade, até ser cancelada.</li>
