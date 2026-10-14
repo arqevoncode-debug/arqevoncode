@@ -401,13 +401,13 @@ details.hist summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 }
 
 /* ---------- Segurança ---------- */
-dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset {
+dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia {
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--ink);
   padding: 22px; max-width: 420px; width: calc(100vw - 48px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
-dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
 dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0 0 4px; font-size: 17px; }
 .botao.confirmar-perigo { background: var(--bad); box-shadow: none; }
 .reset-campo { display: grid; gap: 5px; margin-top: 16px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
@@ -423,6 +423,40 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
 .sec-toggle .hint { margin: 6px 0 0 24px; }
 .sec-toggle select { width: auto; margin-left: 24px; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+/* ---------- Boas-vindas, exemplo e configuração guiada ---------- */
+.boas-vindas-acoes { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.faixa-exemplo {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 14px;
+  padding: 12px 16px; border-radius: var(--radius); font-size: 14px; color: var(--ink);
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warn) 40%, transparent);
+}
+.faixa-exemplo[hidden] { display: none; }
+.faixa-exemplo p { margin: 0; flex: 1 1 260px; }
+.faixa-exemplo .acoes { display: flex; flex-wrap: wrap; gap: 8px; }
+dialog#modalGuia { max-width: 560px; }
+.guia-topo { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; }
+.guia-fechar { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 4px 6px; }
+.guia-trilho { height: 4px; border-radius: 4px; background: var(--grid); margin: 10px 0 16px; overflow: hidden; }
+.guia-trilho span { display: block; height: 100%; width: 33%; background: var(--accent); transition: width .25s; }
+#modalGuia h2 { font-size: 18px; margin: 0 0 4px; }
+#modalGuia .hint { font-size: 13px; color: var(--muted); margin: 0 0 14px; }
+.guia-linha { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 8px; align-items: end; }
+.guia-linha + .guia-linha { margin-top: 8px; }
+.guia-linha label, .guia-parcela label { display: grid; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2); }
+#modalGuia input, #modalGuia select {
+  font: inherit; font-size: 16px; color: var(--ink); background: var(--page);
+  border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; width: 100%; min-width: 0;
+}
+.guia-fixos { display: grid; gap: 8px; max-height: 46vh; overflow-y: auto; padding-right: 2px; }
+.guia-fixos .guia-linha { grid-template-columns: minmax(0, 1fr) 120px 72px; align-items: center; }
+.guia-fixos .guia-linha > span { font-size: 14px; color: var(--ink); }
+.guia-parcela { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 64px 64px; gap: 8px; align-items: end; margin-bottom: 10px; }
+.guia-resumo { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+@media (max-width: 480px) {
+  .guia-fixos .guia-linha { grid-template-columns: minmax(0, 1fr) 104px 60px; }
+  .guia-parcela { grid-template-columns: 1fr 1fr; }
+}
 .aviso-seg { color: var(--bad); font-size: 13px; margin: 12px 0 0; }
 
 #telaBloqueio {
@@ -479,6 +513,14 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
       <button class="hoje" id="mesHoje">Hoje</button>
     </div>
   </header>
+
+  <div class="faixa-exemplo" id="faixaExemplo" role="status" hidden>
+    <p><b>Você está vendo um exemplo</b> com dados fictícios. Nada aqui é salvo.</p>
+    <div class="acoes">
+      <button class="botao mini" type="button" id="exemploConfigurar">Configurar com meus dados</button>
+      <button class="botao mini cancelar" type="button" id="exemploSair">Sair do exemplo</button>
+    </div>
+  </div>
 
   <nav class="abas" id="abas">
     <button data-aba="painel" class="ativa">Visão geral</button>
@@ -662,6 +704,36 @@ dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0
   </div>
 </dialog>
 
+<dialog id="modalGuia" aria-labelledby="guiaTitulo">
+  <div class="guia-topo"><span id="guiaPasso">Passo 1 de 3</span>
+    <button type="button" class="guia-fechar" id="guiaFechar" aria-label="Fechar">✕</button></div>
+  <div class="guia-trilho"><span id="guiaBarra"></span></div>
+  <section data-passo="1">
+    <h2 id="guiaTitulo">Quanto você recebe por mês?</h2>
+    <p class="hint">Salário, pró-labore, aposentadoria… Se varia, use uma média. Pode deixar em branco.</p>
+    <div class="guia-linha">
+      <label>Renda mensal (R$)<input id="gRenda" inputmode="numeric" autocomplete="off" placeholder="0,00"></label>
+      <label>Dia que cai<input id="gRendaDia" type="number" min="1" max="31" inputmode="numeric" placeholder="5"></label>
+    </div>
+  </section>
+  <section data-passo="2" hidden>
+    <h2>Quais contas se repetem todo mês?</h2>
+    <p class="hint">Preencha só as que você tem. Tudo pode ser mudado depois em Lançamentos.</p>
+    <div class="guia-fixos" id="gFixos"></div>
+  </section>
+  <section data-passo="3" hidden>
+    <h2>Tem compras parceladas no cartão?</h2>
+    <p class="hint">Informe o valor da parcela e em qual delas você está (ex.: 3 de 10). O app mostra as que ainda faltam.</p>
+    <div id="gParcelas"></div>
+    <button type="button" class="botao mini cancelar" id="gMaisParcela">+ Outra compra</button>
+  </section>
+  <p class="aviso-seg" id="guiaErro" hidden></p>
+  <div class="sec-acoes">
+    <button class="botao cancelar" type="button" id="guiaVoltar">Voltar</button>
+    <button class="botao" type="button" id="guiaAvancar">Continuar</button>
+  </div>
+</dialog>
+
 <dialog id="modalReset">
   <h2>Resetar todos os dados?</h2>
   <p class="hint" id="resetMensagem"></p>
@@ -727,6 +799,7 @@ const CATEGORIAS = [
 const catPorId = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS.find(c => c.id === "outros");
 
 let blobPendente = null; // dados criptografados aguardando a senha
+let exemplo = null; // { real } enquanto o exemplo com dados fictícios está aberto
 // Descarta registros sem os campos que os cálculos usam: um item quebrado não pode travar o app inteiro.
 function normalizar(d) {
   const lista = v => (Array.isArray(v) ? v : []).filter(x => x && typeof x === "object");
@@ -752,6 +825,7 @@ function carregar() {
   return { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] };
 }
 function salvar() {
+  if (exemplo) return; // dados fictícios do exemplo nunca são gravados
   if (seg.cripto && !chaveSessao) return; // trancado: gravar agora apagaria o cofre com dados vazios
   if (seg.cripto && chaveSessao) {
     const json = JSON.stringify(dados);
@@ -1039,11 +1113,15 @@ function renderPainel() {
     <div class="card" style="text-align:center; padding:44px 24px">
       <h2 style="font-size:18px">Bem-vindo ao Arqevon Finance 👋</h2>
       <p class="hint" style="max-width:520px; margin:8px auto 20px">
-        Vá na aba <b>Lançamentos</b> e registre tudo por lá: sua renda e contas fixas
-        (escolha "Todo mês"), os gastos do dia a dia ("Só este mês") e as compras
-        parceladas no cartão ("Parcelado"). O painel e a projeção se montam sozinhos.
+        Em 2 minutos você informa sua renda, as contas que se repetem e as parcelas do cartão,
+        e o painel e a projeção dos próximos meses se montam sozinhos. Se preferir,
+        veja antes um exemplo com dados fictícios.
       </p>
-      <button class="botao" onclick="ativarAba('lancamentos')">Fazer meu primeiro lançamento</button>
+      <div class="boas-vindas-acoes">
+        <button class="botao" type="button" onclick="abrirGuia()">Configurar em 2 minutos</button>
+        <button class="botao cancelar" type="button" onclick="ativarAba('lancamentos')">Lançar à mão</button>
+        <button class="botao cancelar" type="button" onclick="verExemplo()">Ver um exemplo</button>
+      </div>
     </div>` : `
     <div class="grid tiles">
       <div class="card tile">
@@ -1543,6 +1621,144 @@ function renderObjetivos() {
   alvo.querySelectorAll("input[data-aporte]").forEach(mascaraMoeda);
 }
 
+/* ================= Exemplo com dados fictícios ================= */
+// Mostra o app cheio antes de a pessoa digitar qualquer coisa. Datas relativas a hoje, para o
+// painel e a projeção fazerem sentido em qualquer mês. Nada é gravado (salvar() ignora).
+function dadosExemplo() {
+  const mk = n => { const m = somaMes(hoje.getFullYear(), hoje.getMonth(), n); return chaveMes(m.ano, m.mes); };
+  const dia = (n, d) => `${mk(n)}-${String(d).padStart(2, "0")}`;
+  const l = (n, d, descricao, valor, categoria, tipo = "despesa") =>
+    ({ id: uid(), tipo, descricao, valor, categoria: tipo === "receita" ? "outros" : categoria, data: dia(n, d) });
+  return {
+    lancamentos: [
+      l(0, 3, "Mercado", 612.40, "alimentacao"), l(0, 6, "Farmácia", 84.90, "saude"), l(0, 9, "Restaurante", 136, "lazer"),
+      l(0, 11, "Combustível", 220, "transporte"), l(0, 12, "Freela de design", 900, "outros", "receita"),
+      l(-1, 4, "Mercado", 587.15, "alimentacao"), l(-1, 14, "Cinema", 72, "lazer"), l(-1, 18, "Combustível", 210, "transporte"),
+      l(-1, 22, "Presente de aniversário", 150, "outros"),
+      l(-2, 5, "Mercado", 640.30, "alimentacao"), l(-2, 16, "Curso online", 197, "educacao"), l(-2, 20, "Combustível", 230, "transporte"),
+    ],
+    fixos: [
+      { id: uid(), tipo: "receita", descricao: "Salário", valor: 5200, categoria: "outros", dia: 5 },
+      { id: uid(), tipo: "despesa", descricao: "Aluguel", valor: 1450, categoria: "moradia", dia: 10 },
+      { id: uid(), tipo: "despesa", descricao: "Internet", valor: 109.90, categoria: "moradia", dia: 15 },
+      { id: uid(), tipo: "despesa", descricao: "Plano de saúde", valor: 389, categoria: "saude", dia: 20 },
+      { id: uid(), tipo: "despesa", descricao: "Streaming", valor: 55.90, categoria: "assinaturas", dia: 8 },
+    ],
+    parcelamentos: [
+      { id: uid(), descricao: "Celular", valorTotal: 2500, numParcelas: 10, categoria: "outros", inicio: mk(-2) },
+      { id: uid(), descricao: "Geladeira", valorTotal: 3480, numParcelas: 12, categoria: "moradia", inicio: mk(-7) },
+    ],
+    objetivos: [
+      { id: uid(), nome: "Reserva de emergência", meta: 15000, aporteMensal: 500,
+        aportes: [-2, -1, 0].map(n => ({ id: uid(), valor: 500, data: dia(n, 6) })) },
+      { id: uid(), nome: "Viagem de férias", meta: 6000, aporteMensal: 300,
+        aportes: [-1, 0].map(n => ({ id: uid(), valor: 300, data: dia(n, 7) })) },
+    ],
+  };
+}
+window.verExemplo = () => {
+  if (exemplo) return;
+  limparEdicao();
+  exemplo = { real: dados };
+  dados = dadosExemplo();
+  $("#faixaExemplo").hidden = false;
+  mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+  ativarAba("painel");
+  renderTudo();
+};
+function sairExemplo() {
+  if (!exemplo) return;
+  dados = exemplo.real;
+  exemplo = null;
+  limparEdicao();
+  $("#faixaExemplo").hidden = true;
+  renderTudo();
+}
+$("#exemploSair").onclick = sairExemplo;
+$("#exemploConfigurar").onclick = () => { sairExemplo(); abrirGuia(); };
+
+/* ================= Configuração guiada (renda, contas fixas, cartão) ================= */
+const GUIA_FIXOS = [
+  ["Aluguel ou financiamento", "moradia"], ["Condomínio", "moradia"], ["Luz", "moradia"], ["Água", "moradia"],
+  ["Internet", "moradia"], ["Celular", "assinaturas"], ["Plano de saúde", "saude"], ["Escola ou faculdade", "educacao"],
+  ["Transporte (combustível, passe)", "transporte"], ["Streaming e assinaturas", "assinaturas"],
+];
+let passoGuia = 1;
+function linhaParcela() {
+  const div = document.createElement("div");
+  div.className = "guia-parcela";
+  div.innerHTML = `<label>Compra<input data-g="desc" placeholder="Ex.: celular"></label>
+    <label>Valor da parcela<input data-g="valor" inputmode="numeric" autocomplete="off" placeholder="0,00"></label>
+    <label>Parcela<input data-g="atual" type="number" min="1" max="60" inputmode="numeric" placeholder="1"></label>
+    <label>de<input data-g="total" type="number" min="1" max="60" inputmode="numeric" placeholder="10"></label>`;
+  mascaraMoeda(div.querySelector('[data-g="valor"]'));
+  $("#gParcelas").appendChild(div);
+  return div;
+}
+window.abrirGuia = () => {
+  sairExemplo();
+  passoGuia = 1;
+  $("#gRenda").value = ""; $("#gRendaDia").value = "";
+  $("#gFixos").innerHTML = GUIA_FIXOS.map(([nome], i) => `<div class="guia-linha"><span>${esc(nome)}</span>
+    <input data-fixo="${i}" inputmode="numeric" autocomplete="off" placeholder="0,00" aria-label="Valor de ${esc(nome)}">
+    <input data-fixo-dia="${i}" type="number" min="1" max="31" inputmode="numeric" placeholder="dia" aria-label="Dia de vencimento de ${esc(nome)}"></div>`).join("");
+  $("#gFixos").querySelectorAll("[data-fixo]").forEach(mascaraMoeda);
+  $("#gParcelas").innerHTML = "";
+  linhaParcela();
+  mostrarPassoGuia();
+  $("#modalGuia").showModal();
+  $("#gRenda").focus();
+};
+mascaraMoeda($("#gRenda"));
+function mostrarPassoGuia() {
+  document.querySelectorAll("#modalGuia section[data-passo]").forEach(sec => { sec.hidden = Number(sec.dataset.passo) !== passoGuia; });
+  $("#guiaPasso").textContent = `Passo ${passoGuia} de 3`;
+  $("#guiaBarra").style.width = `${passoGuia * 100 / 3}%`;
+  $("#guiaVoltar").hidden = passoGuia === 1;
+  $("#guiaAvancar").textContent = passoGuia === 3 ? "Concluir" : "Continuar";
+  $("#guiaErro").hidden = true;
+}
+const diaGuia = el => { const d = parseInt(el.value, 10); return d >= 1 && d <= 31 ? d : null; };
+function parcelasGuia() {
+  const out = [];
+  for (const linha of document.querySelectorAll("#gParcelas .guia-parcela")) {
+    const campo = g => linha.querySelector(`[data-g="${g}"]`);
+    const desc = campo("desc").value.trim(), valor = valorDe(campo("valor"));
+    const atual = parseInt(campo("atual").value, 10) || 1, total = parseInt(campo("total").value, 10);
+    if (!desc && !(valor > 0)) continue;
+    if (!desc || !(valor > 0)) throw new Error("Informe a compra e o valor da parcela, ou deixe a linha em branco.");
+    if (!(total >= 1 && total <= 60) || atual < 1 || atual > total) throw new Error(`Confira as parcelas de "${desc}": a atual precisa estar entre 1 e o total (até 60).`);
+    // "3 de 10" hoje = começou 2 meses atrás
+    const ini = somaMes(hoje.getFullYear(), hoje.getMonth(), -(atual - 1));
+    out.push({ id: uid(), descricao: desc, valorTotal: Math.round(valor * total * 100) / 100, numParcelas: total,
+      categoria: "outros", inicio: chaveMes(ini.ano, ini.mes) });
+  }
+  return out;
+}
+$("#guiaVoltar").onclick = () => { passoGuia = Math.max(1, passoGuia - 1); mostrarPassoGuia(); };
+$("#guiaFechar").onclick = () => $("#modalGuia").close();
+$("#gMaisParcela").onclick = () => linhaParcela().querySelector("input").focus();
+$("#guiaAvancar").onclick = () => {
+  let parcelas = [];
+  if (passoGuia === 3) {
+    try { parcelas = parcelasGuia(); } catch (e) { $("#guiaErro").textContent = e.message; $("#guiaErro").hidden = false; return; }
+  }
+  if (passoGuia < 3) { passoGuia++; mostrarPassoGuia(); return; }
+
+  const renda = valorDe($("#gRenda"));
+  if (renda > 0) dados.fixos.push({ id: uid(), tipo: "receita", descricao: "Salário", valor: renda, categoria: "outros", dia: diaGuia($("#gRendaDia")) });
+  GUIA_FIXOS.forEach(([descricao, categoria], i) => {
+    const valor = valorDe(document.querySelector(`[data-fixo="${i}"]`));
+    if (valor > 0) dados.fixos.push({ id: uid(), tipo: "despesa", descricao, valor, categoria, dia: diaGuia(document.querySelector(`[data-fixo-dia="${i}"]`)) });
+  });
+  dados.parcelamentos.push(...parcelas);
+  salvar();
+  $("#modalGuia").close();
+  mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+  ativarAba("painel");
+  renderTudo();
+};
+
 /* ================= Segurança: senha, criptografia e bloqueio ================= */
 // Mesmo mínimo exigido no backup portátil, para não haver senha forte no arquivo e fraca na chave AES local.
 const SENHA_MINIMA = 6;
@@ -1844,6 +2060,7 @@ atualizarRodapeBackup();
 
 /* ================= Exportar / importar ================= */
 $("#btnExportar").onclick = () => {
+  sairExemplo();
   if (seg.cripto && !confirm("O arquivo exportado NÃO é criptografado (para você poder ler e importar em qualquer lugar). Guarde-o em local seguro. Continuar?")) return;
   const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
@@ -1852,10 +2069,11 @@ $("#btnExportar").onclick = () => {
   a.click();
   URL.revokeObjectURL(a.href);
 };
-$("#btnImportar").onclick = () => $("#arqImportar").click();
+$("#btnImportar").onclick = () => { sairExemplo(); $("#arqImportar").click(); };
 
 /* ================= Resetar todos os dados ================= */
 $("#btnResetar").onclick = () => {
+  sairExemplo();
   const n = dados.lancamentos.length + dados.fixos.length + dados.parcelamentos.length + dados.objetivos.length;
   if (n === 0) return;
   $("#resetMensagem").textContent = `Isso apagará ${n} ${n === 1 ? "item" : "itens"}, incluindo lançamentos, contas fixas, parcelas e objetivos. Uma cópia local de recuperação será criada antes. Se o backup automático estiver ativo, o arquivo externo poderá ser sobrescrito vazio.`;
@@ -1936,9 +2154,11 @@ function renderTudo() {
 // Interface estável usada pelo empacotador desktop para backups portáteis.
 window.MyFinanceBridge = {
   versaoDados: 1,
-  obterDados: () => structuredClone(dados),
+  // Durante o exemplo, quem pergunta (nuvem, backup do desktop) recebe sempre os dados reais.
+  obterDados: () => structuredClone(exemplo ? exemplo.real : dados),
   substituirDados: novo => {
     if (!novo || !Array.isArray(novo.lancamentos)) throw new Error("Dados inválidos");
+    sairExemplo();
     guardarCopia(CHAVE + "-pre-import", dados);
     dados = normalizar(novo);
     salvar(); limparEdicao(); renderTudo();

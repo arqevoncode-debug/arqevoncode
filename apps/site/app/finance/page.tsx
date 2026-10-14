@@ -69,14 +69,14 @@ export default function Finance() {
           </p>
           <div className="lp-hero-acoes">
             <a className="lp-botao grande" href={APP_URL}>Começar grátis</a>
-            <a className="lp-botao-sec grande" href="#como-funciona">Ver como funciona</a>
+            <a className="lp-botao-sec grande" href={`${APP_URL}#exemplo`}>Ver um exemplo</a>
           </div>
           <p className="lp-hero-nota">Grátis para usar. Funciona no navegador, sem instalar nada.</p>
         </div>
         <div className="lp-hero-tela">
           <div className="lp-janela">
             <div className="lp-janela-barra"><i /><i /><i /><span>app.arqevoncode.com.br</span></div>
-            <Image src="/produto/visao-geral.png" alt="Tela Visão geral do Arqevon Finance com receitas, despesas, saldo e gastos por categoria" width={2800} height={3320} priority sizes="(max-width: 960px) 100vw, 640px" />
+            <Image src="/produto/visao-geral.png" alt="Tela Visão geral do Arqevon Finance com receitas, despesas, saldo, gastos por categoria e projeção" width={2800} height={3160} priority sizes="(max-width: 960px) 100vw, 640px" />
           </div>
         </div>
       </section>
@@ -103,11 +103,11 @@ export default function Finance() {
         </div>
         <div className="lp-duas-telas">
           <figure>
-            <Image src="/produto/lancamentos.png" alt="Aba Lançamentos com contas fixas, renda e parcelas" width={2800} height={3120} sizes="(max-width: 960px) 100vw, 560px" />
+            <Image src="/produto/lancamentos.png" alt="Aba Lançamentos com contas fixas, renda e parcelas" width={2800} height={2586} sizes="(max-width: 960px) 100vw, 560px" />
             <figcaption>Lançamentos: fixos, renda e parcelas na mesma lista.</figcaption>
           </figure>
           <figure>
-            <Image src="/produto/objetivos.png" alt="Aba Objetivos com barras de progresso" width={2800} height={1240} sizes="(max-width: 960px) 100vw, 560px" />
+            <Image src="/produto/objetivos.png" alt="Aba Objetivos com barras de progresso" width={2800} height={1200} sizes="(max-width: 960px) 100vw, 560px" />
             <figcaption>Objetivos: quanto falta para cada meta.</figcaption>
           </figure>
         </div>
