@@ -52,6 +52,7 @@ export default function Finance() {
           <a href="#privacidade">Privacidade</a>
           <a href="#planos">Planos</a>
           <a href="#perguntas">Dúvidas</a>
+          <Link href="/calculadoras">Calculadoras</Link>
         </nav>
         <div className="lp-header-acoes">
           <a className="lp-entrar" href={APP_URL}>Entrar</a>
@@ -215,6 +216,7 @@ export default function Finance() {
           <a href="/termos">Termos de Uso</a>
           <a href="/privacidade">Política de Privacidade</a>
           <a href="/seguranca">Segurança</a>
+          <a href="/calculadoras">Calculadoras</a>
         </nav>
         <small>© {new Date().getFullYear()} Arqevon Code.</small>
       </footer>
