@@ -4,6 +4,9 @@ import LegalLayout, { CONTATO } from "../legal-layout";
 export const metadata: Metadata = {
   title: "Termos de Uso — Arqevon Finance",
   description: "Regras de uso do Arqevon Finance: conta, plano grátis e Pro, pagamento, cancelamento, reembolso e responsabilidades.",
+  // sem isto a página herda canonical e og:url da página inicial e some das buscas
+  alternates: { canonical: "/termos" },
+  openGraph: { url: "/termos", siteName: "Arqevon Finance", title: "Termos de Uso — Arqevon Finance", description: "Regras de uso do Arqevon Finance: conta, plano grátis e Pro, pagamento, cancelamento, reembolso e responsabilidades.", images: [{ url: "/og-finance.png", width: 1200, height: 630 }] },
 };
 
 // Preços e prazos citados aqui precisam bater com a página de pagamento e com a tabela plans.

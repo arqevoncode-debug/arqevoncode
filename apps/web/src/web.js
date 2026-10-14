@@ -90,7 +90,7 @@ function atualizarCartao() {
   const dias = soTeste ? diasAte(trial.ends_at) : 0;
   const rotuloTeste = `Pro grátis · ${dias === 1 ? "falta 1 dia" : `faltam ${dias} dias`}`;
   $("webPlano").textContent = local ? "Dados só neste navegador"
-    : nuvem.ativa() ? `${soTeste ? rotuloTeste : "Pro"} · ${nuvem.texto() || "nuvem ativa"}`
+    : nuvem.ativa() ? `${soTeste ? rotuloTeste : pro ? "Pro" : "Plano Grátis"} · ${nuvem.texto() || "nuvem ativa"}`
     : soTeste ? rotuloTeste
     : pro ? "Plano Pro" : "Plano Grátis";
 }
@@ -115,13 +115,18 @@ function atualizarConta() {
   if (pro && (!sub || sub.status === "pending")) status.textContent = "Ativo";
   if (sub?.status === "active") status.textContent = `Ativo · renova em ${dataBr(sub.current_period_end)}`;
   if (sub?.status === "past_due") status.textContent = "Pagamento pendente: regularize para não perder o Pro.";
+  if (sub?.status === "trialing") status.textContent = sub.current_period_end ? `Em teste até ${dataBr(sub.current_period_end)}` : "Em teste";
+  // quem tem assinatura viva precisa saber onde trocar o cartão, regularizar ou cancelar
+  $("wcGerenciar").hidden = local || !sub || !["active", "past_due", "trialing"].includes(sub.status);
   if (sub?.status === "canceled" && pro) status.textContent = `Cancelado · acesso até ${dataBr(sub.current_period_end)}`;
   if (sub?.status === "canceled" && !pro) status.hidden = true;
   if (soTeste) { status.hidden = false; status.textContent = `Teste grátis até ${dataBr(trial.ends_at)} · assine para continuar depois`; }
   const testeAcabou = !local && !pro && trial && !trial.active;
   if (testeAcabou) { status.hidden = false; status.textContent = "Seu teste grátis terminou. Seus dados na nuvem continuam guardados: assine para voltar a sincronizar."; }
 
-  const podeAssinar = !local && (!pro || soTeste);
+  // cancelado com acesso até o fim do período também pode assinar de novo
+  const podeAssinar = !local && (!pro || soTeste || sub?.status === "canceled") && estado.planos.length > 0;
+  $("wcPlanosIndisponiveis").hidden = !VENDER_PRO || local || estado.planos.length > 0 || (pro && !soTeste);
   $("wcAssinar").hidden = !VENDER_PRO || !podeAssinar;
   $("wcBreve").hidden = VENDER_PRO || pro;
   if (VENDER_PRO && podeAssinar) montarCiclos();
@@ -135,7 +140,9 @@ function planoMensal() {
 
 function montarCiclos() {
   const caixa = $("wcCiclos");
-  if (caixa.childElementCount) return;
+  // remonta sempre: as vagas do Fundador mudam; mantém o plano que estava escolhido
+  const escolhido = document.querySelector('input[name="wcPlano"]:checked')?.value;
+  caixa.innerHTML = "";
   estado.planos.forEach((p, i) => {
     // Formas de pagamento de cada gateway: a Kiwify aceita Pix e cartão nos dois ciclos.
     const mensal = planoMensal();
@@ -147,7 +154,7 @@ function montarCiclos() {
       ? `<b>Mensal</b> · ${brl(p.price_cents)}/mês ${VIA_KIWIFY ? "no Pix ou cartão" : "no cartão"}, renova sozinho`
       : `<b>Anual</b> · ${brl(p.price_cents)}/ano ${VIA_KIWIFY ? "no Pix ou cartão em até 12x" : "no Pix, boleto ou cartão"}${economia > 0 ? ` · economize ${brl(economia)}` : ""}`;
     caixa.insertAdjacentHTML("beforeend",
-      `<label class="wc-ciclo"><input type="radio" name="wcPlano" value="${p.id}" ${i === 0 ? "checked" : ""}><span>${rotulo}</span></label>`);
+      `<label class="wc-ciclo"><input type="radio" name="wcPlano" value="${p.id}" ${(escolhido && estado.planos.some(x => x.id === escolhido) ? p.id === escolhido : i === 0) ? "checked" : ""}><span>${rotulo}</span></label>`);
   });
 }
 
@@ -162,23 +169,32 @@ async function pedirTeste() {
   if (!error && data?.status === "started") {
     avisoDaSessao = true;
     const dias = diasAte(data.ends_at);
-    avisar(`Você ganhou ${dias} dias de Pro grátis, sem cartão. Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
+    const nota = conviteRecusado ? " O convite usado não era válido para esta conta, então o teste ficou com o prazo normal." : "";
+    avisar(`Você ganhou ${dias} dias de Pro grátis, sem cartão.${nota} Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
   }
 }
 
 // ---------- Indique e ganhe ----------
 const CONVITE = "arqevon-convite";
 const conviteDaUrl = new URLSearchParams(location.search).get("convite");
-if (conviteDaUrl && /^[A-Za-z2-9]{8}$/.test(conviteDaUrl)) {
-  localStorage.setItem(CONVITE, conviteDaUrl.toUpperCase());
+if (conviteDaUrl !== null) {
+  if (/^[A-Za-z2-9]{8}$/.test(conviteDaUrl)) localStorage.setItem(CONVITE, conviteDaUrl.toUpperCase());
+  // o endereço volta ao normal mesmo com um código mal formado
   const url = new URL(location.href); url.searchParams.delete("convite");
   history.replaceState(null, "", url.pathname + url.search + url.hash);
 }
+let conviteRecusado = false; // o convite não valeu: o aviso do teste explica
 async function usarConvite() {
   const codigo = localStorage.getItem(CONVITE);
   if (!codigo) return;
-  const { error } = await supabase.rpc("claim_referral", { p_code: codigo });
-  if (!error) localStorage.removeItem(CONVITE); // recusado ou aceito, não insiste; erro de rede tenta na próxima
+  const { data, error } = await supabase.rpc("claim_referral", { p_code: codigo });
+  if (error) return; // erro de rede: tenta na próxima
+  localStorage.removeItem(CONVITE);
+  conviteRecusado = data?.status !== "referred" && data?.status !== "already_referred";
+}
+function voltaRotulo(botao, temporario, normal) {
+  botao.textContent = temporario;
+  setTimeout(() => { botao.textContent = normal; }, 2500);
 }
 let indicacao = null;
 async function carregarIndicacao() {
@@ -195,7 +211,7 @@ async function carregarIndicacao() {
 }
 const linkConvite = () => `https://app.arqevoncode.com.br/?convite=${indicacao?.code || ""}`;
 $("wcIndiqueCopiar").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText(linkConvite()); $("wcIndiqueCopiar").textContent = "Link copiado"; }
+  try { await navigator.clipboard.writeText(linkConvite()); voltaRotulo($("wcIndiqueCopiar"), "Link copiado", "Copiar link"); }
   catch { $("wcIndiqueLink").select(); }
 });
 $("wcIndiqueCompartilhar").hidden = !navigator.share;
@@ -232,7 +248,34 @@ function abrirConta() {
 }
 
 // ---------- Entrar e sair ----------
-function liberarApp() {
+// Dono dos lançamentos deste navegador (a mesma marca que a nuvem usa).
+const DONO_DADOS = "arqevon-sync-dono";
+const ponteMotor = () => window.ArqevonFinanceBridge;
+
+/** Antes de mostrar qualquer dado: lançamentos de outra conta neste navegador não aparecem sem pergunta. */
+async function conferirDono() {
+  if (estado.modo !== "conta" || !estado.uid) return true;
+  let dono = null;
+  try { dono = localStorage.getItem(DONO_DADOS); } catch { return true; }
+  if (dono && dono !== estado.uid && ponteMotor()?.temDados()) {
+    const ok = await ponteMotor().escolher("Lançamentos de outra conta",
+      "Este navegador tem lançamentos de outra conta. Para entrar com esta, eles serão apagados deste navegador. Se a outra conta usa a nuvem, os dados dela continuam lá.",
+      "Apagar e entrar", "", true);
+    if (!ok) return false;
+    ponteMotor().apagarTudo();
+  }
+  try { localStorage.setItem(DONO_DADOS, estado.uid); } catch { /* armazenamento bloqueado */ }
+  return true;
+}
+
+async function liberarApp() {
+  if (!(await conferirDono())) {
+    // não quis apagar os dados da outra conta: volta ao login sem entrar
+    await supabase.auth.signOut().catch(() => {});
+    estado = { ...estado, modo: null, email: null, uid: null, direitos: null };
+    mostrarLogin();
+    return;
+  }
   $("webLogin").hidden = true;
   // "desktop-bloqueado" é o sinal que o motor espera para abrir o convite de criptografia.
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
@@ -315,6 +358,11 @@ $("wcInstalarBotao").addEventListener("click", async () => {
 });
 if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localhost", "127.0.0.1"].includes(location.hostname))) {
   navigator.serviceWorker.register("/sw.js").catch(() => {});
+  // Versão nova publicada com o app aberto (PWA fica aberto por dias): oferece recarregar.
+  const tinhaControle = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (tinhaControle) avisar("Há uma versão nova do app.", "Recarregar", () => location.reload());
+  });
 }
 
 function mostrarLogin() {
@@ -332,9 +380,10 @@ function mostrarLogin() {
 
 function erro(id, msg) { const el = $(id); el.textContent = msg; el.hidden = !msg; }
 
-function mensagemAuth(e) {
+function mensagemAuth(e, passo = "codigo") {
   const m = String(e?.message || "");
   if (e?.status === 429 || /rate limit|security purposes/i.test(m)) return "Muitas tentativas. Aguarde alguns minutos e tente de novo.";
+  if (passo === "email" && (e?.status === 422 || /invalid|email/i.test(m))) return "Não conseguimos enviar para este e-mail. Confira se está escrito certo.";
   if (/expired|invalid/i.test(m)) return "Código incorreto ou expirado. Confira ou peça um novo.";
   return "Não foi possível continuar agora. Verifique a internet e tente de novo.";
 }
@@ -346,7 +395,7 @@ $("wlPasso1").addEventListener("submit", async e => {
   botao.disabled = true; botao.textContent = "Enviando…"; erro("wlErro1", "");
   const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   botao.disabled = false; botao.textContent = "Receber código";
-  if (error) { erro("wlErro1", mensagemAuth(error)); return; }
+  if (error) { erro("wlErro1", mensagemAuth(error, "email")); return; }
   $("wlEmailMostra").textContent = email;
   $("wlPasso1").hidden = true;
   $("wlPasso2").hidden = false;
@@ -371,6 +420,14 @@ $("wlPasso2").addEventListener("submit", async e => {
 });
 
 $("wlVoltar").addEventListener("click", mostrarLogin);
+$("wlReenviar").addEventListener("click", async () => {
+  const botao = $("wlReenviar");
+  botao.disabled = true; erro("wlErro", "");
+  const { error } = await supabase.auth.signInWithOtp({ email: $("wlEmailMostra").textContent, options: { shouldCreateUser: true } });
+  if (error) { erro("wlErro", mensagemAuth(error, "email")); botao.disabled = false; return; }
+  botao.textContent = "Código reenviado. Confira também o spam.";
+  setTimeout(() => { botao.textContent = "Reenviar código"; botao.disabled = false; }, 30000);
+});
 $("wlLocal").addEventListener("click", () => {
   try { localStorage.setItem(MODO_LOCAL, "1"); }
   catch { erro("wlErro1", "Seu navegador está bloqueando o armazenamento deste site (acontece em algumas janelas anônimas ou com cookies bloqueados). Libere o armazenamento para usar o app."); return; }
@@ -380,8 +437,27 @@ $("wlLocal").addEventListener("click", () => {
 
 $("wcFechar").addEventListener("click", () => $("webConta").close());
 $("wcSair").addEventListener("click", async () => {
-  // Sair encerra a sessão da conta; os lançamentos continuam neste navegador (plano grátis é local).
-  // As chaves da nuvem saem deste aparelho junto com a sessão.
+  // Sair encerra a sessão. Com a nuvem em dia, os lançamentos saem deste navegador (estão na nuvem);
+  // sem nuvem, a pessoa decide se ficam aqui. As chaves da nuvem sempre saem do aparelho.
+  if (estado.modo === "conta" && ponteMotor()?.temDados()) {
+    const botao = $("wcSair");
+    botao.disabled = true; botao.textContent = "Enviando para a nuvem…";
+    const s = await nuvem.preparaSaida();
+    botao.disabled = false; botao.textContent = "Sair";
+    if (s.nuvem && s.enviado) {
+      ponteMotor().apagarTudo();
+      localStorage.removeItem(DONO_DADOS);
+    } else {
+      const motivo = s.nuvem
+        ? "Algumas alterações ainda não chegaram à nuvem (sem internet?). Se apagar agora, elas se perdem."
+        : "Seus lançamentos estão só neste navegador, porque a nuvem não está ligada.";
+      const r = await ponteMotor().escolher("Sair da conta",
+        `${motivo} Quer mantê-los aqui? Quem usar este navegador sem conta poderá vê-los.`,
+        "Manter neste navegador", "Apagar deste navegador");
+      if (r === false) return; // cancelou: continua na conta
+      if (r === "alternativa") { ponteMotor().apagarTudo(); localStorage.removeItem(DONO_DADOS); }
+    }
+  }
   await nuvem.sair();
   if (estado.modo === "conta") await supabase.auth.signOut().catch(() => {});
   localStorage.removeItem(MODO_LOCAL);

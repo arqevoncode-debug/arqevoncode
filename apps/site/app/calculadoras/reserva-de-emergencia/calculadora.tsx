@@ -32,7 +32,8 @@ export default function Calculadora() {
         </label>
         {perfil === "outro" && (
           <label className="calc-campo"><span>Quantos meses de gastos guardar</span>
-            <input type="number" inputMode="numeric" min={1} max={36} value={mesesLivre} onChange={e => setMesesLivre(e.target.value)} />
+            <input type="number" inputMode="numeric" min={1} max={36} value={mesesLivre} onChange={e => setMesesLivre(e.target.value)}
+              onBlur={() => setMesesLivre(String(Math.min(Math.max(Math.round(Number(mesesLivre)) || 1, 1), 36)))} />
           </label>
         )}
         <CampoDinheiro rotulo="Quanto você já tem guardado" valor={guardado} mudar={setGuardado} />
@@ -46,7 +47,7 @@ export default function Calculadora() {
         <div className="calc-blocos">
           <div className="calc-bloco"><i style={{ background: "#3fe7c0" }} /><span><strong>Já guardado</strong>{meta > 0 ? `${pct.toFixed(0)}% da reserva` : "—"}</span><b>{brl(j)}</b></div>
           <div className="calc-bloco"><i style={{ background: "#526dff" }} /><span><strong>Falta</strong>{falta === 0 && meta > 0 ? "reserva completa" : "para completar"}</span><b>{brl(falta)}</b></div>
-          {prazo !== null && falta > 0 && <div className="calc-bloco"><i style={{ background: "#ffc35a" }} /><span><strong>Prazo</strong>guardando {brl(m)} por mês</span><b>{prazo} {prazo === 1 ? "mês" : "meses"}</b></div>}
+          {prazo !== null && falta > 0 && <div className="calc-bloco"><i style={{ background: "#ffc35a" }} /><span><strong>Prazo</strong>guardando {brl(m)} por mês</span><b>{prazo > 1200 ? "mais de 100 anos" : `${prazo.toLocaleString("pt-BR")} ${prazo === 1 ? "mês" : "meses"}`}</b></div>}
         </div>
         <p className="calc-nota">O prazo não conta rendimento: considera só o que você guarda. Mantenha a reserva num lugar seguro e com resgate rápido.</p>
       </div>

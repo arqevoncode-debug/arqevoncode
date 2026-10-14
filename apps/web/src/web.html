@@ -32,10 +32,11 @@
         <h1>Digite o código</h1>
         <p class="wl-sub">Enviado para <b id="wlEmailMostra"></b>. Confira também o spam.</p>
         <label class="wl-campo"><span>Código de 6 dígitos</span>
-          <input id="wlCodigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" required>
+          <input id="wlCodigo" inputmode="numeric" autocomplete="one-time-code" placeholder="000000" required>
         </label>
         <p class="wl-erro" id="wlErro" hidden></p>
         <button class="wl-botao" type="submit" id="wlEntrar">Entrar</button>
+        <button class="wl-link" type="button" id="wlReenviar">Reenviar código</button>
         <button class="wl-link" type="button" id="wlVoltar">Usar outro e-mail</button>
       </form>
 
@@ -68,6 +69,7 @@
       <span class="wc-status" id="wcProStatus" hidden></span>
     </div>
   </div>
+  <p class="wl-nota" id="wcGerenciar" hidden>Para trocar o cartão, regularizar um pagamento ou cancelar, use o e-mail da compra enviado pela Kiwify ou escreva para <a href="mailto:contato@arqevoncode.com.br">contato@arqevoncode.com.br</a>.</p>
 
   <section class="wc-nuvem" id="wcNuvem" hidden>
     <h3>Nuvem</h3>
@@ -131,6 +133,7 @@
     <button class="botao" type="button" id="wcInstalarBotao" hidden>Instalar o app</button>
   </section>
 
+  <p class="wl-nota" id="wcPlanosIndisponiveis" hidden>Os planos não carregaram agora. Feche e abra "Sua conta" de novo em instantes.</p>
   <form id="wcAssinar" class="wc-assinar" hidden>
     <fieldset class="wc-ciclos">
       <legend>Como prefere pagar?</legend>

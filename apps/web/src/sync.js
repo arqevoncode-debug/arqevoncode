@@ -65,7 +65,11 @@ export class Sincronizador {
     for (;;) {
       const r = await this.chamar("vault_pull", { p_since: since, p_limit: 1000 });
       for (const it of r.items) {
-        itens.set(it.id, it.deleted ? { deleted: true } : await decifrarItem(this.chaves, it.id, it.ct));
+        if (it.deleted) { itens.set(it.id, { deleted: true }); continue; }
+        // um item que não abre (gravado por uma versão com defeito, corrompido) é pulado: travar a
+        // sincronização inteira por causa dele deixaria todo o resto parado para sempre
+        try { itens.set(it.id, await decifrarItem(this.chaves, it.id, it.ct)); }
+        catch { this.ilegiveis = (this.ilegiveis || 0) + 1; }
       }
       since = r.until;
       if (!r.has_more) return { itens, ate: since };
@@ -110,7 +114,21 @@ export class Sincronizador {
       }
       const h = await hashRegistro(rem.registro);
       if (loc && loc.h === h) { st.itens[itemId] = { c: loc.c, id: loc.id, h }; continue; }
-      if (pendenteLocal) continue; // alterado ou apagado aqui e ainda não enviado
+      if (pendenteLocal) {
+        // Objetivo mexido nos dois aparelhos: os aportes de cada lado são dinheiro guardado de
+        // verdade; ficam os dois (união por id) e o resultado é reenviado.
+        if (loc && rem.colecao === "objetivos" && loc.c === "objetivos") {
+          const aportes = [...(loc.registro.aportes || [])];
+          for (const a of rem.registro.aportes || []) if (!aportes.some(x => String(x.id) === String(a.id))) aportes.push(a);
+          if (aportes.length !== (loc.registro.aportes || []).length) {
+            const lista = novo.objetivos;
+            const i = lista.findIndex(x => x.id === loc.id);
+            if (i >= 0) { lista[i] = { ...lista[i], aportes }; mudou = true; }
+          }
+          st.itens[itemId] = { c: loc.c, id: loc.id, h }; // a versão mesclada difere e será enviada
+        }
+        continue; // alterado ou apagado aqui e ainda não enviado
+      }
       if (!COLECOES.includes(rem.colecao)) continue;
       const lista = novo[rem.colecao];
       const i = lista.findIndex(r => r.id === rem.registro.id);
@@ -136,7 +154,7 @@ export class Sincronizador {
 
     // 4. Freio contra apagar a nuvem por engano (dados locais perdidos, navegador limpo pela metade).
     const conhecidos = Object.keys(st.itens).length;
-    if (exclusoes.length > 5 && exclusoes.length > conhecidos / 2) {
+    if (exclusoes.length > 5 && exclusoes.length >= conhecidos * 0.3) {
       const ok = await this.confirmar(`Isto vai apagar ${exclusoes.length} registros também na nuvem, em todos os seus aparelhos. Continuar?`);
       if (!ok) {
         if (mudouAqui()) return { resultado: "adiado" };
