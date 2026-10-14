@@ -156,10 +156,51 @@ let testePedido = false;
 async function pedirTeste() {
   if (testePedido || estado.modo !== "conta") return;
   testePedido = true;
+  await usarConvite(); // antes do teste: quem veio por indicação ganha 60 dias
   const { data, error } = await supabase.rpc("claim_trial");
-  if (!error && data?.status === "started") avisoDaSessao = true;
-  if (!error && data?.status === "started") avisar(`Você ganhou 30 dias de Pro grátis, sem cartão. Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
+  if (!error && data?.status === "started") {
+    avisoDaSessao = true;
+    const dias = diasAte(data.ends_at);
+    avisar(`Você ganhou ${dias} dias de Pro grátis, sem cartão. Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
+  }
 }
+
+// ---------- Indique e ganhe ----------
+const CONVITE = "arqevon-convite";
+const conviteDaUrl = new URLSearchParams(location.search).get("convite");
+if (conviteDaUrl && /^[A-Za-z2-9]{8}$/.test(conviteDaUrl)) {
+  localStorage.setItem(CONVITE, conviteDaUrl.toUpperCase());
+  const url = new URL(location.href); url.searchParams.delete("convite");
+  history.replaceState(null, "", url.pathname + url.search + url.hash);
+}
+async function usarConvite() {
+  const codigo = localStorage.getItem(CONVITE);
+  if (!codigo) return;
+  const { error } = await supabase.rpc("claim_referral", { p_code: codigo });
+  if (!error) localStorage.removeItem(CONVITE); // recusado ou aceito, não insiste; erro de rede tenta na próxima
+}
+let indicacao = null;
+async function carregarIndicacao() {
+  const sec = $("wcIndique");
+  if (estado.modo !== "conta") { sec.hidden = true; return; }
+  const { data, error } = await supabase.rpc("my_referral");
+  if (error || !data?.ok) { sec.hidden = true; return; }
+  indicacao = data;
+  sec.hidden = false;
+  $("wcIndiqueLink").value = linkConvite();
+  $("wcIndiqueNumeros").textContent = data.convidados
+    ? `${data.convidados} ${data.convidados === 1 ? "amigo entrou" : "amigos entraram"} pelo seu convite · ${data.assinaram} ${data.assinaram === 1 ? "assinou" : "assinaram"}`
+    : "Ninguém entrou pelo seu convite ainda.";
+}
+const linkConvite = () => `https://app.arqevoncode.com.br/?convite=${indicacao?.code || ""}`;
+$("wcIndiqueCopiar").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(linkConvite()); $("wcIndiqueCopiar").textContent = "Link copiado"; }
+  catch { $("wcIndiqueLink").select(); }
+});
+$("wcIndiqueCompartilhar").hidden = !navigator.share;
+$("wcIndiqueCompartilhar").addEventListener("click", () => {
+  navigator.share?.({ title: "Arqevon Finance", text: "Organizo minhas contas no Arqevon Finance. Entrando por este link você ganha 60 dias de Pro grátis:", url: linkConvite() }).catch(() => {});
+});
 
 function avisar(texto, acao, aoClicar) {
   const el = $("webAviso");
@@ -185,6 +226,7 @@ async function carregarConta() {
 function abrirConta() {
   $("webConta").showModal();
   carregarConta();
+  carregarIndicacao();
   if (estado.modo === "conta") nuvem.atualizar(); else $("wcNuvem").hidden = true;
 }
 
@@ -275,6 +317,9 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
 }
 
 function mostrarLogin() {
+  const convidado = !!localStorage.getItem(CONVITE);
+  $("wlAviso").hidden = !convidado;
+  if (convidado) $("wlAviso").textContent = "Você foi convidado: crie sua conta e ganhe 60 dias de Pro grátis, sem cartão.";
   $("wlPasso1").hidden = false;
   $("wlPasso2").hidden = true;
   $("wlErro").hidden = true;

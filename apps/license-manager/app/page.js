@@ -446,6 +446,7 @@ function Metrics({ onLogout }) {
     { titulo: "Assinaturas", itens: [["Pagantes", m.assinaturas.pagantes], ["Receita mensal", brl(m.assinaturas.receita_mensal_cents)],
       ["Em atraso", m.assinaturas.em_atraso], ["Canceladas em 30 dias", m.assinaturas.canceladas_30d],
       ["Vagas do Fundador", m.assinaturas.vagas_fundador ?? "—"]], nota: planos },
+    ...(m.indicacao ? [{ titulo: "Indique e ganhe", itens: [["Convites usados", m.indicacao.convites_usados], ["Nos últimos 30 dias", m.indicacao.convites_30d], ["Viraram assinatura", m.indicacao.viraram_assinatura]] }] : []),
     { titulo: "Pedidos (30 dias)", itens: [["Licenças do desktop", m.pedidos.licencas_30d], ["Orçamentos sob encomenda", m.pedidos.orcamentos_30d]] },
   ];
   return <section className="licenses-area">

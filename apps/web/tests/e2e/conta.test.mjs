@@ -20,9 +20,10 @@ function jwt() {
 }
 
 /** Abre o app logado; `rpc` responde às funções do banco pelo nome. */
-async function abrirLogado({ rpc, dados = VAZIO(), vp }) {
-  const p = await amb.abrir({ dados, vp });
+async function abrirLogado({ rpc, dados = VAZIO(), vp, extra }) {
+  const p = await amb.abrir({ dados, vp, extra });
   p.chamadas = [];
+  p.corpos = {};
   await p.setRequestInterception(true);
   p.on("request", req => {
     const u = new URL(req.url());
@@ -30,7 +31,7 @@ async function abrirLogado({ rpc, dados = VAZIO(), vp }) {
     const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
     if (req.method() === "OPTIONS") return req.respond({ status: 204, headers: cors });
     const fn = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/)?.[1];
-    if (fn) p.chamadas.push(fn);
+    if (fn) { p.chamadas.push(fn); p.corpos[fn] = req.postData() || ""; }
     const corpo = fn && fn in rpc ? rpc[fn] : fn ? { ok: true } : {};
     return req.respond({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(corpo) });
   });
@@ -161,5 +162,51 @@ test("teste grátis acabando: aviso uma vez só", async () => {
   await p.waitForFunction(() => document.querySelector("#webLogin")?.hidden === true);
   await espera(800);
   assert.ok(await p.$eval("#webAviso", e => e.hidden), "não repete");
+  await p.fechar();
+});
+
+test("convite: o link guarda o código e a tela de login avisa", async () => {
+  const p = await amb.abrir({ dados: VAZIO() });
+  await p.evaluate(() => localStorage.removeItem("arqevon-web-local"));
+  await p.goto(p.url().split("?")[0].split("#")[0] + "?convite=abcd2345");
+  await p.waitForFunction(() => !document.querySelector("#webLogin").hidden);
+  assert.equal(await p.evaluate(() => localStorage.getItem("arqevon-convite")), "ABCD2345");
+  assert.match(await texto(p, "#wlAviso"), /convidado.*60 dias de Pro grátis/);
+  assert.ok(!p.url().includes("convite="), "o endereço volta ao normal");
+  await p.fechar();
+});
+
+test("convite usado no login antes do teste grátis, e o aviso fala em 60 dias", async () => {
+  const p = await abrirLogado({ extra: { "arqevon-convite": "ABCD2345" }, rpc: {
+    claim_referral: { ok: true, status: "referred" },
+    claim_trial: { ok: true, status: "started", ends_at: emDias(60) },
+    my_entitlements: direitos({ cloud: true, trial: { ends_at: emDias(60), active: true } }),
+    list_plans: PLANOS, vault_status: COFRE,
+  } });
+  assert.ok(p.chamadas.indexOf("claim_referral") >= 0 && p.chamadas.indexOf("claim_referral") < p.chamadas.indexOf("claim_trial"), p.chamadas.join());
+  assert.deepEqual(JSON.parse(p.corpos.claim_referral), { p_code: "ABCD2345" });
+  assert.equal(await p.evaluate(() => localStorage.getItem("arqevon-convite")), null, "código usado sai do aparelho");
+  assert.match(await texto(p, "#webAvisoTexto"), /ganhou 60 dias de Pro grátis/);
+  await p.fechar();
+});
+
+test("Sua conta mostra o link de convite e os números", async () => {
+  const p = await abrirLogado({ rpc: {
+    claim_trial: { ok: true, status: "not_eligible" },
+    my_entitlements: direitos({ cloud: true, sub: { plan: "pro_mensal", status: "active", current_period_end: emDias(20) } }),
+    list_plans: PLANOS, vault_status: COFRE,
+    my_referral: { ok: true, code: "QWER7890", convidados: 3, assinaram: 1 },
+  } });
+  await p.click("#webAbrirConta");
+  await p.waitForFunction(() => !document.querySelector("#wcIndique").hidden, { timeout: 5000 });
+  assert.equal(await p.$eval("#wcIndiqueLink", e => e.value), "https://app.arqevoncode.com.br/?convite=QWER7890");
+  assert.equal(await texto(p, "#wcIndiqueNumeros"), "3 amigos entraram pelo seu convite · 1 assinou");
+  await p.fechar();
+});
+
+test("sem conta não mostra indique e ganhe", async () => {
+  const p = await amb.abrir({ dados: VAZIO() });
+  await p.click("#webAbrirConta"); await espera(300);
+  assert.ok(await p.$eval("#wcIndique", e => e.hidden));
   await p.fechar();
 });
