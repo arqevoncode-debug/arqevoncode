@@ -11,40 +11,22 @@ async function sha256(relativePath) {
 }
 
 // O Arqevon Finance tem página própria (/finance); a página inicial é da Arqevon Code.
-test("mantém marca, projeto e links de download publicados", async () => {
+test("mantém a marca na página do Finance", async () => {
   const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
-
   assert.match(page, /Arqevon Code/);
   assert.match(page, /Arqevon Finance/);
-  assert.match(page, /Arqevon-Finance-1\.0\.6-Windows-x64-Setup\.exe/);
-  assert.match(page, /Versão 1\.0\.6/);
 });
 
-// O aplicativo não abre sem licença: o e-mail é coletado antes do download para
-// que ninguém instale e fique travado sem saber como obter a chave.
-test("pede o e-mail antes de liberar o download do Windows", async () => {
-  const modal = await readFile(new URL("app/download-windows.tsx", root), "utf8");
-  const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
-
-  assert.match(page, /<DownloadWindows href=\{windowsDownloadPath\} \/>/);
-  assert.match(modal, /\/api\/v1\/license-requests/);
-  assert.match(modal, /type="email"/);
-  assert.match(modal, /required/);
-  // O download real só dispara depois do pedido ser aceito pelo servidor.
-  assert.match(modal, /setPronto\(true\)[\s\S]{0,200}baixarRef\.current\?\.click\(\)/);
+// O app desktop foi descontinuado em 2026-10-14: nenhuma página oferece instalador.
+test("não oferece mais download do desktop", async () => {
+  for (const arquivo of ["app/finance/page.tsx", "app/page.tsx"]) {
+    const page = await readFile(new URL(arquivo, root), "utf8");
+    assert.doesNotMatch(page, /\/downloads\//, `${arquivo} não deve linkar instaladores`);
+  }
 });
 
-// Enquanto não houver instalador assinado, oferecer o .dmg leva o cliente a um
-// aplicativo que o macOS recusa como danificado.
-test("não oferece download de macOS sem instalador assinado", async () => {
-  const page = await readFile(new URL("app/finance/page.tsx", root), "utf8");
-
-  assert.match(page, /Em breve/);
-  assert.match(page, /aria-disabled="true"/);
-  const linkDoDmg = /href=\{?["']?[^"'}]*macOS-Apple-Silicon\.dmg/;
-  assert.doesNotMatch(page, linkDoDmg, "o .dmg não deve estar linkado na página");
-});
-
+// Os instaladores continuam hospedados, sem link no site, para quem já instalou poder reinstalar
+// enquanto migra para o app web. A API de licenças também continua no ar.
 test("preserva os instaladores exatos do baseline 1.0.6", async () => {
   assert.equal(
     await sha256("public/downloads/Arqevon-Finance-1.0.6-Windows-x64-Setup.exe"),

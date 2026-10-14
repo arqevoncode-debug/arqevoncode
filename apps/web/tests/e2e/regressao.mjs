@@ -11,7 +11,11 @@ import { servir, navegador, abrir, HTML_PADRAO } from "./ambiente.mjs";
 const raiz = resolve(import.meta.dirname, "../..");
 const base = process.env.REGRESSAO_BASE || "origin/main";
 const tmp = mkdtempSync(join(tmpdir(), "arqevon-regressao-"));
-writeFileSync(join(tmp, "motor.html"), execFileSync("git", ["show", `${base}:apps/finance-desktop/meu-financeiro.html`], { cwd: raiz, maxBuffer: 1 << 26 }));
+// o motor mudou de lugar em 2026-10-14 (apps/finance-desktop/meu-financeiro.html → apps/web/src/motor.html)
+const motorDe = caminho => execFileSync("git", ["show", `${base}:${caminho}`], { cwd: raiz, maxBuffer: 1 << 26, stdio: ["ignore", "pipe", "ignore"] });
+let motorBase;
+try { motorBase = motorDe("apps/web/src/motor.html"); } catch { motorBase = motorDe("apps/finance-desktop/meu-financeiro.html"); }
+writeFileSync(join(tmp, "motor.html"), motorBase);
 execFileSync("node", ["scripts/build.mjs"], { cwd: raiz, env: { ...process.env, ARQEVON_BILLING: "1", ARQEVON_MOTOR: join(tmp, "motor.html"), ARQEVON_SAIDA: tmp }, stdio: "ignore" });
 
 const ROTEIRO = [

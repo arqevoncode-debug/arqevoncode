@@ -9,7 +9,6 @@ conhecidas, ordem correta das operações e decisões cujo motivo não está ób
 | --- | --- | --- |
 | `apps/site` | Landing page e downloads | Vercel, projeto `arqevon-code` |
 | `apps/license-manager` | Painel e API de licenças | Vercel, projeto `myfinance-license-manager` |
-| `apps/finance-desktop` | Aplicativo Tauri | instalador gerado pela tag `v*` |
 | `apps/web` | Finance no navegador (login, conta, assinatura) | Vercel, projeto `arqevon-app` → app.arqevoncode.com.br |
 
 Cada app é autocontido, com o próprio `package-lock.json`. Não há workspace na raiz — a raiz do
@@ -18,7 +17,6 @@ repositório **não** tem `package.json`.
 ```bash
 cd apps/site            && npm ci && npm run lint && npm test
 cd apps/license-manager  && npm ci && npm run build && npm test
-cd apps/finance-desktop  && npm ci && npm test          # test já roda build:web
 cd apps/web              && npm ci && npm run dev         # http://localhost:4300
 ```
 
@@ -30,29 +28,22 @@ regressão também fica vermelha numa mudança intencional de comportamento: nes
 antes de fazer o merge. Depois do deploy, `ARQEVON_WEB_URL=https://app.arqevoncode.com.br/ node --test
 --test-concurrency=1 'tests/e2e/*.test.mjs'` roda a mesma bateria contra a produção.
 
-`apps/finance-desktop` precisa de Rust apenas para `npm run dev` e `npm run build` (Tauri). Os
-testes e o `build:web` rodam sem Rust.
+O app desktop (Tauri) foi **descontinuado em 2026-10-14** e saiu do repositório (o histórico está
+no git). Os instaladores já publicados continuam em `apps/site/public/downloads`, sem link no site,
+e a API de licenças (`/api/v1/licenses/*` no license-manager) continua no ar: as instalações
+existentes validam a licença a cada 24 h e param de abrir após 30 dias sem resposta. Só desligue a
+API depois de avisar os clientes e oferecer a migração (app web + backup `.myfinance`, que o web
+importa).
 
 ## Armadilhas que já custaram tempo
-
-**Assinatura ad-hoc passa em teste local e falha depois do download.** No Apple Silicon o linker
-assina o binário automaticamente, então o app abre perfeitamente na máquina que compilou. Depois de
-baixado, o Gatekeeper avalia a assinatura e recusa com "aplicativo danificado". Nunca conclua que um
-build de macOS está distribuível por tê-lo aberto localmente — use as checagens de
-`docs/ASSINATURA_INSTALADORES.md`.
-
-**Secret ausente no GitHub Actions não é variável ausente: é variável vazia.** O bundler do Tauri
-decide assinar pela presença de `APPLE_CERTIFICATE`, não pelo conteúdo, e aborta o build inteiro ao
-tentar importar um certificado vazio. Por isso `build-desktop.yml` injeta as credenciais via
-`GITHUB_ENV` em um passo condicional, e o passo de compilação não declara nenhuma variável da Apple.
-Vale para qualquer credencial nova.
 
 **Depois de aplicar uma migração, recarregue o cache da API:** `notify pgrst, 'reload schema';`.
 Sem isso, uma função nova responde PGRST202 ("não encontrada") pelo REST mesmo existindo no banco.
 
-**O app web não copia o motor.** `apps/web/scripts/build.mjs` lê `apps/finance-desktop/meu-financeiro.html`
-e injeta login e layout. Mudou o motor, mudam desktop e web juntos. O motor só abre o convite de
-criptografia quando a classe `desktop-bloqueado` sai do `<html>`: o login web usa esse mesmo sinal.
+**O motor é um arquivo só.** `apps/web/src/motor.html` (HTML+JS) tem toda a parte financeira;
+`apps/web/scripts/build.mjs` injeta login, layout, "Sua conta" e PWA. O motor só abre o convite de
+criptografia quando a classe `desktop-bloqueado` sai do `<html>` (nome herdado do desktop): o login
+web usa esse sinal.
 `ARQEVON_BILLING=1` no build liga a venda do Pro; sem ela o Pro aparece como "chegando".
 
 **As migrações do Supabase são aplicadas à mão.** Não há passo automático no deploy. Aplique a
@@ -64,22 +55,9 @@ atualizada ao adicionar uma.
 sem credenciais. Não é bug: preferimos painel inacessível a painel sem proteção. A causa real vai
 para o log do servidor.
 
-**`LICENSE_API_BASE` divergente do CSP reprova o build.** `scripts/build-frontend.mjs` compara a
-origem configurada com o `connect-src` de `tauri.conf.json`. Sem isso o build passava e a ativação
-só falhava em runtime, na máquina do cliente. Ao mudar a origem da API, atualize os dois lugares.
-
-**Os hashes dos instaladores estão fixados em teste.** `apps/site/tests/site.test.mjs` e
-`docs/PRODUCTION_BASELINE.md` guardam os SHA-256 publicados. Trocar links sem atualizar os dois
-reprova o CI — é intencional, para a página nunca anunciar um arquivo diferente do homologado.
-
-**A landing page depende do license-manager em runtime.** O botão de download do Windows abre um
-modal que envia o e-mail para `POST /api/v1/license-requests`, em outro domínio. É a única chamada
-de rede que o site faz, e a URL está fixa em `apps/site/app/download-windows.tsx` porque o projeto
-do site não tem variáveis de ambiente. Ao mudar o domínio do license-manager, atualize esse arquivo.
-
-**O download de macOS está suspenso.** O botão é um rótulo inerte "Em breve" porque sem certificado
-Developer ID o cliente baixaria algo que não abre. Um teste reprova o CI se algum `href` voltar a
-apontar para o `.dmg`. Restaure o botão somente quando houver instalador assinado.
+**Os hashes dos instaladores antigos estão fixados em teste.** `apps/site/tests/site.test.mjs` e
+`docs/PRODUCTION_BASELINE.md` guardam os SHA-256 dos instaladores ainda hospedados, para nenhum ser
+trocado por engano.
 
 **O Supabase grátis pausa sozinho.** Em 2026-10-05 o projeto estava `INACTIVE`, com ativações e
 pedidos de licença fora do ar, sem que ninguém percebesse. O `keep-alive.yml` faz uma chamada diária
@@ -108,28 +86,12 @@ Supabase (funções `vault_*`, JWT do Supabase Auth). O Next.js não entra nesse
 do cofre precisa do mesmo filtro, e `supabase/tests/cloud_vault.test.sql` precisa provar o
 isolamento entre contas.
 
-## Ordem de um release do desktop
-
-1. Aplicar migrações pendentes no Supabase.
-2. Subir o código e conferir o deploy do license-manager.
-3. Criar a tag `vX.Y.Z` — é o gatilho de `build-desktop.yml`.
-4. Sem certificados, o artefato sai com sufixo `-NAO-ASSINADO-NAO-PUBLICAR`. Ele **não** deve ir
-   para a landing page.
-5. Promover os instaladores para `apps/site/public/downloads/`, atualizar links, texto da versão,
-   os hashes no teste do site e o `PRODUCTION_BASELINE.md`.
-6. Versões anteriores continuam hospedadas para não quebrar links já enviados a clientes.
-
-A versão aparece em quatro lugares no desktop: `package.json`, `src-tauri/tauri.conf.json`,
-`src-tauri/Cargo.toml` (e `Cargo.lock`) e `APP_VERSION` em `src/desktop.js`.
-
 ## Coisas que parecem quebradas e não estão
 
 - `apps/site/db`, `worker`, `drizzle`, `.openai` e `examples` estão **vazias**. São sobras de
   scaffold: o site não tem banco, worker nem Cloudflare. Pode ignorar ou remover.
 - `NEXT_PUBLIC_APP_NAME` e `NEXT_PUBLIC_LICENSE_API_URL` aparecem no `.env.example` do
   license-manager mas nenhum arquivo as lê.
-- O `grep` não encontra strings do frontend dentro do binário do Tauri: os assets são comprimidos.
-  Ausência de string não indica funcionalidade ausente.
 - `/api/v1/licenses/validate` responde `503 SERVER_ERROR` para um token malformado, e só
   `401 TOKEN_INVALID` para assinatura inválida ou expirada. Ao testar o endpoint, use um JWT bem
   formado assinado por outra chave — token lixo dá 503 e parece defeito de servidor.

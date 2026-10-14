@@ -1,14 +1,16 @@
-# Baseline de produção — Arqevon Finance 1.0.6
+# Baseline de produção — Arqevon Finance
 
-Este documento registra a versão anunciada na landing page.
+O produto é o app web (`app.arqevoncode.com.br`). O app desktop foi descontinuado em 2026-10-14:
+os instaladores abaixo continuam hospedados sem link no site, e a API de licenças continua no ar
+para quem já instalou. Os testes de navegador em `apps/web/tests/e2e` guardam os fluxos do app.
 
 ## Serviços
 
-- Site: https://arqevon-site.vercel.app
-- Site alternativo: https://arqevon-code.vercel.app
-- Gerenciador de licenças: https://myfinance-license-manager.vercel.app
+- Site: https://arqevoncode.com.br
+- App: https://app.arqevoncode.com.br
+- Licenças e pagamentos: https://licencas.arqevoncode.com.br (o desktop instalado usa https://myfinance-license-manager.vercel.app)
 
-## Artefatos publicados
+## Instaladores do desktop (descontinuado, ainda hospedados)
 
 Gerados pela tag `v1.0.6`.
 
@@ -18,9 +20,7 @@ Gerados pela tag `v1.0.6`.
 | macOS Apple Silicon | `apps/site/public/downloads/Arqevon-Finance-1.0.6-macOS-Apple-Silicon.dmg` | `05d2a99f95aab6f1f673c895e47d9ef652a8efba8f153b1a48ceb7482a3ec16a` |
 
 > **Estes artefatos não estão assinados.** No macOS o Gatekeeper os recusa com a mensagem de
-> aplicativo danificado; no Windows o SmartScreen alerta antes de permitir a instalação. Enquanto os
-> certificados descritos em `ASSINATURA_INSTALADORES.md` não existirem, o download do macOS não abre
-> na máquina do cliente. O nome dos artefatos no CI sai com o sufixo `-NAO-ASSINADO-NAO-PUBLICAR`.
+> aplicativo danificado; no Windows o SmartScreen alerta antes de permitir a instalação.
 
 ### Versão anterior
 
@@ -43,9 +43,8 @@ A 1.0.5 continua hospedada para não quebrar links já enviados, e é o ponto de
 - Tema claro e escuro.
 - Exportar e importar backup atual e backups legados protegidos por senha.
 - Resetar todos os dados mediante confirmação.
-- Enviar feedback vinculado à licença, com o comprovante assinado definindo a origem.
 
-### Licenciamento
+### Licenciamento (desktop já instalado)
 
 - Ativação vinculada ao dispositivo.
 - Limite configurável de 1 a 5 dispositivos.
@@ -53,13 +52,3 @@ A 1.0.5 continua hospedada para não quebrar links já enviados, e é o ponto de
 - Tolerância offline de 30 dias.
 - Bloqueio na próxima validação online após suspensão ou cancelamento.
 - Chave privada somente no servidor; desktop contém apenas a chave pública.
-
-### Distribuição
-
-- Windows x64: instalador deve aceitar os retornos de sucesso do WebView2, inclusive `-2147219416` e `-2147219187`.
-- macOS: validar abertura, permissões, importação de arquivos e ações de edição/exclusão.
-- Links da landing page devem responder e baixar exatamente os artefatos registrados acima.
-
-## Estratégia de retorno
-
-A tag `production-v1.0.5` identifica este baseline. Se uma refatoração causar regressão, compare com essa tag ou gere um branch a partir dela, sem apagar o histórico posterior.

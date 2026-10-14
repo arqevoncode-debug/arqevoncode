@@ -84,9 +84,6 @@
 .lp-planos ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; line-height: 1.9; }
 .lp-planos a { justify-self: start; }
 
-.lp-windows { grid-template-columns: 1fr auto; align-items: center; gap: 24px; padding: 32px; margin-top: 96px; border-radius: 22px; border: 1px solid var(--line); }
-.lp-windows h2 { font-size: 24px; }
-.lp-windows p { margin-top: 8px; color: var(--muted); font-size: 14px; }
 
 .lp-faq { display: grid; gap: 10px; max-width: 880px; }
 .lp-faq details { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
@@ -153,7 +150,7 @@
   .lp-faixa div:nth-child(3) { border-left: 0; }
   .lp-faixa div:nth-child(n+3) { border-top: 1px solid var(--line); }
   .lp-recursos, .lp-passos { grid-template-columns: 1fr 1fr; }
-  .lp-privacidade, .lp-windows { grid-template-columns: 1fr; padding: 32px; }
+  .lp-privacidade { grid-template-columns: 1fr; padding: 32px; }
 }
 @media (max-width: 620px) {
   .lp-entrar { display: none; }

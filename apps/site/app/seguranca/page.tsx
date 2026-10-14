@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem. Veja o que a Arqevon vê, o que não vê e como a proteção funciona.",
 };
 
-// Cada afirmação daqui foi conferida no código (apps/web/src/cofre.js, meu-financeiro.html,
+// Cada afirmação daqui foi conferida no código (apps/web/src/cofre.js, apps/web/src/motor.html,
 // vercel.json) e no banco. Ao mudar a criptografia, os algoritmos ou o que o servidor guarda,
 // atualize esta página e a Política de Privacidade juntas.
 export default function Seguranca() {
