@@ -138,13 +138,18 @@ test("aparelho novo de quem já tem dados na nuvem: convite para abrir", async (
     claim_trial: { ok: true, status: "not_eligible" },
     my_entitlements: direitos({ cloud: true, sub: { plan: "pro_mensal", status: "active", current_period_end: emDias(20) } }),
     list_plans: PLANOS, vault_status: { ok: true, entitled: true, exists: true, key_params: {}, wrapped_key: "x".repeat(20), recovery_wrapped_key: "y".repeat(20), key_version: 1 },
+    vault_link_request: { ok: true, id: "link-1", expires_at: emDias(1) },
+    vault_link_take: { ok: true, pending: true },
   } });
   await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
-  assert.match(await texto(p, "#webAvisoTexto"), /já tem dados na nuvem/);
+  assert.match(await texto(p, "#webAvisoTexto"), /já tem dados na nuvem.*aprove este aparelho/);
   await p.click("#webAvisoAcao");
   await p.waitForFunction(() => document.querySelector("#webConta").open);
   await espera(300);
-  assert.ok(await p.$eval("#wnAbrir", e => !e.hidden), "abre direto no pedido da senha da nuvem");
+  assert.ok(await p.$eval("#wnAparelho", e => !e.hidden), "abre direto na liberação por outro aparelho");
+  assert.match(await texto(p, "#wnCodigo"), /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/, "mostra o código");
+  await p.click("#wnUsarSenha");
+  assert.ok(await p.$eval("#wnAbrir", e => !e.hidden), "a senha continua como alternativa");
   await p.fechar();
 });
 

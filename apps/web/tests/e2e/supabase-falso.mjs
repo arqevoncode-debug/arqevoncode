@@ -20,8 +20,11 @@ export const sessao = (uid, email) => ({ access_token: jwt(uid, email), refresh_
 /** Estado do "banco": contas (uid → {email, cloud, vault, direitos...}). */
 export function banco() {
   const contas = new Map();
+  const links = new Map(); // pedidos de liberação de aparelho
+  let seqLink = 0;
   return {
     contas,
+    links,
     conta(uid, email, o = {}) { contas.set(uid, { uid, email, cloud: true, vault: null, sub: null, trial: null, extra: {}, ...o }); return contas.get(uid); },
     porEmail(email) { return [...contas.values()].find(c => c.email === email); },
     vivos(uid) { const v = contas.get(uid)?.vault; return v ? [...v.itens.values()].filter(i => !i.deleted).length : 0; },
@@ -62,6 +65,31 @@ export function banco() {
           const until = lista.length ? lista.at(-1).rev : args.p_since;
           return { ok: true, items: lista.map(({ id, rev, deleted, ct }) => ({ id, rev, deleted, ct })), until, has_more: until < v.last_rev, last_rev: v.last_rev, key_version: v.key_version };
         }
+        // Liberar aparelho novo (mesmas regras de 202610150001_aparelho_aprovado.sql)
+        case "vault_link_request": {
+          if (!v) return { ok: false, code: "VAULT_NOT_FOUND", message: "Esta conta ainda não tem dados na nuvem." };
+          for (const [id, l] of links) if (l.uid === uid && l.expira <= Date.now()) links.delete(id);
+          if ([...links.values()].filter(l => l.uid === uid && !l.sealed).length >= 5) return { ok: false, code: "TOO_MANY", message: "Muitos pedidos em aberto. Espere alguns minutos e tente de novo." };
+          const id = `link-${++seqLink}`;
+          links.set(id, { id, uid, device_pub: args.p_device_pub, device_tag: args.p_device_tag, label: args.p_label, sealed: null, expira: Date.now() + 600000 });
+          return { ok: true, id, expires_at: new Date(agora + 600000).toISOString() };
+        }
+        case "vault_link_pending":
+          return { ok: true, items: [...links.values()].filter(l => l.uid === uid && !l.sealed && l.expira > Date.now()).map(({ id, device_pub, device_tag, label }) => ({ id, device_pub, device_tag, label })) };
+        case "vault_link_approve": {
+          const l = links.get(args.p_id);
+          if (!l || l.uid !== uid || l.sealed || l.expira <= Date.now()) return { ok: false, code: "NOT_FOUND", message: "Este pedido venceu ou já foi atendido. Gere um código novo no outro aparelho." };
+          l.sealed = args.p_sealed;
+          return { ok: true };
+        }
+        case "vault_link_take": {
+          const l = links.get(args.p_id);
+          if (!l || l.uid !== uid) return { ok: false, code: "NOT_FOUND", message: "Pedido não encontrado." };
+          if (l.sealed) { links.delete(l.id); return { ok: true, sealed: l.sealed }; }
+          if (l.expira <= Date.now()) { links.delete(l.id); return { ok: false, code: "EXPIRED", message: "O código venceu." }; }
+          return { ok: true, pending: true };
+        }
+        case "vault_link_cancel": { const l = links.get(args.p_id); if (l && l.uid === uid) links.delete(l.id); return { ok: true }; }
         default: return { ok: true };
       }
     },
@@ -79,6 +107,7 @@ const uidDoToken = h => {
  */
 export async function ligar(p, db) {
   p.chamadas = [];
+  p.corpos = []; // corpo de cada chamada RPC, para provar o que (não) vai ao servidor
   p.otp = {};
   p.offline = false;
   await p.setRequestInterception(true);
@@ -110,6 +139,7 @@ export async function ligar(p, db) {
     const fn = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/)?.[1];
     if (fn) {
       p.chamadas.push(fn);
+      p.corpos.push(fn + " " + (req.postData() || ""));
       if (p.falhar?.[fn]) return json(p.falhar[fn].status || 500, p.falhar[fn].corpo || { message: "erro" });
       return json(200, db.rpc(uid, fn, corpo));
     }
@@ -196,7 +226,8 @@ export async function criarNuvemUI(p, senha = "senha-nuvem-123") {
 
 export async function abrirNuvemUI(p, senha = "senha-nuvem-123") {
   await abrirConta(p);
-  await p.waitForFunction(() => !document.querySelector("#wnAbrir").hidden, { timeout: 5000 });
+  await p.waitForFunction(() => !document.querySelector("#wnAparelho").hidden || !document.querySelector("#wnAbrir").hidden, { timeout: 5000 });
+  if (await p.$eval("#wnAbrir", e => e.hidden)) await p.click("#wnUsarSenha");
   await p.type("#wnSenhaAbrir", senha);
   await p.click("#wnBotaoAbrir");
   await p.waitForFunction(() => /Sincronizado|incorreta|Cancelado|Não foi/.test(document.querySelector("#wnStatus").textContent + document.querySelector("#wnErroAbrir").textContent), { timeout: 20000 });

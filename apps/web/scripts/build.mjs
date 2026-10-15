@@ -54,8 +54,9 @@ const fontes = `<link rel="preconnect" href="https://fonts.googleapis.com">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <script>document.documentElement.classList.add("web-bloqueado", "desktop-bloqueado");</script>
 `;
-html = html.replace("</head>", `${fontes}</head>`);
-html = html.replace("</body>", `<style id="web-style">\n${css}\n</style>\n${markup}\n<script type="module">\n${js}\n</script>\n</body>`);
+// Substituição por função: com texto, o replace interpreta $' $` $& do código minificado e corrompe o script.
+html = html.replace("</head>", () => `${fontes}</head>`);
+html = html.replace("</body>", () => `<style id="web-style">\n${css}\n</style>\n${markup}\n<script type="module">\n${js}\n</script>\n</body>`);
 
 await mkdir(output, { recursive: true });
 await writeFile(resolve(output, "index.html"), html);

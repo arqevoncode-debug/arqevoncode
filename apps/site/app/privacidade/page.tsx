@@ -43,7 +43,7 @@ export default function Privacidade() {
               <td>Execução de contrato (art. 7º, V); legítimo interesse na segurança da conta (art. 7º, IX)</td>
             </tr>
             <tr>
-              <td><strong>Dados financeiros na nuvem</strong> (plano Pro), sempre cifrados, e metadados técnicos: quantidade e tamanho dos registros e datas de alteração</td>
+              <td><strong>Dados financeiros na nuvem</strong> (plano Pro), sempre cifrados, e metadados técnicos: quantidade e tamanho dos registros e datas de alteração. Ao liberar um aparelho novo, guardamos por alguns minutos o pedido: o nome do aparelho (como &quot;iPhone · Safari&quot;), uma chave pública e o pacote cifrado</td>
               <td>Sincronizar seus dados entre os seus aparelhos</td>
               <td>Execução de contrato (art. 7º, V)</td>
             </tr>
@@ -125,6 +125,7 @@ export default function Privacidade() {
       <h2>7. Por quanto tempo guardamos</h2>
       <ul>
         <li><strong>Conta e dados na nuvem:</strong> enquanto a conta existir. Se você pedir a exclusão, apagamos em até 15 dias.</li>
+        <li><strong>Pedidos de liberação de aparelho:</strong> valem por 10 minutos e são apagados quando atendidos ou recusados. Os que vencem sem uso são apagados na limpeza automática feita a cada novo pedido.</li>
         <li><strong>Cópias de segurança:</strong> são diárias, cifradas e descartadas automaticamente em até 90 dias. Um dado apagado da conta some das cópias nesse prazo.</li>
         <li><strong>Dados técnicos da sessão:</strong> enquanto a sessão estiver ativa. Os registros técnicos dos fornecedores de hospedagem são mantidos por poucos dias, conforme a política de cada um.</li>
         <li><strong>Registros de pagamento e assinatura:</strong> pelo prazo exigido pela legislação fiscal e de defesa do consumidor (até 5 anos).</li>

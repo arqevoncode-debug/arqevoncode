@@ -328,7 +328,7 @@ function verificarAvisos() {
 
   if (estado.modo === "conta" && nuvem.pedeSenha()) {
     avisoDaSessao = true;
-    avisar("Sua conta já tem dados na nuvem. Digite a senha da nuvem para abri-los neste aparelho.", "Abrir meus dados", abrirConta);
+    avisar("Sua conta já tem dados na nuvem. Para abri-los aqui, aprove este aparelho onde você já usa o app.", "Abrir meus dados", abrirConta);
     return;
   }
   if (soTeste && diasAte(trial.ends_at) <= 3 && localStorage.getItem(AVISO_FIM_TESTE) !== trial.ends_at) {
