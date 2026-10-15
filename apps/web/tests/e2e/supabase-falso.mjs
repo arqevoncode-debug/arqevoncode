@@ -116,6 +116,7 @@ export async function ligar(p, db) {
     if (u.hostname.startsWith("licencas.") && u.pathname === "/api/v1/vault/key") {
       p.chamadas.push("vault_key");
       p.corpos.push("vault_key " + (req.postData() || ""));
+      if (db.tokenVencido > 0) { db.tokenVencido--; return json(401, { ok: false, code: "AUTH_INVALID", message: "Sessão expirada. Entre na sua conta novamente." }); }
       if (db.falharChave) return json(503, { ok: false, code: "SERVER_ERROR", message: "Não foi possível abrir a nuvem agora. Tente de novo." });
       const [st, resp] = db.chave(uid, corpo);
       return json(st, resp);
@@ -135,7 +136,12 @@ export async function ligar(p, db) {
     }
     if (u.pathname === "/auth/v1/logout") { p.chamadas.push("logout"); return req.respond({ status: 204, headers: cors }); }
     if (u.pathname === "/auth/v1/user") { const c = db.contas.get(uid); return json(200, { id: uid, email: c?.email, aud: "authenticated", role: "authenticated" }); }
-    if (u.pathname === "/auth/v1/token") { return json(400, { error: "invalid_grant" }); }
+    if (u.pathname === "/auth/v1/token") {
+      // renovação de sessão (só quando o teste liga): o refresh_token é "r-<uid>"
+      const alvo = String(corpo.refresh_token || "").replace(/^r-/, "");
+      if (db.renovarSessao && db.contas.get(alvo)) { p.chamadas.push("refresh"); return json(200, sessao(alvo, db.contas.get(alvo).email)); }
+      return json(400, { error: "invalid_grant" });
+    }
     const fn = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/)?.[1];
     if (fn) {
       p.chamadas.push(fn);
@@ -210,11 +216,8 @@ export async function abrirConta(p) {
   await espera(500);
 }
 
-/** Liga a nuvem pela interface (só um botão). */
+/** Conta com o Pro: a nuvem liga sozinha. Espera sincronizar e a chave chegar ao servidor. */
 export async function criarNuvemUI(p) {
-  await abrirConta(p);
-  await p.waitForFunction(() => !document.querySelector("#wnCriar").hidden, { timeout: 5000 });
-  await p.click("#wnBotaoCriar");
   await p.waitForFunction(() => /Sincronizado/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
   // a chave segue para o servidor logo depois da primeira sincronização
   for (let i = 0; i < 50; i++) {
@@ -228,7 +231,7 @@ export async function criarNuvemUI(p) {
 /** Aparelho sem as chaves: abrir "Sua conta" basta; espera sincronizar. */
 export async function abrirNuvemUI(p) {
   await abrirConta(p);
-  await p.waitForFunction(() => /Sincronizado|Cancelado|Não foi|aparecer aqui/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
+  await p.waitForFunction(() => /Sincronizado|Cancelado|Não foi|Aguardando a chave/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
 }
 
 export const lerLocal = p => p.evaluate(() => JSON.parse(localStorage.getItem("meu-financeiro-v1") || "null"));

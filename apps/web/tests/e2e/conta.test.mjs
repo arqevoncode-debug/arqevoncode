@@ -138,19 +138,20 @@ test("sem conta não pede teste e o aviso não cobre a barra do celular", async 
   await p.fechar();
 });
 
-test("aparelho novo, chave ainda não está no servidor: aviso e espera, sem pedir senha nem código", async () => {
+test("aparelho novo, chave ainda não está no servidor: espera em silêncio, sem tela de nuvem", async () => {
   const p = await abrirLogado({ rpc: {
     claim_trial: { ok: true, status: "not_eligible" },
     my_entitlements: direitos({ cloud: true, sub: { plan: "pro_mensal", status: "active", current_period_end: emDias(20) } }),
     list_plans: PLANOS, vault_status: { ok: true, entitled: true, exists: true, key_params: { v: 1 }, wrapped_key: "x".repeat(20), recovery_wrapped_key: "y".repeat(20), key_version: 1 },
   } });
-  await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
-  assert.match(await texto(p, "#webAvisoTexto"), /abrir o app uma vez no aparelho onde já usa a nuvem/);
-  await p.click("#webAvisoAcao");
+  await espera(1500);
+  assert.ok(await p.$eval("#webAviso", e => e.hidden), "nenhum aviso sobre a nuvem");
+  await p.click("#webAbrirConta");
   await p.waitForFunction(() => document.querySelector("#webConta").open);
   await espera(300);
-  assert.ok(await p.$eval("#wnEsperando", e => !e.hidden), "explica a espera");
-  for (const sel of ["#wnSenhaAbrir", "#wnCodigo", "#wnChaveRec", "#webAprovar"]) assert.equal(await p.$(sel), null, `${sel} não existe mais`);
+  assert.ok(await p.$eval("#wcNuvem", e => e.hidden), "Sua conta não mostra a nuvem");
+  assert.doesNotMatch(await texto(p, "#webConta"), /Sessão expirada|aparecer aqui|Aguardando a chave|Ativar a nuvem/i);
+  for (const sel of ["#wnSenhaAbrir", "#wnCodigo", "#wnChaveRec", "#webAprovar", "#wnCriar", "#wnEsperando"]) assert.equal(await p.$(sel), null, `${sel} não existe mais`);
   assert.ok(p.chamadas.includes("vault_key"), "pediu a chave ao servidor");
   await p.fechar();
 });

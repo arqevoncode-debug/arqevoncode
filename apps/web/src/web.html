@@ -71,30 +71,9 @@
   </div>
   <p class="wl-nota" id="wcGerenciar" hidden>Para trocar o cartão, regularizar um pagamento ou cancelar, use o e-mail da compra enviado pela Kiwify ou escreva para <a href="mailto:contato@arqevoncode.com.br">contato@arqevoncode.com.br</a>.</p>
 
+  <!-- A nuvem funciona sozinha (sincronização silenciosa); só o estado fica aqui, oculto, para diagnóstico. -->
   <section class="wc-nuvem" id="wcNuvem" hidden>
-    <h3>Nuvem</h3>
     <p class="wc-nuvem-status" id="wnStatus"></p>
-    <p class="wl-nota"><a href="https://arqevoncode.com.br/seguranca" target="_blank" rel="noopener">Como protegemos seus dados</a></p>
-
-    <form id="wnCriar" class="wc-form" hidden>
-      <p class="wl-sub">Guarde uma cópia cifrada dos seus dados na nuvem e use em qualquer aparelho: é só entrar com o seu e-mail.</p>
-      <p class="wl-erro" id="wnErroCriar" hidden></p>
-      <button class="wl-botao" type="submit" id="wnBotaoCriar">Ativar a nuvem</button>
-    </form>
-
-    <div id="wnEsperando" class="wc-form" hidden>
-      <p class="wl-sub">Abra o Arqevon Finance uma vez no aparelho onde você já usa a nuvem (o computador, por exemplo). Ele conclui uma atualização e, em seguida, seus dados aparecem aqui sozinhos.</p>
-      <details class="wc-recomecar">
-        <summary>Não tenho mais esse aparelho</summary>
-        <p class="wl-sub">Sem ele, os dados guardados na nuvem não podem ser abertos. Você pode apagá-los e ligar a nuvem de novo com os dados deste aparelho.</p>
-        <button class="botao cancelar" type="button" id="wnRecomecar">Apagar a nuvem e começar de novo</button>
-      </details>
-    </div>
-
-    <div class="wc-nuvem-acoes" id="wnAtiva" hidden>
-      <button class="botao" type="button" id="wnAgora">Sincronizar agora</button>
-      <button class="botao cancelar" type="button" id="wnEsquecer">Desligar neste aparelho</button>
-    </div>
   </section>
 
   <section class="wc-nuvem wc-indique" id="wcIndique" hidden>

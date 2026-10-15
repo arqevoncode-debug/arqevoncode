@@ -4,6 +4,8 @@
 // Acesso só pelo e-mail (2026-10-15): entrar na conta basta. A chave dos dados (DEK) fica no aparelho
 // e sob custódia do servidor (/api/v1/vault/key no license-manager, cifrada com uma chave mestra que
 // não fica no banco). Um aparelho novo busca a DEK lá; os registros continuam cifrados no aparelho.
+// Tudo é silencioso (decisão do dono): sem seção "Nuvem" na tela, sem botões e sem avisos. A nuvem
+// liga sozinha para quem tem o Pro.
 import { novaChaveCustodia, dekEmBase64, chavesDeDekBase64 } from "./cofre.js";
 import { Sincronizador, estadoVazio, COLECOES } from "./sync.js";
 import { LICENSE_API } from "./config.js";
@@ -11,7 +13,6 @@ import { LICENSE_API } from "./config.js";
 const $ = id => document.getElementById(id);
 const DONO = "arqevon-sync-dono"; // conta cujos dados estão neste navegador
 const chaveEstado = uid => `arqevon-sync:${uid}`;
-const ESPERANDO = "Seus dados da nuvem vão aparecer aqui assim que você abrir o app uma vez no aparelho onde já usa a nuvem.";
 
 // ---------- Chaves no IndexedDB ----------
 // Registro: {cifra, ids, dek, versao, kid}. versao e kid dizem com qual chave da nuvem ele vale.
@@ -54,7 +55,6 @@ const motor = {
   gravar: dados => ponte().substituirDados(dados, { sync: true }),
 };
 const temDados = d => COLECOES.some(c => (d?.[c] || []).length > 0);
-const mostrar = ativo => ["wnCriar", "wnEsperando", "wnAtiva"].forEach(id => { $(id).hidden = id !== ativo; });
 const kidDe = st => st?.key_params?.kid || null;
 
 export function criarNuvem({ supabase, aoMudar }) {
@@ -70,6 +70,7 @@ export function criarNuvem({ supabase, aoMudar }) {
   let esperando = false; // a nuvem existe, mas a chave ainda não chegou ao servidor
   let chavesAtuais = null;
   let atualizandoChave = false;
+  let criandoOuAssumindo = false;
 
   const rpc = (fn, args) => supabase.rpc(fn, args);
   const store = {
@@ -92,17 +93,19 @@ export function criarNuvem({ supabase, aoMudar }) {
   }
 
   // ---------- Custódia da chave no servidor ----------
-  async function servidorChave(corpo = {}) {
-    const { data } = await supabase.auth.getSession();
+  async function servidorChave(corpo = {}, renovou = false) {
+    // token velho (aba aberta há horas, aparelho que dormiu): renova a sessão e tenta de novo
+    const { data } = renovou ? await supabase.auth.refreshSession() : await supabase.auth.getSession();
     const token = data?.session?.access_token;
-    if (!token) return { ok: false, code: "AUTH", message: "Sessão expirada. Entre na sua conta novamente." };
+    if (!token) return renovou ? { ok: false, code: "AUTH" } : servidorChave(corpo, true);
     try {
       const r = await fetch(`${LICENSE_API}/api/v1/vault/key`, {
         method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(corpo),
       });
+      if (r.status === 401 && !renovou) return servidorChave(corpo, true);
       return await r.json().catch(() => ({ ok: false, code: "SERVER_ERROR" }));
     } catch {
-      return { ok: false, code: "REDE", message: "Sem conexão com a nuvem agora." };
+      return { ok: false, code: "REDE" };
     }
   }
 
@@ -223,37 +226,81 @@ export function criarNuvem({ supabase, aoMudar }) {
       if (!(await prepararDono())) { informar("Cancelado: os dados deste navegador foram mantidos."); return; }
       const chaves = await chavesDeDekBase64(r.dek);
       const reg = await guardarChaves({ ...chaves, entregue: true }, status.key_version, r.kid || kidDe(status));
-      mostrar("wnAtiva");
       informar("Baixando seus dados…");
       await iniciarSync(reg);
       aoMudar?.(texto);
       return;
     }
     if (r.code === "KEY_PENDING") {
+      // Ninguém entregou a chave desta nuvem (formato antigo, chave perdida). Um aparelho com
+      // lançamentos assume a nuvem com uma chave nova e reenvia o que tem; um aparelho vazio espera.
+      if (motor.pronto() && temDados(motor.ler())) { await assumirNuvem(); return; }
       esperando = true;
-      mostrar("wnEsperando");
-      informar(ESPERANDO);
+      informar("Aguardando a chave da nuvem.");
       clearInterval(timerEspera);
       timerEspera = setInterval(() => { if (document.visibilityState === "visible" && esperando && !sync) atualizar(); }, 10000);
       return;
     }
-    mostrar(null);
-    informar(r.message || "Não foi possível abrir a nuvem agora. Tente de novo.");
+    informar(r.message || "Não foi possível abrir a nuvem agora.");
+    clearInterval(timerEspera);
+    timerEspera = setInterval(() => { if (document.visibilityState === "visible" && !sync) atualizar(); }, 30000);
+  }
+
+  // Nuvem nova (primeira vez com o Pro): liga sozinha, sem botão.
+  async function criarNuvem() {
+    if (criandoOuAssumindo) return;
+    if (!motor.pronto()) { // bloqueado pela senha local ou no exemplo: tenta de novo em instantes
+      clearInterval(timerEspera);
+      timerEspera = setInterval(() => { if (document.visibilityState === "visible" && !sync) atualizar(); }, 10000);
+      return;
+    }
+    criandoOuAssumindo = true;
+    try {
+      if (!(await prepararDono())) return;
+      const c = await novaChaveCustodia();
+      const { data, error } = await rpc("vault_create", { p_key_params: c.params, p_wrapped_key: c.wrapped, p_recovery_wrapped_key: c.recovery });
+      if (error || !data?.ok) { informar(data?.message || "Não foi possível ligar a nuvem agora."); return; }
+      await consultarStatus();
+      const reg = await guardarChaves(c.chaves, status?.key_version ?? 1, c.params.kid);
+      store.gravar(estadoVazio(uid));
+      informar("Enviando seus dados com criptografia…");
+      await iniciarSync(reg);
+    } finally { criandoOuAssumindo = false; }
+  }
+
+  // A nuvem existe, mas ninguém tem a chave: este aparelho (com lançamentos) troca a chave e reenvia
+  // tudo o que tem. Os outros aparelhos recebem a chave nova pelo servidor e somam o que só eles têm.
+  async function assumirNuvem() {
+    if (criandoOuAssumindo) return;
+    criandoOuAssumindo = true;
+    try {
+      if (!(await prepararDono())) return;
+      const c = await novaChaveCustodia();
+      const reg = await guardarChaves(c.chaves, status.key_version + 1, c.params.kid);
+      const { data, error } = await rpc("vault_rotate", { p_expected_version: status.key_version, p_key_params: c.params, p_wrapped_key: c.wrapped, p_recovery_wrapped_key: c.recovery });
+      if (error || !data?.ok) {
+        const depois = await consultarStatus();
+        if (kidDe(depois) !== c.params.kid) { await apagarChaves(uid); informar(data?.message || "Não foi possível abrir a nuvem agora."); return; }
+      }
+      await consultarStatus();
+      store.gravar(estadoVazio(uid));
+      informar("Reenviando seus dados com uma chave nova…");
+      await iniciarSync(reg);
+    } finally { criandoOuAssumindo = false; }
   }
 
   function pararEspera() { esperando = false; clearInterval(timerEspera); timerEspera = null; }
 
   async function atualizar() {
     if (!uid) return;
+    $("wcNuvem").hidden = true;
     if (!(await consultarStatus())) { informar("Não foi possível consultar a nuvem agora."); return; }
-    $("wcNuvem").hidden = false;
-    if (sync) { mostrar("wnAtiva"); informar(texto || "Sincronização ativa."); return; }
-    if (!status.exists && !status.entitled) {
-      mostrar(null);
-      informar("A sincronização entre aparelhos faz parte do plano Pro.");
+    if (sync) return;
+    if (!status.exists) {
+      pararEspera();
+      if (status.entitled) await criarNuvem(); else informar("A nuvem faz parte do plano Pro.");
       return;
     }
-    if (!status.exists) { pararEspera(); mostrar("wnCriar"); informar("Desligada neste aparelho."); return; }
     const chaves = await lerChaves(uid);
     if (chaves && (chaves.kid || null) !== kidDe(status)) {
       // guardadas antes de uma troca de chave feita em outro aparelho
@@ -262,51 +309,12 @@ export function criarNuvem({ supabase, aoMudar }) {
     } else if (chaves) {
       // registro de antes de existir a versão: vale para a versão atual (o kid confere)
       const reg = chaves.versao == null ? await guardarChaves(chaves, status.key_version, kidDe(status)) : chaves;
-      mostrar("wnAtiva"); informar("Conectando…");
+      informar("Conectando…");
       if (await prepararDono()) await iniciarSync(reg);
       return;
     }
     await abrirPeloServidor();
   }
-
-  // ---------- Telas ----------
-  $("wnCriar").addEventListener("submit", async e => {
-    e.preventDefault();
-    const botao = $("wnBotaoCriar");
-    botao.disabled = true; botao.textContent = "Protegendo seus dados…";
-    const erro = $("wnErroCriar"); erro.hidden = true;
-    try {
-      if (!(await prepararDono())) throw new Error("Cancelado.");
-      const c = await novaChaveCustodia();
-      const { data, error } = await rpc("vault_create", { p_key_params: c.params, p_wrapped_key: c.wrapped, p_recovery_wrapped_key: c.recovery });
-      if (error || !data?.ok) throw new Error(data?.message || "Não foi possível ligar a nuvem agora.");
-      await consultarStatus();
-      const reg = await guardarChaves(c.chaves, status?.key_version ?? 1, c.params.kid);
-      store.gravar(estadoVazio(uid));
-      mostrar("wnAtiva");
-      informar("Enviando seus dados com criptografia…");
-      await iniciarSync(reg);
-    } catch (err) {
-      erro.textContent = err.message; erro.hidden = false;
-    } finally { botao.disabled = false; botao.textContent = "Ativar a nuvem"; }
-  });
-
-  $("wnRecomecar").addEventListener("click", async () => {
-    if (!window.confirm("Apagar os dados da nuvem desta conta e começar de novo com os dados deste aparelho? Não há como desfazer.")) return;
-    const { data, error } = await rpc("vault_delete");
-    if (error || !data?.ok) { informar(data?.message || "Não foi possível apagar agora."); return; }
-    pararEspera();
-    localStorage.removeItem(chaveEstado(uid));
-    await apagarChaves(uid);
-    await atualizar();
-  });
-
-  $("wnAgora").addEventListener("click", () => { informar("Sincronizando…"); rodar(); });
-  $("wnEsquecer").addEventListener("click", async () => {
-    if (!window.confirm("Desligar a nuvem neste aparelho? Os dados continuam aqui e na nuvem. Para religar, é só abrir Sua conta de novo.")) return;
-    await parar(true);
-    atualizar();
-  });
 
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") rodar(); });
   window.addEventListener("online", () => rodar());
