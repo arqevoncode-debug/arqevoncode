@@ -1,18 +1,20 @@
 // Criptografia do cofre na nuvem. Tudo acontece no aparelho: o servidor só recebe texto cifrado,
 // a chave dos dados embrulhada e os parâmetros (públicos) para derivar as chaves de embrulho.
 //
-// DEK (chave dos dados): 32 bytes aleatórios, criada uma vez por conta. Dela saem, por HKDF,
+// DEK (chave dos dados): 32 bytes aleatórios, criada no aparelho. Dela saem, por HKDF,
 //   - a chave AES-GCM que cifra cada registro;
 //   - a chave HMAC que gera o id opaco de cada registro (o servidor não sabe o que é cada item).
-// A DEK é guardada na nuvem embrulhada duas vezes: pela senha (PBKDF2) e pela chave de
-// recuperação. Trocar a senha só reembrulha a DEK; os registros não são recifrados.
+// Desde 2026-10-15 não há senha da nuvem: a DEK fica nos aparelhos conectados (um libera o outro,
+// veja selarParaAparelho) e, na nuvem, só embrulhada pela chave de recuperação, o plano B.
+// Contas antigas têm a DEK embrulhada também pela senha (v1); abrirComSenha fica para elas.
+// Cada DEK nova ganha um `kid` público em key_params: o aparelho sabe se a chave que guarda é a atual.
 
 const subtle = globalThis.crypto.subtle;
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
 export const ITERACOES_SENHA = 600_000; // recomendação OWASP para PBKDF2-SHA256
-const ITERACOES_RECUPERACAO = 100_000; // a chave de recuperação já tem 160 bits de entropia
+export const ITERACOES_RECUPERACAO = 100_000; // a chave de recuperação já tem 160 bits de entropia
 const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // base32 sem 0/O/1/I, para ditar sem erro
 
 export const b64 = bytes => {
@@ -117,6 +119,12 @@ async function chaveDoPacote(privada, pubOutroB64, codigo, id) {
 
 const erroCodigo = (code, message) => Object.assign(new Error(message), { code });
 
+/** Só confere se o código digitado é o do aparelho que fez o pedido. */
+export async function conferirCodigoAparelho(pedido, codigoDigitado) {
+  const codigo = normalizarCodigoAparelho(codigoDigitado);
+  return !!codigo && (await etiquetaCodigo(codigo, pedido.device_pub)) === pedido.device_tag;
+}
+
 /** Aparelho novo: par de chaves (a privada não sai do aparelho), código para mostrar e etiqueta. */
 export async function novoPedidoAparelho() {
   const par = await subtle.generateKey(ECDH, false, ["deriveBits"]);
@@ -165,7 +173,28 @@ export async function criarCofre(senha, chaveRecuperacao, iteracoes = ITERACOES_
   return { params, wrapped, recovery, chaves: await chavesDaDek(dek) };
 }
 
-/** Abre o cofre com a senha. Senha errada lança erro (a autenticação do GCM falha). */
+/**
+ * Chave nova da nuvem, sem senha: DEK aleatória embrulhada só pela chave de recuperação. Serve para
+ * ligar a nuvem e para trocar a chave (vault_rotate). O servidor exige os dois embrulhos; sem senha,
+ * os dois são o da chave de recuperação.
+ */
+export async function novaChaveDaNuvem(chaveRecuperacao, iteracoes = ITERACOES_RECUPERACAO) {
+  const dek = aleatorio(32);
+  const params = { v: 2, kdf: "PBKDF2-SHA256", kid: b64url(aleatorio(12)), rsalt: b64(aleatorio(16)), riter: iteracoes };
+  const recovery = await embrulhar(await derivarKek(chaveRecuperacao, params.rsalt, params.riter), dek);
+  const chaves = await chavesDaDek(dek);
+  dek.fill(0);
+  return { params, wrapped: recovery, recovery, chaves };
+}
+
+/** Abre com a chave de recuperação (sem trocar nada no servidor). Chave errada lança erro. */
+export async function abrirComChave(status, chaveRecuperacao) {
+  const p = status.key_params;
+  const dek = await desembrulhar(await derivarKek(chaveRecuperacao, p.rsalt, p.riter), status.recovery_wrapped_key);
+  return chavesDaDek(dek);
+}
+
+/** Abre o cofre com a senha (contas criadas antes de 2026-10-15). Senha errada lança erro (a autenticação do GCM falha). */
 export async function abrirComSenha(status, senha) {
   const p = status.key_params;
   const dek = await desembrulhar(await derivarKek(senha, p.salt, p.iter), status.wrapped_key);

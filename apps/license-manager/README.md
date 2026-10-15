@@ -42,6 +42,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202610130001_teste_fundador_metricas.sql`: teste grátis de 30 dias (`trial_claims`, `claim_trial`), plano `pro_fundador` com vagas (`plan_slots_left`), `trial` em `my_entitlements` e `admin_metrics`.
    - `202610130002_indicacao.sql`: indique e ganhe (`referral_codes`, `referrals`, `my_referral`, `claim_referral`, recompensa por gatilho em `subscriptions`, `admin_referral_metrics`); `claim_trial` dá 60 dias a indicados.
    - `202610150001_aparelho_aprovado.sql`: liberar aparelho novo aprovando em outro (`vault_device_links`, `vault_link_request`, `vault_link_pending`, `vault_link_approve`, `vault_link_take`, `vault_link_cancel`); o servidor só repassa um pacote cifrado, nunca vê o código nem a chave.
+   - `202610150002_nuvem_sem_senha.sql`: nuvem sem senha; `vault_rotate` troca a chave e esvazia a nuvem para o reenvio, e `vault_push(p_items, p_key_version)` barra aparelho com a chave antiga (`KEY_CHANGED`).
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres

@@ -26,9 +26,12 @@ export class Sincronizador {
    * @param {{ler: () => object, gravar: (estado: object) => void}} o.store
    * @param {{pronto: () => boolean, editando: () => boolean, ler: () => object, gravar: (dados: object) => void}} o.motor
    * @param {(msg: string) => Promise<boolean>} [o.confirmar]
+   * @param {number|null} [o.versao] versão da chave (key_version) com que estas chaves valem. Se a
+   *   nuvem estiver noutra versão, a chave foi trocada em outro aparelho: erro KEY_CHANGED, sem
+   *   gravar nada (cifrar com a chave antiga deixaria registros que ninguém mais abre).
    */
-  constructor({ rpc, chaves, store, motor, confirmar = async () => false }) {
-    Object.assign(this, { rpc, chaves, store, motor, confirmar });
+  constructor({ rpc, chaves, store, motor, confirmar = async () => false, versao = null }) {
+    Object.assign(this, { rpc, chaves, store, motor, confirmar, versao });
     this.idCache = new Map();
     this.rodando = null;
   }
@@ -64,6 +67,9 @@ export class Sincronizador {
     let since = desde;
     for (;;) {
       const r = await this.chamar("vault_pull", { p_since: since, p_limit: 1000 });
+      if (this.versao != null && r.key_version != null && r.key_version !== this.versao) {
+        throw Object.assign(new Error("A chave da nuvem foi trocada em outro aparelho."), { code: "KEY_CHANGED" });
+      }
       for (const it of r.items) {
         if (it.deleted) { itens.set(it.id, { deleted: true }); continue; }
         // um item que não abre (gravado por uma versão com defeito, corrompido) é pulado: travar a
@@ -169,7 +175,8 @@ export class Sincronizador {
 
     for (let i = 0; i < lote.length; i += LOTE) {
       const parte = lote.slice(i, i + LOTE);
-      const r = await this.chamar("vault_push", { p_items: parte.map(({ id, ct, deleted }) => (deleted ? { id, deleted: true } : { id, ct })) });
+      const itens = parte.map(({ id, ct, deleted }) => (deleted ? { id, deleted: true } : { id, ct }));
+      const r = await this.chamar("vault_push", this.versao != null ? { p_items: itens, p_key_version: this.versao } : { p_items: itens });
       for (const it of parte) {
         if (it.deleted) delete st.itens[it.id];
         else st.itens[it.id] = { c: it._c, id: it._id, h: it._h };

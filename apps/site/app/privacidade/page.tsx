@@ -77,16 +77,16 @@ export default function Privacidade() {
       </div>
       <p>
         <strong>O que nós não recebemos:</strong> seus lançamentos no plano grátis, o conteúdo dos
-        seus dados na nuvem, sua senha da nuvem, sua chave de recuperação e os dados do seu cartão.
+        seus dados na nuvem, a chave que os cifra, sua chave de recuperação e os dados do seu cartão.
         O pagamento é processado pela Kiwify. Não armazenamos seu CPF nem os dados de pagamento.
       </p>
 
       <h2>3. Como a criptografia protege seus dados</h2>
       <p>
         No plano Pro, cada registro é cifrado no seu aparelho com AES-256-GCM, usando uma chave que
-        só abre com a sua <strong>senha da nuvem</strong> ou com a sua <strong>chave de
-        recuperação</strong>. Nós guardamos apenas o conteúdo cifrado. Por isso, se você perder a
-        senha da nuvem e a chave de recuperação, nem nós conseguimos recuperar esses dados. A
+        fica nos seus aparelhos conectados e, na nuvem, só protegida pela sua <strong>chave de
+        recuperação</strong>. Nós guardamos apenas o conteúdo cifrado. Por isso, se você perder todos
+        os aparelhos conectados e a chave de recuperação, nem nós conseguimos recuperar esses dados. A
         comunicação com nossos servidores usa conexão segura (HTTPS).
       </p>
 
