@@ -42,23 +42,6 @@ test("ver um exemplo enche o painel sem gravar nada", async () => {
   await p.fechar();
 });
 
-test("exportar ou importar durante o exemplo age sobre os dados reais", async () => {
-  const real = { ...VAZIO(), lancamentos: [{ id: "a", tipo: "despesa", descricao: "Meu gasto", valor: 10, categoria: "outros", data: "2026-10-02" }] };
-  const p = await amb.abrir({ dados: real });
-  await p.evaluate(() => verExemplo());
-  await p.evaluate(() => {
-    const orig = URL.createObjectURL;
-    URL.createObjectURL = blob => { blob.text().then(t => { window.__exportado = t; }); return orig(blob); };
-  });
-  await p.click("#btnExportar");
-  await p.waitForFunction(() => window.__exportado);
-  const exp = JSON.parse(await p.evaluate(() => window.__exportado));
-  assert.deepEqual(exp.lancamentos.map(l => l.descricao), ["Meu gasto"]);
-  assert.ok(await p.$eval("#faixaExemplo", e => e.hidden), "exportar sai do exemplo");
-  assert.deepEqual((await lerDados(p)).lancamentos.map(l => l.descricao), ["Meu gasto"]);
-  await p.fechar();
-});
-
 test("configuração guiada cria renda, contas fixas e parcelas", async () => {
   const p = await abrirNovo();
   await clicarTexto(p, "#aba-painel button", "Configurar em 2 minutos");

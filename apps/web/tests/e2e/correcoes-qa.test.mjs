@@ -4,57 +4,11 @@ import assert from "node:assert/strict";
 import { writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { preparar, VAZIO, espera, lerDados, aba, texto, limparEDigitar, ligarCripto, desbloquear } from "./ambiente.mjs";
+import { preparar, VAZIO, espera, lerDados, aba, texto, limparEDigitar } from "./ambiente.mjs";
 
 const amb = preparar({ before, after });
 const real = () => ({ ...VAZIO(), lancamentos: [{ id: "a", tipo: "despesa", descricao: "Meu gasto real", valor: 10, categoria: "outros", data: "2026-10-02" }] });
 const descricoes = p => p.evaluate(() => dados.lancamentos.map(l => l.descricao));
-
-test("trocar a senha com o exemplo aberto: a senha nova abre", async () => {
-  const p = await amb.abrir({ dados: real() });
-  await ligarCripto(p, "senhaA123");
-  await p.evaluate(() => verExemplo());
-  await p.click("#btnCripto");
-  assert.ok(await p.$eval("#faixaExemplo", e => e.hidden), "abrir a segurança sai do exemplo");
-  await p.type("#sgAtual", "senhaA123"); await p.type("#sgNova", "senhaB456"); await p.type("#sgConf", "senhaB456");
-  await p.click("#sgSalvar");
-  await p.waitForFunction(() => !document.querySelector("#modalSeg").open, { timeout: 15000 });
-  await espera(500);
-  await p.reload(); await espera(300);
-  await desbloquear(p, "senhaB456");
-  assert.deepEqual(await descricoes(p), ["Meu gasto real"]);
-  await p.fechar();
-});
-
-test("ligar a criptografia com o exemplo aberto: os dados reais ficam cifrados e continuam gravando", async () => {
-  const p = await amb.abrir({ dados: real() });
-  await p.evaluate(() => verExemplo());
-  await ligarCripto(p);
-  await p.reload(); await espera(300);
-  assert.ok(await p.$eval("#telaBloqueio", e => !e.hidden), "pede a senha ao reabrir");
-  await desbloquear(p);
-  await aba(p, "lancamentos");
-  await p.type("#lDesc", "Depois"); await p.type("#lValor", "500"); await p.click("#lBtn");
-  await espera(800);
-  await p.reload(); await espera(300);
-  await desbloquear(p);
-  assert.deepEqual(await descricoes(p), ["Meu gasto real", "Depois"]);
-  await p.fechar();
-});
-
-test("primeira visita pelo /#exemplo: o convite de criptografia espera o exemplo terminar", async () => {
-  const p = await amb.abrir({ dados: null });
-  await p.evaluate(() => localStorage.clear()); // sem convite já feito e sem modo local
-  await p.goto(p.url().split("#")[0] + "#exemplo");
-  await p.reload();
-  await p.waitForFunction(() => !document.querySelector("#faixaExemplo").hidden, { timeout: 10000 });
-  await espera(600);
-  assert.ok(!(await p.$eval("#modalSeg", e => e.open)), "sem convite por cima do exemplo");
-  await p.click("#exemploSair");
-  await p.waitForFunction(() => document.querySelector("#modalSeg").open, { timeout: 5000 });
-  assert.ok(await p.$eval("#sgConvite", e => !e.hidden), "o convite aparece ao sair do exemplo");
-  await p.fechar();
-});
 
 test("conta fixa que vira 'Só este mês' a partir deste mês mantém os meses anteriores", async () => {
   const ALUGUEL = { id: "al", tipo: "despesa", descricao: "Aluguel", valor: 1500, categoria: "moradia", dia: 10, inicio: "2026-01" };
@@ -91,22 +45,6 @@ test("clique duplo em Adicionar numa conta fixa grava uma vez só", async () => 
   await p.evaluate(() => { const f = document.querySelector("#formLanc"); f.requestSubmit(); f.requestSubmit(); });
   await espera(300);
   assert.equal((await lerDados(p)).fixos.length, 1);
-  await p.fechar();
-});
-
-test("a tela de bloqueio fecha as janelas abertas (extrato, limites)", async () => {
-  const p = await amb.abrir({ dados: VAZIO(), aceleraIdle: 30 });
-  await p.click("#btnBloqueio"); await p.type("#sgNova", "senha-xyz"); await p.type("#sgConf", "senha-xyz");
-  await p.$eval("#sgCripto", e => { e.checked = false; }); await p.$eval("#sgBloqueio", e => { e.checked = true; });
-  await p.select("#sgMinutos", "1"); await p.click("#sgSalvar");
-  await p.waitForFunction(() => !document.querySelector("#modalSeg").open, { timeout: 15000 });
-  await aba(p, "lancamentos");
-  await (await p.$("#arqExtrato")).uploadFile(resolve(import.meta.dirname, "extratos", "banco.ofx"));
-  await p.waitForFunction(() => document.querySelector("#modalExtrato").open);
-  await p.waitForFunction(() => !document.querySelector("#telaBloqueio").hidden, { timeout: 10000 });
-  assert.equal(await p.evaluate(() => document.querySelectorAll("dialog[open]").length), 0, "nenhuma janela aberta por cima do cadeado");
-  await desbloquear(p, "senha-xyz");
-  assert.equal((await lerDados(p)).lancamentos.length, 0, "o extrato não foi importado");
   await p.fechar();
 });
 

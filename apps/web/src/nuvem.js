@@ -97,12 +97,22 @@ export function criarNuvem({ supabase, aoMudar }) {
     // token velho (aba aberta há horas, aparelho que dormiu): renova a sessão e tenta de novo
     const { data } = renovou ? await supabase.auth.refreshSession() : await supabase.auth.getSession();
     const token = data?.session?.access_token;
-    if (!token) return renovou ? { ok: false, code: "AUTH" } : servidorChave(corpo, true);
+    if (!token) {
+      if (!renovou) return servidorChave(corpo, true);
+      // sessão morta de vez (nem a renovação funciona): volta para a tela de entrar. Só a sessão sai;
+      // os lançamentos deste aparelho ficam (o evento SIGNED_OUT não apaga dados)
+      supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      return { ok: false, code: "AUTH" };
+    }
     try {
       const r = await fetch(`${LICENSE_API}/api/v1/vault/key`, {
         method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(corpo),
       });
-      if (r.status === 401 && !renovou) return servidorChave(corpo, true);
+      if (r.status === 401) {
+        if (!renovou) return servidorChave(corpo, true);
+        supabase.auth.signOut({ scope: "local" }).catch(() => {});
+        return { ok: false, code: "AUTH" };
+      }
       return await r.json().catch(() => ({ ok: false, code: "SERVER_ERROR" }));
     } catch {
       return { ok: false, code: "REDE" };

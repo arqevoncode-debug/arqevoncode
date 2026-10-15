@@ -37,8 +37,7 @@ export default function Termos() {
           <strong>Plano grátis:</strong> lançamentos sem limite, com até 5 compras parceladas
           ativas, os últimos 6 meses na tela, projeção de 3 meses, 1 objetivo e limite em 2
           categorias. Os dados ficam apenas no aparelho em que você usa o app. Pode ser usado sem
-          conta. Mudar de plano nunca apaga dados: o que passar dos limites continua guardado e
-          incluído no backup.
+          conta. Mudar de plano nunca apaga dados: o que passar dos limites continua guardado.
         </li>
         <li>
           <strong>Plano Pro (pago):</strong> tira os limites do grátis e acrescenta a importação de
@@ -105,8 +104,8 @@ export default function Termos() {
 
       <h2>8. Seus dados</h2>
       <p>
-        Os dados que você lança são seus. Você pode exportá-los a qualquer momento em um arquivo de
-        backup pelo próprio app e pedir a exclusão da conta e dos dados na nuvem. Como tratamos
+        Os dados que você lança são seus. Você pode pedir uma cópia deles em um arquivo e a exclusão
+        da conta e dos dados na nuvem pelo e-mail de contato. Como tratamos
         dados pessoais está descrito na <a href="/privacidade">Política de Privacidade</a>.
       </p>
 
@@ -128,8 +127,7 @@ export default function Termos() {
         Trabalhamos para manter o Serviço disponível e os dados seguros, com cópias de segurança
         diárias, mas não garantimos funcionamento ininterrupto. Pode haver pausas para manutenção ou
         por falhas de fornecedores e da internet. Seus lançamentos ficam salvos no seu aparelho, e no
-        Pro as alterações feitas sem conexão são enviadas quando ela volta. Recomendamos exportar um
-        backup de tempos em tempos.
+        Pro as alterações feitas sem conexão são enviadas quando ela volta.
       </p>
 
       <h2>11. Responsabilidade</h2>

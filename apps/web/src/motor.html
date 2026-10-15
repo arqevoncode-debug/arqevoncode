@@ -365,84 +365,16 @@ details.hist summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 .hist-linha span:nth-child(2) { margin-left: auto; font-weight: 600; }
 .hist-linha:last-child { border-bottom: 0; }
 
-.rodape-dados {
-  display: grid; gap: 14px; margin-top: 18px; padding: 16px;
-  background: color-mix(in srgb, var(--surface) 88%, var(--page));
-  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
-}
-.rodape-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-.rodape-resumo { display: flex; align-items: center; gap: 12px; min-width: 250px; }
-.rodape-resumo-icone {
-  width: 40px; height: 40px; border-radius: 12px; flex: none;
-  display: grid; place-items: center; color: var(--accent);
-  background: linear-gradient(135deg, var(--accent-soft), color-mix(in srgb, var(--accent-2) 12%, var(--surface)));
-}
-.rodape-resumo-icone svg { width: 20px; height: 20px; stroke: currentColor; }
-.rodape-resumo strong { display: block; color: var(--ink); font-size: 13px; line-height: 1.35; }
-.rodape-status { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-.rodape-dados button {
-  min-height: 36px; font: inherit; font-size: 12px; font-weight: 650; color: var(--ink-2);
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  padding: 7px 12px; cursor: pointer; transition: color .15s, border-color .15s, background .15s, transform .15s;
-}
-.rodape-dados button:hover { color: var(--ink); border-color: color-mix(in srgb, var(--accent) 25%, var(--border)); transform: translateY(-1px); }
-.rodape-status .status-seguranca {
-  display: flex; align-items: center; gap: 9px; min-width: 154px; padding: 7px 11px; text-align: left;
-  background: var(--page); border-color: transparent;
-}
-.status-seguranca svg { width: 17px; height: 17px; flex: none; stroke: var(--muted); }
-.status-seguranca span { display: grid; line-height: 1.15; }
-.status-seguranca small { color: var(--muted); font-size: 9px; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
-.status-seguranca strong { margin-top: 3px; color: var(--ink-2); font-size: 11.5px; font-weight: 700; }
-.status-seguranca.ativo { background: var(--good-bg); }
-.status-seguranca.ativo svg, .status-seguranca.ativo strong { color: var(--good); stroke: var(--good); }
-.rodape-acoes { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 13px; border-top: 1px solid var(--border); flex-wrap: wrap; }
-.rodape-acoes button::before { display: inline-block; margin-right: 7px; font-size: 14px; font-weight: 500; }
-#btnExportar { color: var(--accent); background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 16%, transparent); }
-#btnExportar::before { content: "↓"; }
-#btnImportar::before { content: "↑"; }
-#btnBackup::before { content: "↻"; }
-#btnResetar { margin-left: auto; }
-#btnResetar::before { content: "×"; }
-#btnGerenciarLicenca::before { content: "◇"; }
-.rodape-dados button.perigo:hover { color: var(--bad); border-color: var(--bad); background: var(--bad-bg); }
-.backup-info { display: block; margin-top: 2px; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
-.backup-info.ok { color: var(--good); }
-@media (max-width: 760px) {
-  .rodape-cabecalho { align-items: stretch; flex-direction: column; }
-  .rodape-status { justify-content: stretch; }
-  .rodape-status .status-seguranca { flex: 1 1 180px; }
-  .rodape-acoes { justify-content: stretch; }
-  .rodape-acoes button { flex: 1 1 auto; }
-  #btnResetar { margin-left: 0; }
-}
-@media (max-width: 480px) {
-  .rodape-status, .rodape-acoes { display: grid; grid-template-columns: 1fr; }
-  .rodape-status .status-seguranca, .rodape-acoes button { width: 100%; }
-}
-
-/* ---------- Segurança ---------- */
-dialog#modalSeg, dialog#modalConfirmacao, dialog#modalReset, dialog#modalGuia, dialog#modalExtrato, dialog#modalLimites {
+/* ---------- Janelas ---------- */
+dialog#modalConfirmacao, dialog#modalGuia, dialog#modalExtrato, dialog#modalLimites {
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--ink);
   padding: 22px; max-width: 420px; width: calc(100vw - 48px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
-dialog#modalSeg::backdrop, dialog#modalConfirmacao::backdrop, dialog#modalReset::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop, dialog#modalLimites::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
-dialog#modalSeg h2, dialog#modalConfirmacao h2, dialog#modalReset h2 { margin: 0 0 4px; font-size: 17px; }
+dialog#modalConfirmacao::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop, dialog#modalLimites::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+dialog#modalConfirmacao h2 { margin: 0 0 4px; font-size: 17px; }
 .botao.confirmar-perigo { background: var(--bad); box-shadow: none; }
-.reset-campo { display: grid; gap: 5px; margin-top: 16px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
-.reset-campo input { font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; width: 100%; text-transform: uppercase; letter-spacing: .08em; }
-.sec-bloco { margin-top: 16px; }
-.sec-bloco > label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
-.sec-bloco input[type="password"], .sec-bloco select {
-  font: inherit; color: var(--ink); background: var(--page);
-  border: 1px solid var(--border); border-radius: 10px; padding: 9px 11px; width: 100%;
-}
-.sec-toggle > label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink); cursor: pointer; }
-.sec-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
-.sec-toggle .hint { margin: 6px 0 0 24px; }
-.sec-toggle select { width: auto; margin-left: 24px; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
 /* ---------- Recursos do Pro ---------- */
@@ -760,76 +692,10 @@ dialog#modalGuia { max-width: 560px; }
     <div id="listaObjetivos"></div>
   </section>
 
-  <div class="rodape-dados" aria-label="Dados e segurança">
-    <div class="rodape-cabecalho">
-      <div class="rodape-resumo">
-        <span class="rodape-resumo-icone" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M12 3 4.5 6v5.4c0 4.6 3.1 8 7.5 9.6 4.4-1.6 7.5-5 7.5-9.6V6L12 3Z"/><path d="m8.8 12 2.1 2.1 4.5-4.6"/></svg>
-        </span>
-        <span><strong>Dados e segurança</strong><span id="backupInfo" class="backup-info"></span></span>
-      </div>
-      <div class="rodape-status">
-        <button id="btnCripto" class="status-seguranca" title="Configurar criptografia">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-          <span><small>Criptografia</small><strong id="criptoEstado">Desativada</strong></span>
-        </button>
-        <button id="btnBloqueio" class="status-seguranca" title="Configurar bloqueio automático">
-          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-          <span><small>Bloqueio automático</small><strong id="bloqueioEstado">Desativado</strong></span>
-        </button>
-      </div>
-    </div>
-    <div class="rodape-acoes">
-      <button id="btnBackup" hidden>Ativar backup automático</button>
-      <button id="btnExportar">Exportar backup</button>
-      <button id="btnImportar">Importar backup</button>
-      <button id="btnResetar" class="perigo">Resetar dados</button>
-    </div>
-    <input type="file" id="arqImportar" accept=".json,.myfinance,application/json" hidden>
-  </div>
 </div>
 
 <div id="tooltip" role="status"></div>
 
-<!-- ================= Modal de segurança ================= -->
-<dialog id="modalSeg">
-  <h2>Segurança</h2>
-  <p class="hint">Defina uma senha para proteger seus dados. Ela é usada tanto na criptografia quanto no bloqueio de tela.</p>
-  <p class="hint" id="sgConvite" hidden><b>Recomendado:</b> ative a criptografia agora. Sem ela, seus lançamentos ficam
-    legíveis em texto puro neste computador. Você pode seguir sem senha e ativar depois no ícone de segurança.</p>
-
-  <div class="sec-bloco" id="blocoAtual" hidden>
-    <label for="sgAtual">Senha atual</label>
-    <input id="sgAtual" type="password" autocomplete="current-password" placeholder="obrigatória para alterar">
-  </div>
-  <div class="sec-bloco">
-    <label for="sgNova"><span id="lblNova">Nova senha</span> (mín. 6 caracteres)</label>
-    <input id="sgNova" type="password" autocomplete="new-password" placeholder="••••••">
-    <input id="sgConf" type="password" autocomplete="new-password" placeholder="confirme a senha" aria-label="Confirme a senha" style="margin-top:6px">
-  </div>
-
-  <div class="sec-bloco sec-toggle">
-    <label><input type="checkbox" id="sgCripto"> <b>Criptografar dados</b></label>
-    <p class="hint">Os dados ficam ilegíveis no navegador e no arquivo de backup (AES-256). Ao abrir o sistema, será pedida a senha.
-      <b>Atenção: sem a senha, os dados criptografados não podem ser recuperados.</b></p>
-  </div>
-  <div class="sec-bloco sec-toggle">
-    <label><input type="checkbox" id="sgBloqueio"> <b>Bloqueio automático por inatividade</b></label>
-    <p class="hint" style="margin-bottom:6px">A tela é bloqueada após um tempo sem uso e exige a senha para voltar.</p>
-    <select id="sgMinutos">
-      <option value="1">após 1 minuto</option>
-      <option value="5" selected>após 5 minutos</option>
-      <option value="10">após 10 minutos</option>
-      <option value="30">após 30 minutos</option>
-    </select>
-  </div>
-
-  <p class="aviso-seg" id="sgErro" hidden></p>
-  <div class="sec-acoes">
-    <button class="botao cancelar" type="button" id="sgCancelar">Cancelar</button>
-    <button class="botao" type="button" id="sgSalvar">Salvar</button>
-  </div>
-</dialog>
 
 <dialog id="modalConfirmacao">
   <h2 id="confirmacaoTitulo">Confirmar exclusão</h2>
@@ -908,19 +774,6 @@ dialog#modalGuia { max-width: 560px; }
 </dialog>
 <div id="avisoMotor" role="status" hidden></div>
 
-<dialog id="modalReset">
-  <h2>Resetar todos os dados?</h2>
-  <p class="hint" id="resetMensagem"></p>
-  <label class="reset-campo" for="resetConfirmacao">
-    Digite APAGAR para confirmar
-    <input id="resetConfirmacao" autocomplete="off" spellcheck="false" placeholder="APAGAR">
-  </label>
-  <p class="aviso-seg" id="resetErro" hidden>Digite APAGAR exatamente como mostrado.</p>
-  <div class="sec-acoes">
-    <button class="botao cancelar" type="button" id="resetCancelar">Cancelar</button>
-    <button class="botao confirmar-perigo" type="button" id="resetAceitar">Apagar todos os dados</button>
-  </div>
-</dialog>
 
 <!-- ================= Tela de bloqueio (não exibe nenhum dado) ================= -->
 <div id="telaBloqueio" hidden>
@@ -1027,15 +880,7 @@ function carregar() {
 }
 function salvar() {
   if (exemplo) return; // dados fictícios do exemplo nunca são gravados
-  if (seg.cripto && !chaveSessao) return; // trancado: gravar agora apagaria o cofre com dados vazios
-  if (seg.cripto && chaveSessao) {
-    const json = JSON.stringify(dados);
-    cifrar(chaveSessao, json).then(p => {
-      const blob = JSON.stringify({ enc: true, salt: seg.salt, iv: p.iv, ct: p.ct });
-      gravarArmazenamento(blob);
-    });
-    return;
-  }
+  if (blobPendente) return; // dados ainda cifrados por uma versão antiga: gravar agora apagaria
   gravarArmazenamento(JSON.stringify(dados));
 }
 // Navegador sem espaço (ou bloqueando o armazenamento): a pessoa precisa saber que não foi salvo.
@@ -1043,31 +888,16 @@ function gravarArmazenamento(texto) {
   try {
     localStorage.setItem(CHAVE, texto);
   } catch (e) {
-    avisarMotor("Não foi possível salvar: o armazenamento do navegador está cheio ou bloqueado. Exporte um backup agora para não perder o que digitou.", "estourou");
+    avisarMotor("Não foi possível salvar: o armazenamento do navegador está cheio ou bloqueado. Libere espaço no navegador para não perder o que digitou.", "estourou");
     return false;
   }
   try { localStorage.setItem(CHAVE + "-backup", texto); } catch (e) { /* a cópia é extra; a principal foi gravada */ }
-  agendarBackupArquivo();
   return true;
 }
-// Cópia de recuperação (antes de importar ou resetar): segue a criptografia, se estiver ligada.
+// Cópia de recuperação antes de substituir os dados (troca vinda da camada web).
 function guardarCopia(chave, d) {
-  if (seg.cripto && chaveSessao) {
-    return cifrar(chaveSessao, JSON.stringify(d)).then(p =>
-      localStorage.setItem(chave, JSON.stringify({ enc: true, salt: seg.salt, iv: p.iv, ct: p.ct })));
-  }
-  if (!seg.cripto) localStorage.setItem(chave, JSON.stringify(d));
+  try { localStorage.setItem(chave, JSON.stringify(d)); } catch (e) { /* a cópia é extra */ }
   return Promise.resolve();
-}
-// Versões anteriores gravavam essas cópias em texto puro mesmo com a criptografia ligada.
-function recifrarCopias() {
-  if (!seg.cripto || !chaveSessao) return;
-  for (const k of [CHAVE + "-pre-import", CHAVE + "-pre-reset"]) {
-    try {
-      const bruto = JSON.parse(localStorage.getItem(k));
-      if (bruto && Array.isArray(bruto.lancamentos)) guardarCopia(k, bruto);
-    } catch (e) {}
-  }
 }
 // declaração de função (e não const): normalizar() a usa ao carregar, antes desta linha
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
@@ -2605,8 +2435,6 @@ function dadosExemplo() {
 }
 window.verExemplo = () => {
   if (exemplo) return;
-  // o convite de criptografia pode ter aberto um instante antes (primeira visita pelo /#exemplo)
-  if ($("#modalSeg").open && !$("#sgConvite").hidden) { $("#modalSeg").close(); conviteAdiado = true; }
   cancelarEdicaoAberta();
   exemplo = { real: dados };
   dados = dadosExemplo();
@@ -2622,7 +2450,6 @@ function sairExemplo() {
   cancelarEdicaoAberta();
   $("#faixaExemplo").hidden = true;
   renderTudo();
-  if (conviteAdiado) { conviteAdiado = false; setTimeout(() => abrirModalSeg(true), 0); }
 }
 $("#exemploSair").onclick = sairExemplo;
 $("#exemploConfigurar").onclick = () => { sairExemplo(); abrirGuia(); };
@@ -2726,66 +2553,29 @@ $("#guiaAvancar").onclick = () => {
   renderTudo();
 };
 
-/* ================= Segurança: senha, criptografia e bloqueio ================= */
-// Mesmo mínimo exigido no backup portátil, para não haver senha forte no arquivo e fraca na chave AES local.
-const SENHA_MINIMA = 6;
-let chaveSessao = null; // CryptoKey derivada da senha, mantida em memória
-let bloqueado = false;
-let timerIdle = null;
-
-let seg = (() => {
-  try {
-    const s = JSON.parse(localStorage.getItem(CHAVE + "-seg"));
-    // "convite" registra que a criptografia já foi oferecida; instalações antigas
-    // não têm o campo e recebem o convite uma única vez na próxima abertura.
-    if (s && typeof s === "object") return { salt: s.salt || null, verif: s.verif || null,
-      cripto: !!s.cripto, bloqueio: !!s.bloqueio, minutos: s.minutos || 5, convite: !!s.convite };
-  } catch (e) {}
-  return { salt: null, verif: null, cripto: false, bloqueio: false, minutos: 5, convite: false };
-})();
-function salvarSeg() { try { localStorage.setItem(CHAVE + "-seg", JSON.stringify(seg)); } catch (e) { /* armazenamento bloqueado */ } }
-
+/* ================= Dados cifrados por versões antigas ================= */
+// Criptografia local, bloqueio automático, backup em arquivo, exportar/importar e resetar saíram em
+// 2026-10-15: os dados ficam na nuvem da conta. Quem tinha a criptografia ligada ainda tem os dados
+// gravados cifrados neste navegador; a senha é pedida uma única vez, os dados são regravados sem
+// criptografia e a configuração antiga é apagada.
 const enc8 = s => new TextEncoder().encode(s);
-function b64(buf) {
-  const a = new Uint8Array(buf); let s = "";
-  for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000));
-  return btoa(s);
-}
 const deB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function derivarChave(senha, saltB64, iteracoes = 150000) {
   const mat = await crypto.subtle.importKey("raw", enc8(senha), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
     { name: "PBKDF2", salt: deB64(saltB64), iterations: iteracoes, hash: "SHA-256" },
-    mat, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
-}
-async function cifrar(chave, texto) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, chave, enc8(texto));
-  return { iv: b64(iv), ct: b64(ct) };
+    mat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
 }
 async function decifrar(chave, obj) {
   const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: deB64(obj.iv) }, chave, deB64(obj.ct));
   return new TextDecoder().decode(pt);
 }
-async function verificarSenha(senha) {
-  if (!seg.salt || !seg.verif) return null;
-  try {
-    const chave = await derivarChave(senha, seg.salt);
-    await decifrar(chave, seg.verif);
-    return chave;
-  } catch (e) { return null; }
-}
-
-/* ----- Tela de bloqueio ----- */
 function bloquearTela() {
-  if (bloqueado) return;
-  bloqueado = true;
-  // nenhuma janela pode ficar por cima do cadeado (extrato, limites, conta…)
+  // nenhuma janela pode ficar por cima da senha
   if (resolverConfirmacao) encerrarConfirmacao(false);
   document.querySelectorAll("dialog[open]").forEach(d => d.close());
   ext = null;
   tooltip.style.display = "none";
-  $("#tbMsg").textContent = "Digite sua senha para continuar.";
   $("#tbErro").hidden = true;
   $("#tbSenha").value = "";
   $("#telaBloqueio").hidden = false;
@@ -2794,29 +2584,25 @@ function bloquearTela() {
 }
 async function tentarDesbloquear() {
   const senha = $("#tbSenha").value;
-  if (!senha) return;
+  if (!senha || !blobPendente) return;
   $("#tbErro").hidden = true;
   try {
-    if (blobPendente) {
-      // outra aba pode ter gravado depois que esta abriu: usa a versão mais nova
-      try { const atual = JSON.parse(localStorage.getItem(CHAVE)); if (atual && atual.enc === true && atual.ct) blobPendente = atual; } catch (e) {}
-      const chave = await derivarChave(senha, blobPendente.salt || seg.salt);
-      const json = await decifrar(chave, blobPendente);
-      dados = normalizar(JSON.parse(json));
-      blobPendente = null;
-      chaveSessao = chave;
-    } else {
-      const chave = await verificarSenha(senha);
-      if (!chave) throw 0;
-      chaveSessao = chave;
+    // outra aba pode ter gravado depois que esta abriu: usa a versão mais nova
+    try { const atual = JSON.parse(localStorage.getItem(CHAVE)); if (atual && atual.enc === true && atual.ct) blobPendente = atual; } catch (e) {}
+    let antiga = {};
+    try { antiga = JSON.parse(localStorage.getItem(CHAVE + "-seg")) || {}; } catch (e) {}
+    const chave = await derivarChave(senha, blobPendente.salt || antiga.salt);
+    dados = normalizar(JSON.parse(await decifrar(chave, blobPendente)));
+    blobPendente = null;
+    // daqui em diante, tudo sem criptografia local: apaga a configuração e as cópias cifradas antigas
+    for (const k of ["-seg", "-pre-import", "-pre-reset", "-backup"]) {
+      try { const v = localStorage.getItem(CHAVE + k); if (k === "-seg" || (v && JSON.parse(v).enc)) localStorage.removeItem(CHAVE + k); } catch (e) {}
     }
-    bloqueado = false;
+    salvar();
     $("#telaBloqueio").hidden = true;
     document.querySelector(".app").inert = false;
     $("#tbSenha").value = "";
-    recifrarCopias();
     renderTudo();
-    reiniciarIdle();
   } catch (e) {
     $("#tbErro").hidden = false;
     $("#tbSenha").select();
@@ -2824,297 +2610,6 @@ async function tentarDesbloquear() {
 }
 $("#tbEntrar").onclick = tentarDesbloquear;
 $("#tbSenha").addEventListener("keydown", e => { if (e.key === "Enter") tentarDesbloquear(); });
-
-/* ----- Bloqueio por inatividade ----- */
-function reiniciarIdle() {
-  clearTimeout(timerIdle);
-  if (!seg.bloqueio || !seg.salt || bloqueado) return;
-  timerIdle = setTimeout(bloquearTela, seg.minutos * 60000);
-}
-["mousemove", "keydown", "pointerdown", "scroll", "touchstart"].forEach(ev =>
-  addEventListener(ev, reiniciarIdle, { passive: true }));
-
-/* ----- Modal de configuração ----- */
-function atualizarBotoesSeg() {
-  $("#btnCripto").classList.toggle("ativo", seg.cripto);
-  $("#criptoEstado").textContent = seg.cripto ? "Ativada" : "Desativada";
-  $("#btnBloqueio").classList.toggle("ativo", seg.bloqueio);
-  $("#bloqueioEstado").textContent = seg.bloqueio ? `${seg.minutos} min` : "Desativado";
-}
-function abrirModalSeg(convidando = false) {
-  sairExemplo(); // a senha e a criptografia valem para os dados reais
-  $("#blocoAtual").hidden = !seg.salt;
-  $("#lblNova").textContent = seg.salt ? "Nova senha (deixe em branco para manter)" : "Criar senha";
-  $("#sgAtual").value = ""; $("#sgNova").value = ""; $("#sgConf").value = "";
-  // No convite a criptografia já vem marcada: proteger passa a ser o caminho padrão, recusar é a exceção.
-  $("#sgCripto").checked = convidando ? true : seg.cripto;
-  $("#sgBloqueio").checked = seg.bloqueio;
-  $("#sgMinutos").value = String(seg.minutos);
-  $("#sgConvite").hidden = !convidando;
-  $("#sgErro").hidden = true;
-  $("#modalSeg").showModal();
-  if (convidando) $("#sgNova").focus();
-}
-$("#btnCripto").onclick = () => abrirModalSeg();
-$("#btnBloqueio").onclick = () => abrirModalSeg();
-
-// Convite único para ativar a criptografia. Registrado antes de abrir para que uma recusa
-// (ou fechar a janela) não faça o convite reaparecer nas próximas aberturas.
-let conviteAdiado = false; // o convite espera o exemplo terminar
-function convidarCriptografia() {
-  if (seg.convite || seg.cripto || blobPendente) return;
-  seg.convite = true;
-  salvarSeg();
-  if (exemplo) { conviteAdiado = true; return; }
-  abrirModalSeg(true);
-}
-// No desktop o convite espera a liberação da tela de licença; no navegador abre direto.
-function agendarConviteCriptografia() {
-  if (seg.convite || seg.cripto || blobPendente) return;
-  const raiz = document.documentElement;
-  if (!raiz.classList.contains("desktop-bloqueado")) { convidarCriptografia(); return; }
-  const obs = new MutationObserver(() => {
-    if (raiz.classList.contains("desktop-bloqueado")) return;
-    obs.disconnect();
-    convidarCriptografia();
-  });
-  obs.observe(raiz, { attributes: true, attributeFilter: ["class"] });
-}
-$("#sgCancelar").onclick = () => $("#modalSeg").close();
-
-function erroSeg(msg) { const el = $("#sgErro"); el.textContent = msg; el.hidden = false; }
-
-$("#sgSalvar").onclick = async () => {
-  sairExemplo();
-  $("#sgErro").hidden = true;
-  const atual = $("#sgAtual").value, nova = $("#sgNova").value, conf = $("#sgConf").value;
-  const querCripto = $("#sgCripto").checked, querBloqueio = $("#sgBloqueio").checked;
-  const minutos = parseInt($("#sgMinutos").value) || 5;
-
-  // 1. valida senha atual quando já existe senha definida
-  let chaveAtual = null;
-  if (seg.salt) {
-    if (!atual) return erroSeg("Informe a senha atual para alterar as configurações.");
-    chaveAtual = await verificarSenha(atual);
-    if (!chaveAtual) return erroSeg("Senha atual incorreta.");
-  }
-
-  // 2. troca ou criação de senha
-  if (nova || !seg.salt) {
-    if (!nova && (querCripto || querBloqueio))
-      return erroSeg("Defina uma senha para ativar a proteção.");
-    if (nova) {
-      if (nova.length < SENHA_MINIMA) return erroSeg(`A senha deve ter pelo menos ${SENHA_MINIMA} caracteres.`);
-      if (nova !== conf) return erroSeg("As senhas não conferem.");
-      const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
-      const chaveNova = await derivarChave(nova, salt);
-      seg.salt = salt;
-      seg.verif = await cifrar(chaveNova, "myfinance-ok");
-      chaveSessao = chaveNova; // dados serão recifrados com a nova senha ao salvar
-    }
-  }
-  if (!nova && chaveAtual) chaveSessao = chaveAtual;
-
-  if ((querCripto || querBloqueio) && !seg.salt)
-    return erroSeg("Defina uma senha para ativar a proteção.");
-  if (querCripto && !chaveSessao)
-    return erroSeg("Informe a senha atual para ativar a criptografia.");
-
-  // 3. aplica as opções
-  seg.cripto = querCripto;
-  seg.bloqueio = querBloqueio;
-  seg.minutos = minutos;
-  salvarSeg();
-  salvar(); // regrava os dados no formato certo (cifrado ou plano)
-  atualizarBotoesSeg();
-  reiniciarIdle();
-  $("#modalSeg").close();
-};
-
-/* ================= Backup automático em arquivo ================= */
-// Grava uma cópia dos dados num arquivo .json escolhido pelo usuário (File System Access API).
-let handleBackup = null;
-let backupStatus = "off"; // off | ativo | pendente
-let timerBackup = null;
-
-function idbCfg() {
-  return new Promise((res, rej) => {
-    const r = indexedDB.open("meu-financeiro-cfg", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("cfg");
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => rej(r.error);
-  });
-}
-async function cfgSet(k, v) {
-  const db = await idbCfg();
-  return new Promise((res, rej) => {
-    const tx = db.transaction("cfg", "readwrite");
-    tx.objectStore("cfg").put(v, k);
-    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
-  });
-}
-async function cfgGet(k) {
-  const db = await idbCfg();
-  return new Promise((res, rej) => {
-    const q = db.transaction("cfg", "readonly").objectStore("cfg").get(k);
-    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
-  });
-}
-function agendarBackupArquivo() {
-  if (!handleBackup) return;
-  clearTimeout(timerBackup);
-  timerBackup = setTimeout(gravarBackupArquivo, 800);
-}
-async function gravarBackupArquivo() {
-  if (!handleBackup) return;
-  try {
-    const perm = handleBackup.queryPermission
-      ? await handleBackup.queryPermission({ mode: "readwrite" }) : "granted";
-    if (perm !== "granted") { backupStatus = "pendente"; atualizarRodapeBackup(); return; }
-    const w = await handleBackup.createWritable();
-    // com criptografia ativa, o arquivo de backup recebe o blob cifrado
-    const conteudo = (seg.cripto && chaveSessao)
-      ? (localStorage.getItem(CHAVE) || JSON.stringify(dados, null, 2))
-      : JSON.stringify(dados, null, 2);
-    await w.write(conteudo);
-    await w.close();
-    backupStatus = "ativo";
-    localStorage.setItem(CHAVE + "-ultimo-backup", new Date().toISOString());
-  } catch (e) { backupStatus = "pendente"; }
-  atualizarRodapeBackup();
-}
-async function ativarBackupArquivo() {
-  try {
-    handleBackup = await showSaveFilePicker({
-      suggestedName: "arqevon-finance-backup.json",
-      types: [{ description: "JSON", accept: { "application/json": [".json"] } }],
-    });
-    await cfgSet("handle", handleBackup).catch(() => {});
-    await gravarBackupArquivo();
-  } catch (e) { /* usuário cancelou */ }
-}
-async function reativarBackupArquivo() {
-  if (!handleBackup || !handleBackup.requestPermission) return;
-  try {
-    if (await handleBackup.requestPermission({ mode: "readwrite" }) === "granted") gravarBackupArquivo();
-  } catch (e) {}
-}
-function atualizarRodapeBackup() {
-  const info = $("#backupInfo"), btn = $("#btnBackup");
-  info.classList.remove("ok");
-  if (!("showSaveFilePicker" in window)) {
-    info.textContent = "Exporte um backup regularmente para manter uma cópia segura.";
-    btn.hidden = true;
-    return;
-  }
-  if (!handleBackup) {
-    btn.hidden = false;
-    btn.textContent = "Ativar backup automático";
-    btn.onclick = ativarBackupArquivo;
-    info.textContent = "Seus dados ficam somente neste dispositivo.";
-  } else if (backupStatus === "ativo") {
-    btn.hidden = true;
-    const t = localStorage.getItem(CHAVE + "-ultimo-backup");
-    info.textContent = "Backup automático ativo ✓" +
-      (t ? " · gravado " + new Date(t).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "");
-    info.classList.add("ok");
-  } else {
-    btn.hidden = false;
-    btn.textContent = "Reativar backup automático";
-    btn.onclick = reativarBackupArquivo;
-    info.textContent = "Backup em arquivo aguardando sua permissão";
-  }
-}
-if ("showSaveFilePicker" in window) {
-  cfgGet("handle").then(h => {
-    if (h) { handleBackup = h; backupStatus = "pendente"; gravarBackupArquivo(); }
-    atualizarRodapeBackup();
-  }).catch(atualizarRodapeBackup);
-}
-atualizarRodapeBackup();
-
-/* ================= Exportar / importar ================= */
-$("#btnExportar").onclick = () => {
-  sairExemplo();
-  if (seg.cripto && !confirm("O arquivo exportado NÃO é criptografado (para você poder ler e importar em qualquer lugar). Guarde-o em local seguro. Continuar?")) return;
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "arqevon-finance-dados.json";
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-$("#btnImportar").onclick = () => { sairExemplo(); $("#arqImportar").click(); };
-
-/* ================= Resetar todos os dados ================= */
-$("#btnResetar").onclick = () => {
-  sairExemplo();
-  const n = dados.lancamentos.length + dados.fixos.length + dados.parcelamentos.length + dados.objetivos.length + dados.orcamentos.length;
-  if (n === 0) return;
-  $("#resetMensagem").textContent = `Isso apagará ${n} ${n === 1 ? "item" : "itens"}, incluindo lançamentos, contas fixas, parcelas e objetivos. Uma cópia local de recuperação será criada antes. Se o backup automático estiver ativo, o arquivo externo poderá ser sobrescrito vazio.`;
-  $("#resetConfirmacao").value = "";
-  $("#resetErro").hidden = true;
-  $("#modalReset").showModal();
-  setTimeout(() => $("#resetConfirmacao").focus(), 30);
-};
-$("#resetCancelar").onclick = () => $("#modalReset").close();
-$("#modalReset").addEventListener("cancel", () => { $("#resetErro").hidden = true; });
-$("#resetAceitar").onclick = () => {
-  if ($("#resetConfirmacao").value.trim() !== "APAGAR") {
-    $("#resetErro").hidden = false;
-    $("#resetConfirmacao").focus();
-    return;
-  }
-  guardarCopia(CHAVE + "-pre-reset", dados); // última rede de segurança
-  localStorage.removeItem(CHAVE + "-pre-import");
-  dados = { lancamentos: [], fixos: [], parcelamentos: [], objetivos: [], orcamentos: [] };
-  salvar();
-  cancelarEdicaoAberta();
-  mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
-  renderTudo();
-  $("#modalReset").close();
-};
-$("#resetConfirmacao").addEventListener("keydown", e => {
-  if (e.key === "Enter") $("#resetAceitar").click();
-});
-$("#arqImportar").addEventListener("change", e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const leitor = new FileReader();
-  leitor.onload = async () => {
-    try {
-      let novo = JSON.parse(leitor.result);
-      if (novo && novo.enc === true && novo.ct) {
-        // arquivo de backup criptografado: pede a senha dele
-        const s = prompt("Este arquivo está criptografado. Digite a senha dele:");
-        if (s === null) return;
-        try {
-          const chave = await derivarChave(s, novo.salt);
-          novo = JSON.parse(await decifrar(chave, novo));
-        } catch (err) { alert("Senha incorreta — não foi possível ler o arquivo."); return; }
-      } else if (novo && novo.format === "myfinance-backup" && novo.ciphertext) {
-        // backup protegido (.myfinance) exportado pelo app desktop
-        const s = prompt("Este backup é protegido. Digite a senha usada ao exportá-lo:");
-        if (s === null) return;
-        try {
-          const chave = await derivarChave(s, novo.salt, Number(novo.iterations) || 250000);
-          novo = JSON.parse(await decifrar(chave, { iv: novo.iv, ct: novo.ciphertext })).data;
-        } catch (err) { alert("Senha incorreta — não foi possível ler o arquivo."); return; }
-      } else if (novo && novo.format === "myfinance-data") {
-        novo = novo.data;
-      }
-      if (!novo || !Array.isArray(novo.lancamentos)) throw 0;
-      if (confirm("Substituir os dados atuais pelos dados do arquivo?")) {
-        cancelarEdicaoAberta();
-        guardarCopia(CHAVE + "-pre-import", dados); // guarda o estado anterior
-        dados = normalizar(novo);
-        salvar(); renderTudo();
-      }
-    } catch { alert("Arquivo inválido. Use um JSON exportado por este sistema."); }
-  };
-  leitor.readAsText(f);
-  e.target.value = "";
-});
 
 /* ================= Boot ================= */
 preencherCategorias($("#lCat"));
@@ -3148,10 +2643,7 @@ addEventListener("storage", async e => {
   if (e.key !== CHAVE || !e.newValue) return;
   try {
     let novo = JSON.parse(e.newValue);
-    if (novo && novo.enc === true) {
-      if (!chaveSessao) { blobPendente = novo; return; } // trancada: lê ao desbloquear
-      novo = JSON.parse(await decifrar(chaveSessao, novo));
-    }
+    if (novo && novo.enc === true) return; // gravado cifrado por uma versão antiga: não abre aqui
     if (!novo || !Array.isArray(novo.lancamentos)) return;
     const normal = normalizar(novo);
     if (exemplo) { exemplo.real = normal; return; }
@@ -3198,14 +2690,10 @@ window.MyFinanceBridge = {
 // Novo nome público; o alias anterior continua disponível para instalações existentes.
 window.ArqevonFinanceBridge = window.MyFinanceBridge;
 renderTudo();
-atualizarBotoesSeg();
-reiniciarIdle();
 gravarIdsCriados();
 if (blobPendente) {
   bloquearTela();
-  $("#tbMsg").textContent = "Seus dados estão criptografados. Digite a senha para abrir.";
-} else {
-  agendarConviteCriptografia();
+  $("#tbMsg").textContent = "Seus dados foram protegidos com senha numa versão anterior. Digite a senha uma última vez: depois disso, ela não será mais pedida.";
 }
 </script>
 

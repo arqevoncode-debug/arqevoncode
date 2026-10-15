@@ -1,7 +1,7 @@
 // Acesso só pelo e-mail: entrar na conta basta para abrir os dados da nuvem em qualquer aparelho.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { banco, servir, navegador, abrirApp, criarNuvemUI, abrirConta, lerLocal, lanc, espera, VAZIO } from "./supabase-falso.mjs";
+import { banco, servir, navegador, abrirApp, criarNuvemUI, abrirConta, entrarPorCodigo, lerLocal, lanc, espera, VAZIO } from "./supabase-falso.mjs";
 
 let srv, browser;
 before(async () => { srv = await servir(); browser = await navegador(); });
@@ -134,5 +134,21 @@ test("servidor da chave fora do ar: avisa e não quebra", async () => {
   db.falharChave = false;
   await b.evaluate(() => document.querySelector("#webConta").close()); await abrirConta(b); await sincronizado(b);
   assert.equal((await lerLocal(b)).lancamentos.length, 2, "na tentativa seguinte, abre");
+  await b.fechar();
+});
+
+test("sessão morta de vez: volta para a tela de entrar sem apagar os lançamentos; ao entrar, sincroniza", async () => {
+  const db = banco();
+  const a = await computadorComNuvem(db); await a.fechar();
+  db.tokenVencido = 2; db.renovarSessao = true; // recusa o token antigo e o renovado
+  const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [lanc("b1", "Só neste aparelho")] } });
+  await b.waitForFunction(() => !document.querySelector("#webLogin").hidden, { timeout: 15000 });
+  assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id), ["b1"], "lançamentos do aparelho continuam");
+  await entrarPorCodigo(b, "ana@teste.com");
+  await sincronizado(b);
+  assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id).sort(), ["a1", "a2", "b1"], "nuvem + o que só existia aqui");
+  for (let i = 0; i < 40 && db.vivos("uid-a") < 3; i++) await espera(150);
+  assert.equal(db.vivos("uid-a"), 3);
+  assert.deepEqual(b.erros.filter(e => !/status of 401/.test(e)), []);
   await b.fechar();
 });

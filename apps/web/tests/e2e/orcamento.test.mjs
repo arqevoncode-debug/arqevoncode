@@ -67,14 +67,8 @@ test("apagar o valor remove o limite; exportar e importar levam os limites", asy
   assert.deepEqual((await lerDados(p)).orcamentos.map(o => o.categoria), ["transporte"]);
   assert.equal(await p.$('[data-limite="cartao"]'), null, "cartão de crédito não tem limite");
 
-  await p.evaluate(() => {
-    const orig = URL.createObjectURL;
-    URL.createObjectURL = blob => { blob.text().then(t => { window.__exportado = t; }); return orig(blob); };
-  });
-  await p.click("#btnExportar");
-  await p.waitForFunction(() => window.__exportado);
-  assert.deepEqual(JSON.parse(await p.evaluate(() => window.__exportado)).orcamentos.map(o => o.limite), [300]);
-  // backup antigo, sem limites, continua abrindo
+  assert.deepEqual((await lerDados(p)).orcamentos.map(o => o.limite), [300], "limite gravado");
+  // dados antigos, sem limites, continuam abrindo
   await p.evaluate(() => MyFinanceBridge.substituirDados({ lancamentos: [], fixos: [], parcelamentos: [], objetivos: [] }));
   assert.deepEqual((await lerDados(p)).orcamentos, []);
   assert.deepEqual(p.erros, []);

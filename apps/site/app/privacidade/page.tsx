@@ -149,8 +149,8 @@ export default function Privacidade() {
       </p>
       <p>
         Para isso, escreva para <a href={`mailto:${CONTATO}`}>{CONTATO}</a> a partir do e-mail da
-        sua conta. Respondemos em até 15 dias. Seus lançamentos podem ser exportados a qualquer
-        momento pelo próprio app, em um arquivo de backup. Você também pode reclamar à Autoridade
+        sua conta. Respondemos em até 15 dias. Se você pedir, enviamos uma cópia dos seus lançamentos
+        da nuvem em um arquivo. Você também pode reclamar à Autoridade
         Nacional de Proteção de Dados (ANPD).
       </p>
 

@@ -148,7 +148,7 @@ export default function Finance() {
               <li>Até 5 compras parceladas ativas</li>
               <li>Últimos 6 meses na tela e projeção de 3 meses</li>
               <li>1 objetivo e limite em 2 categorias</li>
-              <li>Dados só neste aparelho, com backup em arquivo</li>
+              <li>Dados só neste aparelho</li>
             </ul>
             <a className="lp-botao-sec" href={APP_URL}>Começar grátis</a>
           </article>
@@ -177,7 +177,6 @@ export default function Finance() {
           <details><summary>Preciso instalar alguma coisa?<span>+</span></summary><p>Não. O Arqevon Finance funciona no navegador, no computador ou no celular.</p></details>
           <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não, o Grátis não expira. Você lança sem limite e tem até 5 compras parceladas ativas, os últimos 6 meses na tela, projeção de 3 meses, 1 objetivo e limite em 2 categorias. Os dados ficam só no aparelho que estiver usando, e você exporta tudo quando quiser.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
-          <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
           <details><summary>O que tem no Pro?<span>+</span></summary><p>Tudo sem limites (parcelados, histórico, objetivos e categorias), importação do extrato do banco, relatórios completos com CSV e PDF, projeção de 12 meses e acesso em qualquer aparelho, inclusive no celular, com sincronização e backup na nuvem cifrado. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
         </div>
       </section>
