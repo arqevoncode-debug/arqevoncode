@@ -25,9 +25,7 @@ export default function Seguranca() {
       <h2>Sem conta ou no plano grátis</h2>
       <p>
         Os lançamentos ficam guardados no seu navegador ou computador e <strong>não são enviados</strong>{" "}
-        para nós. Se quiser, ligue a criptografia local em <em>Dados e segurança</em>: os dados passam a
-        ser guardados cifrados com AES-256-GCM, com uma chave derivada da sua senha (PBKDF2-SHA256,
-        150 mil iterações), e o app pede a senha ao abrir.
+        para nós.
       </p>
 
       <h2>Na nuvem (plano Pro)</h2>

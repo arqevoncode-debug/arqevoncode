@@ -110,15 +110,6 @@ export const aba = (p, nome) => p.evaluate(n => ativarAba(n), nome);
 export const texto = (p, sel) => p.$eval(sel, e => e.innerText.replace(/ /g, " "));
 export const limparEDigitar = async (p, sel, valor) => { await p.$eval(sel, e => { e.value = ""; }); await p.type(sel, valor); };
 
-export async function ligarCripto(p, senha = "segredo123") {
-  await p.click("#btnCripto");
-  await p.type("#sgNova", senha); await p.type("#sgConf", senha);
-  await p.$eval("#sgCripto", e => { e.checked = true; });
-  await p.click("#sgSalvar");
-  await p.waitForFunction(() => !document.querySelector("#modalSeg").open);
-  await p.waitForFunction(() => localStorage.getItem("meu-financeiro-v1")?.startsWith('{"enc":true'));
-}
-
 export async function desbloquear(p, senha = "segredo123") {
   await p.type("#tbSenha", senha);
   await p.keyboard.press("Enter");
