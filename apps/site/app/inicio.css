@@ -1,0 +1,164 @@
+/* Página inicial: o Arqevon Finance em destaque e o orçamento sob medida como um extra discreto.
+   Usa os tokens de globals.css (--ink, --blue, --mint…). Classes com prefixo "ini" para não colidir
+   com as de landing.css (/finance) e globals.css. */
+.ini { --grad: linear-gradient(120deg, #5b6fff, #31bdf4 55%, #3fe7c0); overflow-x: clip; }
+.ini-w { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
+.ini h1, .ini h2, .ini h3, .ini p { margin: 0; }
+.ini-grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ini section[id] { scroll-margin-top: 84px; }
+
+/* Malha de linhas da marca */
+.ini-malha { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(900px 520px at 85% -5%, rgba(82,109,255,.18), transparent 62%),
+    radial-gradient(700px 480px at 0% 30%, rgba(63,231,192,.07), transparent 68%),
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 40%, transparent 100%);
+          mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 40%, transparent 100%); }
+
+/* Botões e selo */
+.ini-btn, .ini-btn-sec { display: inline-flex; align-items: center; justify-content: center; min-height: 46px; padding: 0 20px; border-radius: 12px;
+  font-size: 14.5px; font-weight: 700; white-space: nowrap; cursor: pointer; border: 0; transition: transform .2s, filter .2s, border-color .2s; }
+.ini-btn { color: #fff; background: linear-gradient(120deg, var(--blue), #3d57e8 55%, #2a9d8f); box-shadow: 0 12px 32px rgba(67,91,232,.3); }
+.ini-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.ini-btn-sec { color: var(--ink); border: 1px solid var(--line-strong); background: rgba(13,26,43,.6); }
+.ini-btn-sec:hover { border-color: rgba(63,231,192,.5); }
+.ini-g { min-height: 54px; padding: 0 26px; font-size: 15.5px; }
+.ini-selo { display: inline-flex; align-items: center; gap: 10px; color: var(--mint); font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.ini-selo i { width: 18px; height: 2px; background: var(--mint); border-radius: 2px; }
+
+/* Cabeçalho */
+.ini-topo { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px) saturate(1.4); background: rgba(7,17,31,.72); border-bottom: 1px solid var(--line); }
+.ini-topo .ini-w { display: flex; align-items: center; gap: 28px; height: 72px; }
+.ini-marca { display: inline-flex; align-items: center; gap: 10px; font-size: 17px; white-space: nowrap; }
+.ini-marca img { border-radius: 9px; }
+.ini-marca strong { font-weight: 800; }
+.ini-topo nav { display: flex; gap: 26px; margin-left: 12px; }
+.ini-topo nav a { color: var(--muted); font-size: 14px; font-weight: 600; transition: color .2s; }
+.ini-topo nav a:hover { color: var(--ink); }
+.ini-dir { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+.ini-entrar { padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--ink-2); border-radius: 10px; }
+.ini-entrar:hover { color: var(--ink); background: rgba(151,174,205,.08); }
+.ini-topo .ini-btn { min-height: 40px; padding: 0 16px; font-size: 14px; border-radius: 10px; }
+
+/* Topo com abas */
+.ini-hero { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: 56px; align-items: center; padding: 84px 0 40px; }
+.ini-hero h1 { font-size: clamp(40px, 4.8vw, 66px); font-weight: 850; letter-spacing: -.05em; line-height: 1.02; margin: 18px 0; }
+.ini-lead { color: var(--ink-2); font-size: 18px; line-height: 1.6; max-width: 460px; }
+.ini-acoes { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+.ini-abas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 36px; max-width: 460px; }
+.ini-abas button { position: relative; overflow: hidden; text-align: left; padding: 13px 14px 15px; border-radius: 14px; border: 1px solid var(--line);
+  background: rgba(13,26,43,.45); cursor: pointer; display: grid; gap: 2px; color: var(--ink); font: inherit; transition: border-color .3s, background .3s; }
+.ini-abas b { font-size: 14.5px; }
+.ini-abas span { color: var(--muted); font-size: 12.5px; }
+.ini-abas i { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--grad); }
+.ini-abas button[aria-selected="true"] { border-color: rgba(63,231,192,.4); background: rgba(17,34,58,.8); }
+.ini-abas button[aria-selected="true"] i { animation: ini-enche 5.5s linear forwards; }
+.ini-abas.parado button[aria-selected="true"] i { animation: none; width: 100%; }
+@keyframes ini-enche { to { width: 100%; } }
+
+.ini-vis { position: relative; padding: 0 0 28px; }
+.ini-vis::before { content: ""; position: absolute; inset: -12% -8% 0; z-index: -1; filter: blur(26px);
+  background: radial-gradient(closest-side, rgba(82,109,255,.42), transparent 72%), radial-gradient(closest-side at 20% 90%, rgba(63,231,192,.14), transparent 70%); }
+.ini-janela { position: relative; aspect-ratio: 16 / 10.6; border-radius: 18px; border: 1px solid rgba(130,148,255,.28); background: rgba(9,20,35,.9); overflow: hidden;
+  box-shadow: 0 40px 90px rgba(0,0,0,.45); }
+.ini-barra { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.ini-barra i { width: 10px; height: 10px; border-radius: 50%; background: #24364f; }
+.ini-barra span { margin-left: 10px; }
+.ini-tela { position: absolute; inset: 38px 0 0; opacity: 0; transform: scale(1.02); transition: opacity .6s, transform 1s; }
+.ini-tela.on { opacity: 1; transform: none; }
+.ini-tela img { width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.ini-cel { position: absolute; left: -34px; bottom: -6px; width: 168px; border-radius: 30px; padding: 6px; background: #0a1626; border: 1px solid var(--line-strong);
+  box-shadow: 0 40px 80px rgba(0,0,0,.6); }
+.ini-cel img { display: block; border-radius: 24px; width: 100%; height: auto; aspect-ratio: 9 / 19; object-fit: cover; object-position: top; }
+
+/* Seções */
+.ini-sec { padding: 130px 0 0; }
+.ini-cab { display: grid; gap: 12px; text-align: center; justify-items: center; margin-bottom: 44px; }
+.ini-cab h2 { font-size: clamp(30px, 3.8vw, 44px); font-weight: 800; letter-spacing: -.04em; line-height: 1.05; }
+.ini-cab p { color: var(--ink-2); font-size: 17px; }
+
+.ini-planos { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 820px; margin: 0 auto; }
+.ini-plano { position: relative; padding: 32px; border-radius: 24px; border: 1px solid var(--line); background: rgba(13,26,43,.55); display: grid; gap: 4px; align-content: start; }
+.ini-plano.pro { border-color: rgba(82,109,255,.5); background: radial-gradient(460px 240px at 100% 0%, rgba(82,109,255,.24), transparent 70%), rgba(13,26,43,.7); }
+.ini-etq { position: absolute; top: 22px; right: 22px; padding: 4px 10px; border-radius: 999px; background: rgba(63,231,192,.14); color: var(--mint); font-size: 12px; font-weight: 700; }
+.ini-plano h3 { font-size: 17px; color: var(--ink-2); font-weight: 700; }
+.ini-preco { font-size: 40px; font-weight: 850; letter-spacing: -.045em; margin-top: 4px; }
+.ini-preco small { font-size: 15px; color: var(--muted); font-weight: 600; letter-spacing: 0; }
+.ini-plano p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 10px 0 24px; }
+.ini-plano .ini-btn, .ini-plano .ini-btn-sec { width: 100%; }
+.ini-nota { text-align: center; color: var(--muted); font-size: 14px; margin-top: 22px; }
+.ini-nota a { color: var(--mint); font-weight: 600; }
+
+.ini-faq { display: grid; gap: 10px; max-width: 760px; margin: 0 auto; }
+.ini-faq details { border: 1px solid var(--line); border-radius: 16px; background: rgba(13,26,43,.5); }
+.ini-faq summary { list-style: none; cursor: pointer; padding: 20px 22px; font-weight: 700; display: flex; justify-content: space-between; gap: 16px; }
+.ini-faq summary::-webkit-details-marker { display: none; }
+.ini-faq summary::after { content: "+"; color: var(--mint); font-size: 20px; line-height: 1; transition: transform .25s; }
+.ini-faq details[open] summary::after { transform: rotate(45deg); }
+.ini-faq p { padding: 0 22px 20px; color: var(--ink-2); line-height: 1.6; }
+
+/* Orçamento: uma linha */
+.ini-extra { margin: 110px 0 0; padding: 22px 0; border-top: 1px solid var(--line); display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap;
+  color: var(--muted); font-size: 14.5px; text-align: center; }
+.ini-extra button { background: none; border: 0; padding: 4px; cursor: pointer; color: var(--mint); font: inherit; font-weight: 700; }
+.ini-extra button:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.ini-dlg { width: min(420px, calc(100% - 24px)); padding: 28px; border: 1px solid var(--line-strong); border-radius: 22px; background: #0b1828; color: var(--ink);
+  box-shadow: 0 50px 120px rgba(0,0,0,.6); }
+.ini-dlg::backdrop { background: rgba(3,10,19,.72); backdrop-filter: blur(6px); }
+.ini-dlg[open] { animation: ini-abre .35s cubic-bezier(.2,.8,.2,1); }
+@keyframes ini-abre { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+.ini-dlg h3 { font-size: 21px; letter-spacing: -.03em; }
+.ini-dlg .ini-sub { color: var(--muted); font-size: 14.5px; margin: 6px 0 20px; }
+.ini-dlg form { display: grid; gap: 14px; }
+.ini-dlg label { display: grid; gap: 7px; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.ini-dlg input, .ini-dlg textarea { width: 100%; min-height: 48px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line-strong); background: rgba(3,10,19,.6);
+  font: inherit; font-size: 16px; color: var(--ink); outline: none; transition: border-color .2s, box-shadow .2s; }
+.ini-dlg textarea { min-height: 110px; resize: vertical; }
+.ini-dlg input:focus, .ini-dlg textarea:focus { border-color: var(--mint); box-shadow: 0 0 0 4px rgba(63,231,192,.12); }
+.ini-fechar { position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 18px; }
+.ini-dlg .ini-erro { color: #ff8a98; font-size: 14px; }
+.ini-dlg .ini-mini { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.ini-dlg .ini-mini a { color: var(--ink-2); text-decoration: underline; }
+.ini-ok { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 10px 0; }
+.ini-ok span { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--grad); color: #04121d; font-size: 26px; font-weight: 900; }
+.ini-ok p { color: var(--ink-2); }
+
+/* Rodapé */
+.ini-rodape { border-top: 1px solid var(--line); padding: 44px 0 56px; color: var(--muted); font-size: 14px; }
+.ini-rodape .ini-w { display: flex; flex-wrap: wrap; gap: 20px 40px; align-items: center; justify-content: space-between; }
+.ini-rodape nav { display: flex; flex-wrap: wrap; gap: 14px 20px; }
+.ini-rodape a:hover { color: var(--ink); }
+
+/* Entrada suave */
+.ini-hero > * { animation: ini-sobe .8s cubic-bezier(.2,.7,.2,1) both; }
+.ini-hero > :nth-child(2) { animation-delay: .12s; }
+@keyframes ini-sobe { from { opacity: 0; transform: translateY(18px); } }
+@media (prefers-reduced-motion: reduce) {
+  .ini-hero > *, .ini-dlg[open] { animation: none; }
+  .ini-abas button[aria-selected="true"] i { animation: none; width: 100%; }
+  .ini-tela { transition: none; }
+}
+
+@media (min-width: 1001px) and (max-width: 1240px) {
+  .ini-cel { width: 128px; left: -22px; border-radius: 24px; padding: 5px; }
+  .ini-cel img { border-radius: 19px; }
+}
+@media (max-width: 1000px) {
+  .ini-hero { grid-template-columns: 1fr; gap: 44px; padding-top: 56px; }
+  .ini-abas, .ini-lead { max-width: none; }
+  .ini-cel { left: -10px; }
+}
+@media (max-width: 640px) {
+  .ini-topo nav, .ini-entrar { display: none; }
+  .ini-topo .ini-w { gap: 12px; }
+  .ini-cel { width: 112px; left: -6px; border-radius: 20px; padding: 4px; }
+  .ini-cel img { border-radius: 16px; }
+  .ini-abas span { display: none; }
+  .ini-planos { grid-template-columns: 1fr; }
+  .ini-plano { padding: 26px; }
+  .ini-sec { padding-top: 96px; }
+}

@@ -96,9 +96,9 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   }
 });
 
-// A página inicial é da fábrica de software: o foco é o orçamento, e o Finance aparece como
-// produto pronto, com link para a página dele. O formulário aponta para a API que grava o pedido.
-test("oferece software sob encomenda com formulário de orçamento", async () => {
+// A página inicial destaca o Arqevon Finance; o orçamento sob medida é um extra discreto que abre
+// uma janela. O formulário aponta para a API que grava o pedido.
+test("destaca o Finance e mantém o orçamento sob medida", async () => {
   const page = await readFile(new URL("app/page.tsx", root), "utf8");
   const form = await readFile(new URL("app/orcamento.tsx", root), "utf8");
   const privacidade = await readFile(new URL("app/privacidade/page.tsx", root), "utf8");
@@ -124,13 +124,17 @@ test("oferece software sob encomenda com formulário de orçamento", async () =>
   const iteracoes = Number(cofre.match(/ITERACOES_SENHA = ([\d_]+)/)[1].replace(/_/g, ""));
   assert.ok(seguranca.includes(`${iteracoes / 1000} mil iterações`), `/seguranca deve citar ${iteracoes} iterações`);
 
-  assert.match(page, /id="sob-encomenda"/);
-  assert.match(page, /href="#sob-encomenda"/);
+  const hero = await readFile(new URL("app/hero-produto.tsx", root), "utf8");
+  assert.match(page, /<HeroProduto app=\{FINANCE_APP\} \/>/);
+  assert.match(hero, /#exemplo/, "botão Ver um exemplo leva ao modo exemplo do app");
+  for (const img of ["app-painel", "app-lancamentos", "app-relatorios", "app-objetivos"]) {
+    assert.match(hero, new RegExp(`/produto/${img}\\.png`));
+  }
   assert.match(page, /<Orcamento \/>/);
-  assert.match(page, /Fábrica de software/);
-  assert.match(page, /id="produtos"/);
+  assert.ok(page.indexOf('id="planos"') < page.indexOf("<Orcamento />"), "o orçamento vem depois do produto");
+  assert.match(form, /id="sob-encomenda"/, "links antigos para #sob-encomenda continuam valendo");
+  assert.match(form, /location\.hash === "#sob-encomenda"/);
   assert.match(page, /href="\/finance"/);
-  assert.ok(page.indexOf('id="servicos"') < page.indexOf('id="produtos"'), "serviços vêm antes dos produtos");
   assert.match(form, /\/api\/v1\/quote-requests/);
   assert.match(privacidade, /Pedido de orçamento/, "dado novo coletado precisa constar na política");
 });
