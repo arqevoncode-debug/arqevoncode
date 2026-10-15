@@ -88,7 +88,8 @@ test("cancelar a recuperação não troca a senha da nuvem", async () => {
   await p1.fechar();
   const p2 = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
   await abrirConta(p2);
-  await p2.waitForFunction(() => !document.querySelector("#wnAbrir").hidden);
+  await p2.waitForFunction(() => !document.querySelector("#wnAparelho").hidden);
+  await p2.click("#wnUsarSenha");
   // simula um navegador com dados de outra conta no meio da sessão (proteção extra da recuperação)
   await p2.evaluate(() => { localStorage.setItem("arqevon-sync-dono", "uid-z"); ArqevonFinanceBridge.substituirDados({ lancamentos: [{ id: "z", tipo: "despesa", descricao: "Z", valor: 1, categoria: "outros", data: "2026-10-01" }] }, { sync: true }); });
   await p2.click("#wnEsqueci");

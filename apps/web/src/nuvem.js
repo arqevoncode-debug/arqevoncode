@@ -1,6 +1,7 @@
 // Liga o motor de sincronização (sync.js) ao app: estado da conta, telas da seção "Nuvem",
 // chaves guardadas no aparelho e quando sincronizar.
-import { criarCofre, abrirComSenha, recuperarComChave, gerarChaveRecuperacao, normalizarChaveRecuperacao } from "./cofre.js";
+import { criarCofre, abrirComSenha, recuperarComChave, gerarChaveRecuperacao, normalizarChaveRecuperacao,
+  novoPedidoAparelho, selarParaAparelho, abrirPacoteAparelho } from "./cofre.js";
 import { Sincronizador, estadoVazio, COLECOES } from "./sync.js";
 
 const $ = id => document.getElementById(id);
@@ -49,8 +50,18 @@ const motor = {
 };
 const temDados = d => COLECOES.some(c => (d?.[c] || []).length > 0);
 
+// Nome do aparelho no pedido de liberação ("iPhone · Safari"), para a pessoa reconhecer no outro.
+function rotuloAparelho() {
+  const ua = navigator.userAgent;
+  const so = /iPhone/.test(ua) ? "iPhone" : /iPad/.test(ua) ? "iPad" : /Android/.test(ua) ? "Android"
+    : /Mac OS X/.test(ua) ? "Mac" : /Windows/.test(ua) ? "Windows" : /Linux/.test(ua) ? "Linux" : "Aparelho";
+  const nav = /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Firefox\/|FxiOS/.test(ua) ? "Firefox"
+    : /CriOS|Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "";
+  return nav ? `${so} · ${nav}` : so;
+}
+
 const erroVisivel = (id, msg) => { const el = $(id); el.textContent = msg || ""; el.hidden = !msg; };
-const mostrar = ativo => ["wnCriar", "wnGuardar", "wnAbrir", "wnRecuperar", "wnAtiva"].forEach(id => { $(id).hidden = id !== ativo; });
+const mostrar = ativo => ["wnCriar", "wnGuardar", "wnAparelho", "wnAbrir", "wnRecuperar", "wnAtiva"].forEach(id => { $(id).hidden = id !== ativo; });
 
 export function criarNuvem({ supabase, aoMudar }) {
   let uid = null;
@@ -63,6 +74,16 @@ export function criarNuvem({ supabase, aoMudar }) {
   let timerPeriodico = null;
   let ocupado = false;
   let pedeSenha = false; // a conta tem dados na nuvem, mas este aparelho ainda não tem as chaves
+  let chavesAtuais = null; // chaves em uso, para liberar outro aparelho
+  // Aparelho novo esperando aprovação: {par, pub, codigo, tag, id, expira}
+  let pedido = null;
+  let timerPedido = null;
+  let conferindo = false;
+  let modoSenha = false; // a pessoa escolheu digitar a senha em vez de aprovar no outro aparelho
+  // Aparelho aberto: pedidos de liberação
+  let timerPendentes = null;
+  let aprovando = null;
+  const dispensados = new Set();
 
   const rpc = (fn, args) => supabase.rpc(fn, args);
   const store = {
@@ -75,6 +96,9 @@ export function criarNuvem({ supabase, aoMudar }) {
   async function confirmar(msg) { return window.confirm(msg); }
 
   async function iniciarSync(chaves) {
+    pararPedido(true);
+    chavesAtuais = chaves;
+    pedeSenha = false;
     sync = new Sincronizador({ rpc, chaves, store, motor, confirmar });
     ultimoJson = "";
     await rodar();
@@ -89,6 +113,10 @@ export function criarNuvem({ supabase, aoMudar }) {
       if (json !== ultimoJson) { clearTimeout(timerMudanca); timerMudanca = setTimeout(rodar, 1500); }
       else if (contador % 10 === 0) rodar();
     }, 3000);
+    // Pedidos de outro aparelho para ser liberado: consultados a cada 8 s com o app visível.
+    clearInterval(timerPendentes);
+    timerPendentes = setInterval(verPendentes, 8000);
+    verPendentes();
   }
 
   async function rodar() {
@@ -137,9 +165,96 @@ export function criarNuvem({ supabase, aoMudar }) {
     if (!status.exists) { mostrar(criando ? "wnGuardar" : "wnCriar"); informar("Desligada neste aparelho."); return; }
     const chaves = await lerChaves(uid);
     if (chaves) { mostrar("wnAtiva"); informar("Conectando…"); if (await prepararDono()) await iniciarSync(chaves); return; }
-    mostrar("wnAbrir");
     pedeSenha = true;
     informar("Sua conta tem dados na nuvem.");
+    if (modoSenha) { mostrar("wnAbrir"); return; }
+    mostrar("wnAparelho");
+    if (!pedido) pedirAprovacao();
+  }
+
+  // ---------- Aparelho novo: pedir aprovação a um aparelho já aberto ----------
+  function pararPedido(cancelar) {
+    clearInterval(timerPedido); timerPedido = null;
+    if (cancelar && pedido) Promise.resolve(rpc("vault_link_cancel", { p_id: pedido.id })).catch(() => {});
+    pedido = null;
+  }
+
+  function pedidoEncerrado(msg) {
+    pararPedido(false);
+    $("wnCodigo").textContent = "····-····";
+    $("wnAparelhoStatus").textContent = msg;
+    $("wnNovoCodigo").hidden = false;
+  }
+
+  async function pedirAprovacao() {
+    pararPedido(true);
+    const dono = uid;
+    erroVisivel("wnErroAparelho", "");
+    $("wnNovoCodigo").hidden = true;
+    $("wnCodigo").textContent = "····-····";
+    $("wnAparelhoStatus").textContent = "Gerando código…";
+    try {
+      const p = await novoPedidoAparelho();
+      const { data, error } = await rpc("vault_link_request", { p_device_pub: p.pub, p_device_tag: p.tag, p_label: rotuloAparelho() });
+      if (error || !data?.ok) throw new Error(data?.message || "Não foi possível gerar o código agora.");
+      if (uid !== dono || sync) { Promise.resolve(rpc("vault_link_cancel", { p_id: data.id })).catch(() => {}); return; }
+      pedido = { ...p, id: data.id, expira: Date.parse(data.expires_at) || Date.now() + 10 * 60000 };
+      $("wnCodigo").textContent = p.codigo;
+      $("wnAparelhoStatus").textContent = "Aguardando a aprovação no outro aparelho…";
+      timerPedido = setInterval(conferirPedido, 2500);
+    } catch (e) {
+      $("wnAparelhoStatus").textContent = "";
+      erroVisivel("wnErroAparelho", navigator.onLine ? e.message : "Sem internet. Conecte-se para gerar o código.");
+      $("wnNovoCodigo").hidden = false;
+    }
+  }
+
+  async function conferirPedido() {
+    if (!pedido || conferindo || document.visibilityState !== "visible") return;
+    if (Date.now() > pedido.expira) { pararPedido(true); return pedidoEncerrado("O código venceu. Gere outro para tentar de novo."); }
+    conferindo = true;
+    const atual = pedido;
+    try {
+      const { data, error } = await rpc("vault_link_take", { p_id: atual.id });
+      if (error || pedido !== atual) return; // falha de rede: tenta de novo na próxima volta
+      if (data?.sealed) { pararPedido(false); await concluirAprovacao(atual, data.sealed); return; }
+      if (!data?.ok) pedidoEncerrado(data?.code === "EXPIRED" ? "O código venceu. Gere outro para tentar de novo." : "O pedido foi recusado no outro aparelho.");
+    } catch { /* tenta de novo */ } finally { conferindo = false; }
+  }
+
+  async function concluirAprovacao(p, selado) {
+    let chaves;
+    try { chaves = await abrirPacoteAparelho(p, p.id, selado); }
+    catch { erroVisivel("wnErroAparelho", "Não foi possível abrir o que o outro aparelho enviou. Gere outro código."); $("wnNovoCodigo").hidden = false; return; }
+    if (!(await prepararDono())) { erroVisivel("wnErroAparelho", "Cancelado."); $("wnNovoCodigo").hidden = false; return; }
+    await gravarChaves(uid, chaves);
+    mostrar("wnAtiva");
+    informar("Aparelho liberado. Baixando seus dados…");
+    await iniciarSync(chaves);
+    aoMudar?.(texto);
+  }
+
+  // ---------- Aparelho aberto: liberar um aparelho novo ----------
+  async function verPendentes() {
+    if (!sync || document.visibilityState !== "visible" || $("webAprovar").open) return;
+    try {
+      const { data, error } = await rpc("vault_link_pending");
+      if (error || !data?.ok || $("webAprovar").open || !sync) return;
+      const item = (data.items || []).find(i => !dispensados.has(i.id));
+      if (item) abrirAprovacao(item);
+    } catch { /* sem rede: tenta depois */ }
+  }
+
+  function abrirAprovacao(item) {
+    aprovando = item;
+    $("waTexto").textContent = `${item.label || "Um aparelho"} pediu acesso aos seus dados da nuvem. Digite o código que aparece nele.`;
+    $("waSenhaCampo").hidden = !!chavesAtuais?.dek;
+    $("waCodigo").value = ""; $("waSenha").value = "";
+    erroVisivel("waErro", "");
+    $("waOk").hidden = true;
+    $("waLiberar").disabled = false; $("waLiberar").hidden = false; $("waRecusar").hidden = false;
+    $("webAprovar").showModal();
+    $("waCodigo").focus();
   }
 
   // ---------- Telas ----------
@@ -203,6 +318,45 @@ export function criarNuvem({ supabase, aoMudar }) {
     } finally { botao.disabled = false; botao.textContent = "Abrir dados da nuvem"; }
   });
 
+  $("wnUsarSenha").addEventListener("click", () => { modoSenha = true; mostrar("wnAbrir"); $("wnSenhaAbrir").focus(); });
+  $("wnVoltarAparelho").addEventListener("click", () => { modoSenha = false; mostrar("wnAparelho"); if (!pedido) pedirAprovacao(); });
+  $("wnNovoCodigo").addEventListener("click", () => pedirAprovacao());
+
+  $("waForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!aprovando) return;
+    const botao = $("waLiberar");
+    botao.disabled = true; botao.textContent = "Liberando…"; erroVisivel("waErro", "");
+    try {
+      let chaves = chavesAtuais;
+      if (!chaves?.dek) {
+        // chaves salvas antes de existir a liberação por aparelho: a senha abre a DEK uma vez
+        const senha = $("waSenha").value;
+        if (!senha) throw new Error("Digite a senha da nuvem.");
+        try { chaves = await abrirComSenha(status, senha); } catch { throw new Error("Senha incorreta."); }
+        await gravarChaves(uid, chaves);
+        chavesAtuais = chaves;
+        $("waSenhaCampo").hidden = true;
+      }
+      const selado = await selarParaAparelho(chaves, aprovando, $("waCodigo").value);
+      const { data, error } = await rpc("vault_link_approve", { p_id: aprovando.id, p_sealed: selado });
+      if (error || !data?.ok) throw new Error(data?.message || "Não foi possível liberar agora. Tente de novo.");
+      dispensados.add(aprovando.id);
+      aprovando = null;
+      $("waOk").hidden = false; botao.hidden = true; $("waRecusar").hidden = true;
+      setTimeout(() => $("webAprovar").close(), 2500);
+    } catch (err) {
+      erroVisivel("waErro", err.message);
+    } finally { botao.disabled = false; botao.textContent = "Liberar aparelho"; }
+  });
+  $("waRecusar").addEventListener("click", () => {
+    if (aprovando) { dispensados.add(aprovando.id); Promise.resolve(rpc("vault_link_cancel", { p_id: aprovando.id })).catch(() => {}); }
+    aprovando = null;
+    $("webAprovar").close();
+  });
+  // Fechar com Esc: não pergunta de novo sobre o mesmo pedido nesta sessão (ele vence sozinho).
+  $("webAprovar").addEventListener("close", () => { if (aprovando) dispensados.add(aprovando.id); aprovando = null; });
+
   $("wnEsqueci").addEventListener("click", () => mostrar("wnRecuperar"));
   $("wnVoltarAbrir").addEventListener("click", () => mostrar("wnAbrir"));
 
@@ -236,17 +390,21 @@ export function criarNuvem({ supabase, aoMudar }) {
 
   $("wnAgora").addEventListener("click", () => { informar("Sincronizando…"); rodar(); });
   $("wnEsquecer").addEventListener("click", async () => {
-    if (!window.confirm("Desligar a nuvem neste aparelho? Os dados continuam aqui e na nuvem; para religar, você vai precisar da senha da nuvem.")) return;
+    if (!window.confirm("Desligar a nuvem neste aparelho? Os dados continuam aqui e na nuvem; para religar, aprove por outro aparelho ou use a senha da nuvem.")) return;
     await parar(true);
     atualizar();
   });
 
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") rodar(); });
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { rodar(); verPendentes(); conferirPedido(); } });
   window.addEventListener("online", () => rodar());
 
   async function parar(esquecerChaves) {
     clearInterval(timerPeriodico); clearTimeout(timerMudanca);
     sync = null; texto = ""; criando = null;
+    pararPedido(true);
+    clearInterval(timerPendentes); timerPendentes = null;
+    chavesAtuais = null; modoSenha = false; pedeSenha = false;
+    if ($("webAprovar").open) { aprovando = null; $("webAprovar").close(); }
     if (esquecerChaves && uid) await apagarChaves(uid);
   }
 

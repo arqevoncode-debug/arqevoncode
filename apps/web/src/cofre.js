@@ -61,15 +61,96 @@ async function desembrulhar(kek, embrulhada) {
   return new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv: deB64(iv) }, kek, deB64(ct)));
 }
 
-/** Chaves de trabalho, não exportáveis, derivadas da DEK. */
+/**
+ * Chaves de trabalho, não exportáveis, derivadas da DEK. `dek` guarda a própria DEK para este
+ * aparelho poder liberar outro (selarParaAparelho). Ela é exportável por necessidade da Web Crypto;
+ * não piora o caso de um script malicioso na página, que já poderia decifrar tudo com `cifra`.
+ */
 async function chavesDaDek(dek) {
   const base = await subtle.importKey("raw", dek, "HKDF", false, ["deriveKey"]);
   const hkdf = info => ({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: enc.encode(info) });
-  const [cifra, ids] = await Promise.all([
+  const [cifra, ids, guardada] = await Promise.all([
     subtle.deriveKey(hkdf("arqevon/v1/registro"), base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]),
     subtle.deriveKey(hkdf("arqevon/v1/id"), base, { name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]),
+    subtle.importKey("raw", dek, { name: "AES-GCM" }, true, ["encrypt"]),
   ]);
-  return { cifra, ids };
+  return { cifra, ids, dek: guardada };
+}
+
+// ---------- Liberar um aparelho novo aprovando em outro ----------
+// O aparelho novo mostra um código de 8 caracteres (40 bits) que nunca vai ao servidor e envia uma
+// chave pública ECDH com uma etiqueta: PBKDF2(código, sal = chave pública). No aparelho aberto, a
+// pessoa digita o código; a etiqueta conferida prova que a chave pública é a do aparelho que mostra o
+// código (o servidor não consegue trocá-la sem o código, e 100 mil iterações tornam inviável
+// adivinhá-lo nos minutos em que o pedido vale). A DEK vai cifrada com ECDH + o próprio código.
+const ECDH = { name: "ECDH", namedCurve: "P-256" };
+const ITERACOES_CODIGO = 100_000;
+
+export function gerarCodigoAparelho() {
+  let valor = 0n;
+  for (const b of aleatorio(5)) valor = (valor << 8n) | BigInt(b);
+  let out = "";
+  for (let i = 7; i >= 0; i--) out += ALFABETO[Number((valor >> BigInt(i * 5)) & 31n)];
+  return `${out.slice(0, 4)}-${out.slice(4)}`;
+}
+
+/** Aceita o código digitado com espaço, hífen ou minúsculas; null se não tem o formato. */
+export function normalizarCodigoAparelho(texto) {
+  const limpa = String(texto ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (limpa.length !== 8 || [...limpa].some(c => !ALFABETO.includes(c))) return null;
+  return `${limpa.slice(0, 4)}-${limpa.slice(4)}`;
+}
+
+async function etiquetaCodigo(codigo, pubB64) {
+  const material = await subtle.importKey("raw", enc.encode(codigo), "PBKDF2", false, ["deriveBits"]);
+  const bits = await subtle.deriveBits({ name: "PBKDF2", salt: deB64(pubB64), iterations: ITERACOES_CODIGO, hash: "SHA-256" }, material, 256);
+  return b64(bits);
+}
+
+async function chaveDoPacote(privada, pubOutroB64, codigo, id) {
+  const outro = await subtle.importKey("raw", deB64(pubOutroB64), ECDH, false, []);
+  const segredo = await subtle.deriveBits({ name: "ECDH", public: outro }, privada, 256);
+  const base = await subtle.importKey("raw", segredo, "HKDF", false, ["deriveKey"]);
+  return subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: enc.encode(codigo), info: enc.encode(`arqevon/v1/aparelho:${id}`) },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+
+const erroCodigo = (code, message) => Object.assign(new Error(message), { code });
+
+/** Aparelho novo: par de chaves (a privada não sai do aparelho), código para mostrar e etiqueta. */
+export async function novoPedidoAparelho() {
+  const par = await subtle.generateKey(ECDH, false, ["deriveBits"]);
+  const pub = b64(await subtle.exportKey("raw", par.publicKey));
+  const codigo = gerarCodigoAparelho();
+  return { par, pub, codigo, tag: await etiquetaCodigo(codigo, pub) };
+}
+
+/**
+ * Aparelho aberto: confere o código digitado contra o pedido e cifra a DEK para o aparelho novo.
+ * Erros com `code`: CODIGO_FORMATO, CODIGO_ERRADO ou SEM_DEK (chaves salvas antes desta versão).
+ */
+export async function selarParaAparelho(chaves, pedido, codigoDigitado) {
+  const codigo = normalizarCodigoAparelho(codigoDigitado);
+  if (!codigo) throw erroCodigo("CODIGO_FORMATO", "O código tem 8 letras e números, como K7M2-Q9XD.");
+  if ((await etiquetaCodigo(codigo, pedido.device_pub)) !== pedido.device_tag) {
+    throw erroCodigo("CODIGO_ERRADO", "O código não confere. Confira no aparelho novo e digite de novo.");
+  }
+  if (!chaves?.dek) throw erroCodigo("SEM_DEK", "Confirme a senha da nuvem neste aparelho uma vez para poder liberar outros.");
+  const dek = new Uint8Array(await subtle.exportKey("raw", chaves.dek));
+  const par = await subtle.generateKey(ECDH, false, ["deriveBits"]);
+  const chave = await chaveDoPacote(par.privateKey, pedido.device_pub, codigo, pedido.id);
+  const iv = aleatorio(12);
+  const ct = await subtle.encrypt({ name: "AES-GCM", iv, additionalData: enc.encode(pedido.id) }, chave, dek);
+  dek.fill(0);
+  return JSON.stringify({ v: 1, pub: b64(await subtle.exportKey("raw", par.publicKey)), iv: b64(iv), ct: b64(ct) });
+}
+
+/** Aparelho novo: abre o pacote com a própria chave privada e o código que mostrou. */
+export async function abrirPacoteAparelho(pedido, id, selado) {
+  const s = JSON.parse(selado);
+  const chave = await chaveDoPacote(pedido.par.privateKey, s.pub, pedido.codigo, id);
+  const dek = new Uint8Array(await subtle.decrypt({ name: "AES-GCM", iv: deB64(s.iv), additionalData: enc.encode(id) }, chave, deB64(s.ct)));
+  return chavesDaDek(dek);
 }
 
 /** Cria o cofre: DEK nova embrulhada pela senha e pela chave de recuperação. */

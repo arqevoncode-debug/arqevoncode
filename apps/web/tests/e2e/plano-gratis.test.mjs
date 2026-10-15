@@ -43,7 +43,9 @@ test("editar uma compra parcelada existente continua livre no limite", async () 
   const p = await gratis({ dados: { ...VAZIO(), parcelamentos: parc(5) } });
   await aba(p, "lancamentos");
   await p.evaluate(() => editarItem("parc", "p0"));
-  await limparEDigitar(p, "#lValor", "70000"); await p.click("#lBtn"); await espera(150);
+  await limparEDigitar(p, "#lValor", "70000"); await p.click("#lBtn");
+  // espera a gravação em vez de um tempo fixo (no CI, 150 ms às vezes não bastavam)
+  await p.waitForFunction(() => JSON.parse(localStorage.getItem("meu-financeiro-v1") || "{}").parcelamentos?.some(x => x.valorTotal === 700), { timeout: 5000 }).catch(() => {});
   const d = await lerDados(p);
   assert.equal(d.parcelamentos.length, 5);
   assert.equal(d.parcelamentos.find(x => x.descricao === "Compra 0").valorTotal, 700);

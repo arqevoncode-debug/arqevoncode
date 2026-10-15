@@ -93,12 +93,22 @@
       <button class="wl-botao" type="submit" id="wnBotaoGuardar">Ativar sincronização</button>
     </form>
 
+    <div id="wnAparelho" class="wc-form" hidden>
+      <p class="wl-sub"><b>Libere este aparelho pelo outro.</b> Abra o Arqevon Finance onde você já usa a nuvem (no computador, por exemplo). Vai aparecer um aviso: digite lá este código.</p>
+      <output class="wc-chave wc-codigo" id="wnCodigo">····-····</output>
+      <p class="wl-nota" id="wnAparelhoStatus"></p>
+      <p class="wl-erro" id="wnErroAparelho" hidden></p>
+      <button class="wl-secundario" type="button" id="wnNovoCodigo" hidden>Gerar outro código</button>
+      <button class="wl-link" type="button" id="wnUsarSenha">Usar a senha da nuvem</button>
+    </div>
+
     <form id="wnAbrir" class="wc-form" hidden>
-      <p class="wl-sub">Sua conta já tem dados na nuvem. Digite a senha da nuvem para abri-los neste aparelho.</p>
+      <p class="wl-sub">Digite a senha da nuvem para abrir seus dados neste aparelho.</p>
       <label class="wl-campo"><span>Senha da nuvem</span><input id="wnSenhaAbrir" type="password" autocomplete="current-password" required></label>
       <p class="wl-erro" id="wnErroAbrir" hidden></p>
       <button class="wl-botao" type="submit" id="wnBotaoAbrir">Abrir dados da nuvem</button>
       <button class="wl-link" type="button" id="wnEsqueci">Esqueci a senha da nuvem</button>
+      <button class="wl-link" type="button" id="wnVoltarAparelho">Aprovar por outro aparelho</button>
     </form>
 
     <form id="wnRecuperar" class="wc-form" hidden>
@@ -152,4 +162,18 @@
     <button class="botao cancelar" type="button" id="wcFechar">Fechar</button>
     <button class="botao" type="button" id="wcSair">Sair</button>
   </div>
+</dialog>
+
+<dialog id="webAprovar" class="wc wc-aprovar" aria-labelledby="waTitulo">
+  <h2 id="waTitulo">Liberar um aparelho novo?</h2>
+  <p class="wl-sub" id="waTexto"></p>
+  <form id="waForm" class="wc-form" novalidate>
+    <label class="wl-campo"><span>Código que aparece no aparelho novo</span><input id="waCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX" maxlength="12"></label>
+    <label class="wl-campo" id="waSenhaCampo" hidden><span>Senha da nuvem (só desta vez, neste aparelho)</span><input id="waSenha" type="password" autocomplete="current-password"></label>
+    <p class="wl-erro" id="waErro" hidden></p>
+    <p class="wc-ok" id="waOk" hidden>Pronto! O aparelho novo já está abrindo seus dados.</p>
+    <button class="wl-botao" type="submit" id="waLiberar">Liberar aparelho</button>
+    <button class="wl-link" type="button" id="waRecusar">Não fui eu: recusar</button>
+  </form>
+  <p class="wl-nota">Só libere se o pedido for seu. O código não passa pelo servidor.</p>
 </dialog>
