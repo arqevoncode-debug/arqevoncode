@@ -43,6 +43,7 @@ instâncias independentes, sem memória compartilhada. Um login bem-sucedido zer
    - `202610130002_indicacao.sql`: indique e ganhe (`referral_codes`, `referrals`, `my_referral`, `claim_referral`, recompensa por gatilho em `subscriptions`, `admin_referral_metrics`); `claim_trial` dá 60 dias a indicados.
    - `202610150001_aparelho_aprovado.sql`: liberar aparelho novo aprovando em outro (`vault_device_links`, `vault_link_request`, `vault_link_pending`, `vault_link_approve`, `vault_link_take`, `vault_link_cancel`); o servidor só repassa um pacote cifrado, nunca vê o código nem a chave.
    - `202610150002_nuvem_sem_senha.sql`: nuvem sem senha; `vault_rotate` troca a chave e esvazia a nuvem para o reenvio, e `vault_push(p_items, p_key_version)` barra aparelho com a chave antiga (`KEY_CHANGED`).
+   - `202610150003_custodia_chave.sql`: acesso só pelo e-mail. A DEK fica sob custódia (`server_wrapped_key`, cifrada com `VAULT_CUSTODY_KEY` do license-manager, entregue por `/api/v1/vault/key`); `vault_custody_get`/`vault_custody_set` só para `service_role`. Remove a liberação por código (`vault_link_*`, `vault_device_links`).
 
    `npm run test:sql` (ou `scripts/test-migrations.sh`) aplica todas num Postgres descartável e
    roda os testes de `supabase/tests/`. Use as variáveis `PGHOST`, `PGUSER` etc. de um Postgres

@@ -3,10 +3,10 @@ import LegalLayout, { CONTATO } from "../legal-layout";
 
 export const metadata: Metadata = {
   title: "Como protegemos seus dados — Arqevon Finance",
-  description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem. Veja o que a Arqevon vê, o que não vê e como a proteção funciona.",
+  description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem, e a chave fica separada do banco de dados. Veja como a proteção funciona.",
   // sem isto a página herda canonical e og:url da página inicial e some das buscas
   alternates: { canonical: "/seguranca" },
-  openGraph: { url: "/seguranca", siteName: "Arqevon Finance", title: "Como protegemos seus dados — Arqevon Finance", description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem. Veja o que a Arqevon vê, o que não vê e como a proteção funciona.", images: [{ url: "/og-finance.png", width: 1200, height: 630 }] },
+  openGraph: { url: "/seguranca", siteName: "Arqevon Finance", title: "Como protegemos seus dados — Arqevon Finance", description: "Seus lançamentos são cifrados no seu aparelho antes de irem para a nuvem, e a chave fica separada do banco de dados. Veja como a proteção funciona.", images: [{ url: "/og-finance.png", width: 1200, height: 630 }] },
 };
 
 // Cada afirmação daqui foi conferida no código (apps/web/src/cofre.js, apps/web/src/motor.html,
@@ -17,8 +17,9 @@ export default function Seguranca() {
     <LegalLayout titulo="Como protegemos seus dados">
       <p className="legal-resumo">
         <strong>Em resumo:</strong> seus lançamentos são cifrados no seu aparelho antes de irem para a
-        nuvem. Nós guardamos só o conteúdo cifrado e não temos a chave: nem a Arqevon consegue ver
-        seus valores, descrições ou categorias.
+        nuvem, e o banco de dados guarda só o conteúdo cifrado. Para você abrir os dados em qualquer
+        aparelho só entrando com o seu e-mail, a chave fica guardada por nós, separada do banco e
+        protegida por uma chave mestra.
       </p>
 
       <h2>Sem conta ou no plano grátis</h2>
@@ -32,22 +33,22 @@ export default function Seguranca() {
       <h2>Na nuvem (plano Pro)</h2>
       <ul>
         <li><strong>Cifrado antes de sair do aparelho.</strong> Cada lançamento, conta fixa, parcela, objetivo e limite é cifrado no seu aparelho com AES-256-GCM. O servidor recebe e guarda apenas o resultado cifrado.</li>
-        <li><strong>A chave é sua.</strong> Os dados são cifrados com uma chave aleatória criada no seu aparelho. Ela fica nos seus aparelhos conectados e, na nuvem, só embrulhada pela <strong>chave de recuperação</strong> (160 bits, PBKDF2-SHA256 com 100 mil iterações) que você anota ao ativar a nuvem. Não existe senha da nuvem.</li>
-        <li><strong>Aparelho novo liberado pelo outro.</strong> O aparelho novo mostra um código de 8 caracteres, que você digita num aparelho onde já usa a nuvem. Esse código não passa pelo servidor: ele confirma que o pedido veio mesmo do seu aparelho, e só então a chave dos dados é enviada, cifrada para aquele aparelho (ECDH P-256 e AES-256-GCM). O servidor apenas repassa um pacote que não consegue abrir.</li>
-        <li><strong>A chave de recuperação nunca é enviada.</strong> Ela é usada só no aparelho, quando não há outro aparelho conectado para liberar. Em &quot;Sua conta&quot; dá para gerar uma chave nova a qualquer momento: a antiga deixa de valer.</li>
-        <li><strong>Nem o tipo do registro aparece.</strong> Cada registro na nuvem tem um identificador opaco (HMAC-SHA256): o servidor não sabe se é uma despesa, uma receita ou um objetivo.</li>
-        <li><strong>Sem um aparelho conectado e sem a chave de recuperação, ninguém recupera os dados da nuvem</strong>, nem nós. É o preço da privacidade: guarde a chave de recuperação em lugar seguro.</li>
+        <li><strong>Acesso só pelo e-mail.</strong> Em um aparelho novo, basta entrar com o código enviado ao seu e-mail: o app recebe a chave dos dados e abre tudo.</li>
+        <li><strong>Chave separada do banco.</strong> A chave dos dados é aleatória e criada no seu aparelho. Nós a guardamos cifrada (AES-256-GCM) com uma chave mestra que fica só no servidor que entrega a chave, nunca no banco de dados nem nas cópias de segurança. Quem tivesse acesso só ao banco veria apenas conteúdo cifrado.</li>
+        <li><strong>Entregue só a quem entra na conta.</strong> O servidor confere o login antes de entregar a chave. Proteja o seu e-mail: quem entra nele consegue entrar na sua conta.</li>
+        <li><strong>Nem o tipo do registro aparece.</strong> Cada registro na nuvem tem um identificador opaco (HMAC-SHA256): o banco não sabe se é uma despesa, uma receita ou um objetivo.</li>
       </ul>
 
       <h2>O que nós vemos</h2>
       <ul>
         <li>O e-mail da conta e as datas de cadastro e de acesso.</li>
         <li>A situação do plano: teste grátis, assinatura e datas do período.</li>
-        <li>Sobre a nuvem, só dados técnicos: quantos registros cifrados existem, o tamanho deles e quando foram alterados.</li>
+        <li>Sobre a nuvem, no dia a dia, só dados técnicos: quantos registros cifrados existem, o tamanho deles e quando foram alterados.</li>
       </ul>
       <p>
-        <strong>Nunca</strong> vemos valores, descrições, categorias, datas dos lançamentos ou nomes dos
-        objetivos. Os detalhes estão na <a href="/privacidade">Política de Privacidade</a>.
+        Como guardamos a chave, temos meios técnicos de abrir os dados da nuvem. Não fazemos isso: não
+        lemos seus valores, descrições ou categorias, e só usaríamos esse acesso se a lei obrigar. Os
+        detalhes estão na <a href="/privacidade">Política de Privacidade</a>.
       </p>
 
       <h2>No app</h2>

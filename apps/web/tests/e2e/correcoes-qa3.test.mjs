@@ -23,7 +23,7 @@ test("trocar de conta no mesmo navegador não mostra nem apaga os dados da outra
   db.conta("uid-a", "ana@teste.com", { cloud: true });
   db.conta("uid-b", "bruno@teste.com", { cloud: false });
   const p = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [1, 2, 3, 4, 5].map(i => lanc("a" + i, "Gasto da Ana " + i)) } });
-  const chave = await criarNuvemUI(p);
+  await criarNuvemUI(p);
   assert.equal(db.vivos("uid-a"), 5);
 
   // Ana sai com a nuvem em dia: os lançamentos saem deste navegador (estão na nuvem)
@@ -41,7 +41,7 @@ test("trocar de conta no mesmo navegador não mostra nem apaga os dados da outra
 
   // Ana volta: a nuvem dela está intacta e nada do Bruno entra nela
   await entrarPorCodigo(p, "ana@teste.com");
-  await abrirNuvemUI(p, chave); // sem outro aparelho conectado: a chave de recuperação
+  await abrirNuvemUI(p); // só entrar pelo e-mail: a chave vem do servidor
   await espera(1500);
   assert.equal(db.vivos("uid-a"), 5, "nuvem da Ana com os 5 itens");
   const local = await lerLocal(p);
@@ -80,25 +80,28 @@ test("entrar com dados de outra conta no navegador pergunta antes de mostrar", a
   await p.fechar();
 });
 
-test("recuperação cancelada (dados de outra conta) não guarda as chaves", async () => {
+test("aparelho com dados de outra conta: pergunta antes de abrir a nuvem; recusar não guarda as chaves", async () => {
   const db = banco();
   db.conta("uid-a", "ana@teste.com", { cloud: true });
   const p1 = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [lanc("a1", "Ana 1")] } });
-  const chave = await criarNuvemUI(p1);
+  await criarNuvemUI(p1);
   await p1.fechar();
+  // o servidor ainda não responde quando o aparelho abre (nada é guardado)...
+  db.falharChave = true;
   const p2 = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
   await abrirConta(p2);
-  await p2.waitForFunction(() => !document.querySelector("#wnAparelho").hidden);
-  await p2.click("#wnUsarChave");
-  // simula um navegador com dados de outra conta no meio da sessão
+  await p2.waitForFunction(() => /Não foi possível abrir a nuvem/.test(document.querySelector("#wnStatus").textContent), { timeout: 8000 });
+  // ...e no meio da sessão o navegador passa a ter dados de outra conta
   await p2.evaluate(() => { localStorage.setItem("arqevon-sync-dono", "uid-z"); ArqevonFinanceBridge.substituirDados({ lancamentos: [{ id: "z", tipo: "despesa", descricao: "Z", valor: 1, categoria: "outros", data: "2026-10-01" }] }, { sync: true }); });
-  await p2.type("#wnChaveRec", chave);
+  db.falharChave = false;
   p2.respostas.push(false);
-  await p2.click("#wnBotaoRec");
-  await p2.waitForFunction(() => !document.querySelector("#wnErroRec").hidden, { timeout: 20000 });
-  assert.match(await p2.$eval("#wnErroRec", e => e.textContent), /Cancelado/);
-  assert.equal(db.contas.get("uid-a").vault.key_version, 1, "nada mudou na nuvem");
+  await p2.evaluate(() => document.querySelector("#webConta").close()); await abrirConta(p2);
+  await p2.waitForFunction(() => /Cancelado/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
+  assert.match(p2.vistos.join(" "), /lançamentos de outra conta/);
+  assert.deepEqual((await lerLocal(p2)).lancamentos.map(l => l.id), ["z"], "dados do navegador mantidos");
   assert.ok(await p2.evaluate(() => new Promise(ok => { const r = indexedDB.open("arqevon"); r.onsuccess = () => { const g = r.result.transaction("chaves").objectStore("chaves").get("uid-a"); g.onsuccess = () => ok(!g.result); }; })), "chaves não foram guardadas");
+  assert.equal(db.vivos("uid-a"), 1, "nada da outra conta foi para a nuvem");
+  assert.deepEqual(p2.erros.filter(e => !/status of 503/.test(e)), []);
   await p2.fechar();
 });
 

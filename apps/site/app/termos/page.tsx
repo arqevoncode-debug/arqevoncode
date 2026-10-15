@@ -16,8 +16,7 @@ export default function Termos() {
       <p className="legal-resumo">
         <strong>Em resumo:</strong> o plano grátis é seu para usar sem prazo. O Pro é uma assinatura
         que você cancela quando quiser, com direito a reembolso integral em até 7 dias. Seus dados
-        são seus. Se você perder todos os aparelhos conectados e a chave de recuperação, nem nós
-        conseguimos abrir os dados guardados na nuvem.
+        são seus, e você os acessa em qualquer aparelho entrando com o seu e-mail.
       </p>
 
       <h2>1. Aceitação</h2>
@@ -65,15 +64,14 @@ export default function Termos() {
         <li>O Serviço é destinado a maiores de 18 anos. Menores só devem usá-lo com autorização e acompanhamento do responsável legal.</li>
       </ul>
 
-      <h2>4. Aparelhos conectados e chave de recuperação</h2>
+      <h2>4. Acesso à conta e proteção dos dados</h2>
       <p>
-        No plano Pro, seus dados são cifrados no seu aparelho com uma chave que fica nos seus{" "}
-        <strong>aparelhos conectados</strong>. Um aparelho novo é liberado por um aparelho já
-        conectado. Na nuvem, essa chave só existe protegida pela sua{" "}
-        <strong>chave de recuperação</strong>, que nós não recebemos. Guarde-a em local seguro.{" "}
-        <strong>Se você perder todos os aparelhos conectados e a chave de recuperação, os dados
-        guardados na nuvem não poderão ser recuperados por ninguém, inclusive por nós.</strong> Os dados que estiverem salvos nos seus aparelhos
-        continuam neles.
+        Você entra na conta com um código enviado ao seu e-mail. No plano Pro, seus dados são cifrados
+        no seu aparelho antes de irem para a nuvem, e guardamos a chave deles protegida, separada do
+        banco de dados, para que você os abra em qualquer aparelho só entrando com o seu e-mail.{" "}
+        <strong>Quem tiver acesso ao seu e-mail consegue entrar na sua conta</strong>: proteja-o e não
+        compartilhe os códigos de acesso. Os dados que estiverem salvos nos seus aparelhos continuam
+        neles.
       </p>
 
       <h2>5. Assinatura, preço e pagamento</h2>
@@ -138,7 +136,7 @@ export default function Termos() {
       <p>
         Respondemos pelos serviços que prestamos nos termos do Código de Defesa do Consumidor. Não
         respondemos por decisões financeiras tomadas com base nas informações do app, por dados
-        lançados incorretamente, pela perda dos aparelhos conectados e da chave de recuperação, nem por
+        lançados incorretamente, por acesso à conta feito com o seu e-mail por terceiros, nem por
         falhas causadas por terceiros fora do nosso controle, na medida permitida pela lei.
       </p>
 

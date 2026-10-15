@@ -79,17 +79,22 @@ test("publica Termos de Uso e Política de Privacidade com contato", async () =>
   const reserva = await readFile(new URL("app/calculadoras/reserva-de-emergencia/calculadora.tsx", root), "utf8");
   assert.match(reserva, /não conta rendimento/, "regra da marca: não prometer rendimento");
   assert.match(seguranca, /AES-256-GCM/);
-  // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
+  // acesso só pelo e-mail (2026-10-15): a Arqevon guarda a chave. A página descreve isso e nenhuma
+  // página pode voltar a prometer que nem a Arqevon consegue ler os dados.
   const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
-  const iteracoes = Number(cofre.match(/ITERACOES_RECUPERACAO = ([\d_]+)/)[1].replace(/_/g, ""));
-  assert.ok(seguranca.includes(`${iteracoes / 1000} mil iterações`), `/seguranca deve citar ${iteracoes} iterações`);
+  assert.match(cofre, /export async function novaChaveCustodia/);
+  assert.match(seguranca, /chave mestra/);
+  for (const pagina of ["seguranca/page.tsx", "privacidade/page.tsx", "termos/page.tsx", "finance/page.tsx", "page.tsx"]) {
+    const texto = await readFile(new URL(`app/${pagina}`, root), "utf8");
+    assert.doesNotMatch(texto, /nem a Arqevon consegue|ponta a ponta|chave de recuperação|senha da nuvem/, `${pagina} promete o que não vale mais`);
+  }
   const layout = await readFile(new URL("app/legal-layout.tsx", root), "utf8");
 
   assert.match(page, /href="\/termos"/);
   assert.match(page, /href="\/privacidade"/);
   assert.match(layout, /CONTATO = "[^"]+@[^"]+"/);
   assert.match(termos, /art\. 49/, "direito de arrependimento");
-  assert.match(termos, /chave de recuperação/);
+  assert.match(termos, /Acesso à conta e proteção dos dados/);
   assert.match(privacidade, /art\. 18/, "direitos do titular");
   for (const fornecedor of ["Supabase", "Vercel", "Resend", "Kiwify", "GitHub", "Google Fonts"]) {
     assert.match(privacidade, new RegExp(fornecedor), `fornecedor ausente: ${fornecedor}`);
@@ -119,10 +124,15 @@ test("destaca o Finance e mantém o orçamento sob medida", async () => {
   const reserva = await readFile(new URL("app/calculadoras/reserva-de-emergencia/calculadora.tsx", root), "utf8");
   assert.match(reserva, /não conta rendimento/, "regra da marca: não prometer rendimento");
   assert.match(seguranca, /AES-256-GCM/);
-  // a página cita as iterações da senha da nuvem: precisam bater com o código do cofre
+  // acesso só pelo e-mail (2026-10-15): a Arqevon guarda a chave. A página descreve isso e nenhuma
+  // página pode voltar a prometer que nem a Arqevon consegue ler os dados.
   const cofre = await readFile(new URL("../web/src/cofre.js", root), "utf8");
-  const iteracoes = Number(cofre.match(/ITERACOES_RECUPERACAO = ([\d_]+)/)[1].replace(/_/g, ""));
-  assert.ok(seguranca.includes(`${iteracoes / 1000} mil iterações`), `/seguranca deve citar ${iteracoes} iterações`);
+  assert.match(cofre, /export async function novaChaveCustodia/);
+  assert.match(seguranca, /chave mestra/);
+  for (const pagina of ["seguranca/page.tsx", "privacidade/page.tsx", "termos/page.tsx", "finance/page.tsx", "page.tsx"]) {
+    const texto = await readFile(new URL(`app/${pagina}`, root), "utf8");
+    assert.doesNotMatch(texto, /nem a Arqevon consegue|ponta a ponta|chave de recuperação|senha da nuvem/, `${pagina} promete o que não vale mais`);
+  }
 
   const hero = await readFile(new URL("app/hero-produto.tsx", root), "utf8");
   assert.match(page, /<HeroProduto app=\{FINANCE_APP\} \/>/);
