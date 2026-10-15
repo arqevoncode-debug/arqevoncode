@@ -16,8 +16,9 @@ export default function Privacidade() {
     <LegalLayout titulo="Política de Privacidade">
       <p className="legal-resumo">
         <strong>Em resumo:</strong> no plano grátis, seus lançamentos ficam só no seu aparelho e nós
-        não os recebemos. No plano Pro, eles vão para a nuvem cifrados de ponta a ponta: são
-        embaralhados no seu aparelho antes de sair dele, e nós não temos a chave para lê-los. Não
+        não os recebemos. No plano Pro, eles são cifrados no seu aparelho antes de irem para a
+        nuvem; guardamos a chave separada do banco de dados para você entrar em qualquer aparelho só
+        com o seu e-mail, e não lemos o conteúdo. Não
         vendemos dados, não usamos seus dados para publicidade e não usamos cookies de rastreamento.
       </p>
 
@@ -43,7 +44,7 @@ export default function Privacidade() {
               <td>Execução de contrato (art. 7º, V); legítimo interesse na segurança da conta (art. 7º, IX)</td>
             </tr>
             <tr>
-              <td><strong>Dados financeiros na nuvem</strong> (plano Pro), sempre cifrados, e metadados técnicos: quantidade e tamanho dos registros e datas de alteração. Ao liberar um aparelho novo, guardamos por alguns minutos o pedido: o nome do aparelho (como &quot;iPhone · Safari&quot;), uma chave pública e o pacote cifrado</td>
+              <td><strong>Dados financeiros na nuvem</strong> (plano Pro), sempre cifrados, e metadados técnicos: quantidade e tamanho dos registros e datas de alteração. Também guardamos a chave dos dados, cifrada com uma chave mestra que fica fora do banco</td>
               <td>Sincronizar seus dados entre os seus aparelhos</td>
               <td>Execução de contrato (art. 7º, V)</td>
             </tr>
@@ -76,18 +77,20 @@ export default function Privacidade() {
         </table>
       </div>
       <p>
-        <strong>O que nós não recebemos:</strong> seus lançamentos no plano grátis, o conteúdo dos
-        seus dados na nuvem, a chave que os cifra, sua chave de recuperação e os dados do seu cartão.
+        <strong>O que nós não recebemos:</strong> seus lançamentos no plano grátis e os dados do seu
+        cartão.
         O pagamento é processado pela Kiwify. Não armazenamos seu CPF nem os dados de pagamento.
       </p>
 
       <h2>3. Como a criptografia protege seus dados</h2>
       <p>
-        No plano Pro, cada registro é cifrado no seu aparelho com AES-256-GCM, usando uma chave que
-        fica nos seus aparelhos conectados e, na nuvem, só protegida pela sua <strong>chave de
-        recuperação</strong>. Nós guardamos apenas o conteúdo cifrado. Por isso, se você perder todos
-        os aparelhos conectados e a chave de recuperação, nem nós conseguimos recuperar esses dados. A
-        comunicação com nossos servidores usa conexão segura (HTTPS).
+        No plano Pro, cada registro é cifrado no seu aparelho com AES-256-GCM antes de ir para a nuvem, e
+        o banco de dados guarda apenas o conteúdo cifrado. Para você abrir os dados em qualquer
+        aparelho só entrando com o seu e-mail, guardamos a chave dos dados cifrada com uma chave mestra
+        que fica fora do banco e das cópias de segurança, e a entregamos apenas a quem entra na conta.
+        Por isso temos meios técnicos de abrir os dados da nuvem: não fazemos isso e só o faríamos por
+        obrigação legal. Proteja o acesso ao seu e-mail. A comunicação com nossos servidores usa conexão
+        segura (HTTPS).
       </p>
 
       <h2>4. Armazenamento no seu aparelho e cookies</h2>
@@ -125,7 +128,6 @@ export default function Privacidade() {
       <h2>7. Por quanto tempo guardamos</h2>
       <ul>
         <li><strong>Conta e dados na nuvem:</strong> enquanto a conta existir. Se você pedir a exclusão, apagamos em até 15 dias.</li>
-        <li><strong>Pedidos de liberação de aparelho:</strong> valem por 10 minutos e são apagados quando atendidos ou recusados. Os que vencem sem uso são apagados na limpeza automática feita a cada novo pedido.</li>
         <li><strong>Cópias de segurança:</strong> são diárias, cifradas e descartadas automaticamente em até 90 dias. Um dado apagado da conta some das cópias nesse prazo.</li>
         <li><strong>Dados técnicos da sessão:</strong> enquanto a sessão estiver ativa. Os registros técnicos dos fornecedores de hospedagem são mantidos por poucos dias, conforme a política de cada um.</li>
         <li><strong>Registros de pagamento e assinatura:</strong> pelo prazo exigido pela legislação fiscal e de defesa do consumidor (até 5 anos).</li>

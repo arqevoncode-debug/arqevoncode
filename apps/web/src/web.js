@@ -326,9 +326,9 @@ function verificarAvisos() {
   if (!lerNumero(PRIMEIRO_USO)) localStorage.setItem(PRIMEIRO_USO, String(agora));
   const { pro, trial, soTeste } = planoAtual();
 
-  if (estado.modo === "conta" && nuvem.pedeSenha()) {
+  if (estado.modo === "conta" && nuvem.esperandoChave()) {
     avisoDaSessao = true;
-    avisar("Sua conta já tem dados na nuvem. Para abri-los aqui, aprove este aparelho onde você já usa o app.", "Abrir meus dados", abrirConta);
+    avisar("Seus dados da nuvem vão aparecer aqui assim que você abrir o app uma vez no aparelho onde já usa a nuvem.", "Ver detalhes", abrirConta);
     return;
   }
   if (soTeste && diasAte(trial.ends_at) <= 3 && localStorage.getItem(AVISO_FIM_TESTE) !== trial.ends_at) {
@@ -466,8 +466,6 @@ $("wcFechar").addEventListener("click", () => $("webConta").close());
 $("wcSair").addEventListener("click", async () => {
   // Sair encerra a sessão. Com a nuvem em dia, os lançamentos saem deste navegador (estão na nuvem);
   // sem nuvem, a pessoa decide se ficam aqui. As chaves da nuvem sempre saem do aparelho.
-  // Sem senha da nuvem, voltar depende de outro aparelho conectado ou da chave de recuperação.
-  if (estado.modo === "conta" && nuvem.ativa() && !window.confirm("Ao sair, este aparelho deixa de abrir a nuvem. Para entrar de novo, você vai precisar liberar por outro aparelho conectado ou usar a chave de recuperação. Sair mesmo assim?")) return;
   if (estado.modo === "conta" && ponteMotor()?.temDados()) {
     const botao = $("wcSair");
     botao.disabled = true; botao.textContent = "Enviando para a nuvem…";

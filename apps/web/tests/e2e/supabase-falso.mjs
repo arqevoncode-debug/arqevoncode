@@ -20,14 +20,22 @@ export const sessao = (uid, email) => ({ access_token: jwt(uid, email), refresh_
 /** Estado do "banco": contas (uid → {email, cloud, vault, direitos...}). */
 export function banco() {
   const contas = new Map();
-  const links = new Map(); // pedidos de liberação de aparelho
-  let seqLink = 0;
   return {
     contas,
-    links,
     conta(uid, email, o = {}) { contas.set(uid, { uid, email, cloud: true, vault: null, sub: null, trial: null, extra: {}, ...o }); return contas.get(uid); },
     porEmail(email) { return [...contas.values()].find(c => c.email === email); },
     vivos(uid) { const v = contas.get(uid)?.vault; return v ? [...v.itens.values()].filter(i => !i.deleted).length : 0; },
+    /** Mesmas regras da rota /api/v1/vault/key: devolve [status, corpo]. */
+    chave(uid, corpo) {
+      const v = contas.get(uid)?.vault;
+      if (!v) return [404, { ok: false, code: "VAULT_NOT_FOUND", message: "Esta conta ainda não tem dados na nuvem." }];
+      const kid = v.key_params?.kid;
+      const pendente = [200, { ok: false, code: "KEY_PENDING", message: "Abra o app uma vez no aparelho onde você já usa a nuvem para concluir a atualização." }];
+      if (!kid) return pendente;
+      if (v.custodia?.kid === kid) return [200, { ok: true, kid, dek: v.custodia.dek }];
+      if (corpo.dek && corpo.kid === kid && atob(corpo.dek).length === 32) { v.custodia = { kid, dek: corpo.dek }; return [200, { ok: true, kid, stored: true }]; }
+      return pendente;
+    },
     rpc(uid, fn, args) {
       const c = contas.get(uid);
       if (!c) return { ok: false, code: "NOT_AUTHENTICATED" };
@@ -57,7 +65,7 @@ export function banco() {
           if (args.p_expected_version !== v.key_version) return { ok: false, code: "KEY_VERSION_CONFLICT", message: "A chave da nuvem foi trocada em outro aparelho." };
           Object.assign(v, { key_params: args.p_key_params, wrapped_key: args.p_wrapped_key, recovery_wrapped_key: args.p_recovery_wrapped_key, key_version: v.key_version + 1, last_rev: 0 });
           v.itens.clear();
-          for (const [id, l] of links) if (l.uid === uid && l.sealed) links.delete(id);
+          v.custodia = null;
           return { ok: true, key_version: v.key_version };
         case "vault_delete": c.vault = null; return { ok: true, deleted: !!v };
         case "vault_push": {
@@ -75,31 +83,6 @@ export function banco() {
           const until = lista.length ? lista.at(-1).rev : args.p_since;
           return { ok: true, items: lista.map(({ id, rev, deleted, ct }) => ({ id, rev, deleted, ct })), until, has_more: until < v.last_rev, last_rev: v.last_rev, key_version: v.key_version };
         }
-        // Liberar aparelho novo (mesmas regras de 202610150001_aparelho_aprovado.sql)
-        case "vault_link_request": {
-          if (!v) return { ok: false, code: "VAULT_NOT_FOUND", message: "Esta conta ainda não tem dados na nuvem." };
-          for (const [id, l] of links) if (l.uid === uid && l.expira <= Date.now()) links.delete(id);
-          if ([...links.values()].filter(l => l.uid === uid && !l.sealed).length >= 5) return { ok: false, code: "TOO_MANY", message: "Muitos pedidos em aberto. Espere alguns minutos e tente de novo." };
-          const id = `link-${++seqLink}`;
-          links.set(id, { id, uid, device_pub: args.p_device_pub, device_tag: args.p_device_tag, label: args.p_label, sealed: null, expira: Date.now() + 600000 });
-          return { ok: true, id, expires_at: new Date(agora + 600000).toISOString() };
-        }
-        case "vault_link_pending":
-          return { ok: true, items: [...links.values()].filter(l => l.uid === uid && !l.sealed && l.expira > Date.now()).map(({ id, device_pub, device_tag, label }) => ({ id, device_pub, device_tag, label })) };
-        case "vault_link_approve": {
-          const l = links.get(args.p_id);
-          if (!l || l.uid !== uid || l.sealed || l.expira <= Date.now()) return { ok: false, code: "NOT_FOUND", message: "Este pedido venceu ou já foi atendido. Gere um código novo no outro aparelho." };
-          l.sealed = args.p_sealed;
-          return { ok: true };
-        }
-        case "vault_link_take": {
-          const l = links.get(args.p_id);
-          if (!l || l.uid !== uid) return { ok: false, code: "NOT_FOUND", message: "Pedido não encontrado." };
-          if (l.sealed) { links.delete(l.id); return { ok: true, sealed: l.sealed }; }
-          if (l.expira <= Date.now()) { links.delete(l.id); return { ok: false, code: "EXPIRED", message: "O código venceu." }; }
-          return { ok: true, pending: true };
-        }
-        case "vault_link_cancel": { const l = links.get(args.p_id); if (l && l.uid === uid) links.delete(l.id); return { ok: true }; }
         default: return { ok: true };
       }
     },
@@ -130,6 +113,13 @@ export async function ligar(p, db) {
     const json = (status, corpo) => req.respond({ status, contentType: "application/json", headers: cors, body: JSON.stringify(corpo) });
     const corpo = (() => { try { return JSON.parse(req.postData() || "{}"); } catch { return {}; } })();
     const uid = uidDoToken(req.headers().authorization);
+    if (u.hostname.startsWith("licencas.") && u.pathname === "/api/v1/vault/key") {
+      p.chamadas.push("vault_key");
+      p.corpos.push("vault_key " + (req.postData() || ""));
+      if (db.falharChave) return json(503, { ok: false, code: "SERVER_ERROR", message: "Não foi possível abrir a nuvem agora. Tente de novo." });
+      const [st, resp] = db.chave(uid, corpo);
+      return json(st, resp);
+    }
     if (u.hostname.startsWith("licencas.")) { p.chamadas.push("checkout"); return json(p.checkout?.status || 200, p.checkout?.corpo || { checkoutUrl: "about:blank#pago" }); }
     if (u.pathname === "/auth/v1/otp") {
       p.chamadas.push("otp:" + corpo.email);
@@ -158,12 +148,12 @@ export async function ligar(p, db) {
 }
 
 /** Abre um contexto limpo já ligado ao banco falso. `uid` = sessão inicial (ou null = tela de login). */
-export async function abrirApp(browser, url, db, { uid = null, dados = null, vp = { width: 1300, height: 950 }, extra = {}, ctx = null } = {}) {
+export async function abrirApp(browser, url, db, { uid = null, dados = null, vp = { width: 1300, height: 950 }, extra = {}, ctx = null, respostas = [] } = {}) {
   const contexto = ctx || await browser.createBrowserContext();
   const p = await contexto.newPage();
   await p.setViewport(vp);
   await p.setBypassServiceWorker(true);
-  p.erros = []; p.vistos = []; p.respostas = [];
+  p.erros = []; p.vistos = []; p.respostas = [...respostas]; // respostas programadas valem já no carregamento
   p.on("pageerror", e => p.erros.push(e.message));
   p.on("console", m => { if (m.type() === "error") p.erros.push("console: " + m.text()); });
   p.on("dialog", async d => {
@@ -220,27 +210,25 @@ export async function abrirConta(p) {
   await espera(500);
 }
 
-/** Liga a nuvem pela interface (sem senha); devolve a chave de recuperação mostrada. */
+/** Liga a nuvem pela interface (só um botão). */
 export async function criarNuvemUI(p) {
   await abrirConta(p);
   await p.waitForFunction(() => !document.querySelector("#wnCriar").hidden, { timeout: 5000 });
   await p.click("#wnBotaoCriar");
-  await p.waitForFunction(() => !document.querySelector("#wnGuardar").hidden);
-  const chave = await p.$eval("#wnChave", e => e.textContent);
-  await p.click("#wnGuardei");
-  await p.click("#wnBotaoGuardar");
   await p.waitForFunction(() => /Sincronizado/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
-  return chave;
+  // a chave segue para o servidor logo depois da primeira sincronização
+  for (let i = 0; i < 50; i++) {
+    const entregue = await p.evaluate(() => new Promise(ok => { const r = indexedDB.open("arqevon"); r.onsuccess = () => { const g = r.result.transaction("chaves").objectStore("chaves").getAll(); g.onsuccess = () => ok(g.result.some(x => x.entregue)); }; }));
+    if (entregue) return;
+    await espera(100);
+  }
+  throw new Error("a chave não foi entregue ao servidor");
 }
 
-/** Abre a nuvem num aparelho sem chaves usando a chave de recuperação. */
-export async function abrirNuvemUI(p, chave) {
+/** Aparelho sem as chaves: abrir "Sua conta" basta; espera sincronizar. */
+export async function abrirNuvemUI(p) {
   await abrirConta(p);
-  await p.waitForFunction(() => !document.querySelector("#wnAparelho").hidden || !document.querySelector("#wnRecuperar").hidden, { timeout: 5000 });
-  if (await p.$eval("#wnRecuperar", e => e.hidden)) await p.click("#wnUsarChave");
-  await p.type("#wnChaveRec", chave);
-  await p.click("#wnBotaoRec");
-  await p.waitForFunction(() => /Sincronizado|incorreta|Cancelado|Não foi/.test(document.querySelector("#wnStatus").textContent + document.querySelector("#wnErroRec").textContent), { timeout: 20000 });
+  await p.waitForFunction(() => /Sincronizado|Cancelado|Não foi|aparecer aqui/.test(document.querySelector("#wnStatus").textContent), { timeout: 20000 });
 }
 
 export const lerLocal = p => p.evaluate(() => JSON.parse(localStorage.getItem("meu-financeiro-v1") || "null"));

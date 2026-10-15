@@ -299,4 +299,21 @@ assert.equal(kw.diaUtc(new Date("2026-10-05T23:30:00-03:00")), "2026-10-06");
   assert.ok(!aviso.html.includes("<b>oi</b>") && aviso.html.includes("&lt;b&gt;oi"), "descrição escapada");
 }
 
+// Custódia da chave da nuvem: só abre com a mesma chave mestra, a mesma conta e o mesmo kid.
+{
+  const { guardarDek, abrirDek, chaveMestra } = await import("../lib/custodia.js");
+  const { randomBytes } = await import("node:crypto");
+  const mestra = randomBytes(32);
+  const dek = randomBytes(32);
+  const guardada = guardarDek(dek, "conta-a", "kid-1", mestra);
+  assert.ok(!guardada.includes(dek.toString("base64")), "a DEK não aparece em claro");
+  assert.deepEqual(abrirDek(guardada, "conta-a", "kid-1", mestra), dek);
+  assert.throws(() => abrirDek(guardada, "conta-b", "kid-1", mestra), "outra conta não abre");
+  assert.throws(() => abrirDek(guardada, "conta-a", "kid-2", mestra), "outra geração de chave não abre");
+  assert.throws(() => abrirDek(guardada, "conta-a", "kid-1", randomBytes(32)), "outra chave mestra não abre");
+  assert.throws(() => guardarDek(Buffer.alloc(16), "conta-a", "kid-1", mestra), "DEK com tamanho errado");
+  assert.throws(() => chaveMestra({}), "sem VAULT_CUSTODY_KEY não funciona");
+  assert.equal(chaveMestra({ VAULT_CUSTODY_KEY: mestra.toString("base64") }).length, 32);
+}
+
 console.log("Self-test de licenças, feedback, pedidos, contas e pagamentos concluído com sucesso.");

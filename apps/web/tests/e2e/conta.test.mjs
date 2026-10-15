@@ -27,8 +27,13 @@ async function abrirLogado({ rpc, dados = VAZIO(), vp, extra }) {
   await p.setRequestInterception(true);
   p.on("request", req => {
     const u = new URL(req.url());
-    if (!u.hostname.endsWith("supabase.co")) return req.continue();
     const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
+    if (u.hostname.startsWith("licencas.") && u.pathname === "/api/v1/vault/key") {
+      if (req.method() === "OPTIONS") return req.respond({ status: 204, headers: cors });
+      p.chamadas.push("vault_key");
+      return req.respond({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify(rpc.vault_key || { ok: false, code: "KEY_PENDING" }) });
+    }
+    if (!u.hostname.endsWith("supabase.co")) return req.continue();
     if (req.method() === "OPTIONS") return req.respond({ status: 204, headers: cors });
     const fn = u.pathname.match(/\/rest\/v1\/rpc\/(\w+)/)?.[1];
     if (fn) { p.chamadas.push(fn); p.corpos[fn] = req.postData() || ""; }
@@ -133,24 +138,20 @@ test("sem conta não pede teste e o aviso não cobre a barra do celular", async 
   await p.fechar();
 });
 
-test("aparelho novo de quem já tem dados na nuvem: convite para abrir", async () => {
+test("aparelho novo, chave ainda não está no servidor: aviso e espera, sem pedir senha nem código", async () => {
   const p = await abrirLogado({ rpc: {
     claim_trial: { ok: true, status: "not_eligible" },
     my_entitlements: direitos({ cloud: true, sub: { plan: "pro_mensal", status: "active", current_period_end: emDias(20) } }),
-    list_plans: PLANOS, vault_status: { ok: true, entitled: true, exists: true, key_params: {}, wrapped_key: "x".repeat(20), recovery_wrapped_key: "y".repeat(20), key_version: 1 },
-    vault_link_request: { ok: true, id: "link-1", expires_at: emDias(1) },
-    vault_link_take: { ok: true, pending: true },
+    list_plans: PLANOS, vault_status: { ok: true, entitled: true, exists: true, key_params: { v: 1 }, wrapped_key: "x".repeat(20), recovery_wrapped_key: "y".repeat(20), key_version: 1 },
   } });
   await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
-  assert.match(await texto(p, "#webAvisoTexto"), /já tem dados na nuvem.*aprove este aparelho/);
+  assert.match(await texto(p, "#webAvisoTexto"), /abrir o app uma vez no aparelho onde já usa a nuvem/);
   await p.click("#webAvisoAcao");
   await p.waitForFunction(() => document.querySelector("#webConta").open);
   await espera(300);
-  assert.ok(await p.$eval("#wnAparelho", e => !e.hidden), "abre direto na liberação por outro aparelho");
-  assert.match(await texto(p, "#wnCodigo"), /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/, "mostra o código");
-  await p.click("#wnUsarChave");
-  assert.ok(await p.$eval("#wnRecuperar", e => !e.hidden), "a chave de recuperação é a alternativa");
-  assert.equal(await p.$("#wnSenhaAbrir"), null, "não existe mais senha da nuvem");
+  assert.ok(await p.$eval("#wnEsperando", e => !e.hidden), "explica a espera");
+  for (const sel of ["#wnSenhaAbrir", "#wnCodigo", "#wnChaveRec", "#webAprovar"]) assert.equal(await p.$(sel), null, `${sel} não existe mais`);
+  assert.ok(p.chamadas.includes("vault_key"), "pediu a chave ao servidor");
   await p.fechar();
 });
 

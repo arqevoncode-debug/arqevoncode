@@ -51,16 +51,6 @@ select teste.ok((public.vault_status()->>'item_count')::int = 0, 'nada foi grava
 select teste.ok((public.vault_push('[{"id":"item-novo-1","ct":"wwwwwwwwwwwwwwww"}]'::jsonb, 2)->>'ok')::boolean, 'chave nova grava');
 select teste.ok(public.vault_rotate(1, '{"v":3}', repeat('n', 32), repeat('m', 32))->>'code' = 'KEY_VERSION_CONFLICT', 'troca concorrente com versão velha é recusada');
 
--- na troca: pedido esperando continua; pacote aprovado com a chave antiga é apagado
-create temp table t_rot (nome text primary key, id uuid);
-grant all on t_rot to authenticated;
-insert into t_rot select 'esperando', (public.vault_link_request(repeat('P', 88), repeat('T', 44), 'iPhone')->>'id')::uuid;
-insert into t_rot select 'aprovado', (public.vault_link_request(repeat('Q', 88), repeat('T', 44), 'iPad')->>'id')::uuid;
-select public.vault_link_approve((select id from t_rot where nome = 'aprovado'), repeat('S', 200));
-select teste.ok((public.vault_rotate(2, '{"v":3}', repeat('o', 32), repeat('p', 32))->>'key_version')::int = 3, 'segunda troca');
-select teste.ok(jsonb_array_length(public.vault_link_pending()->'items') = 1, 'pedido esperando continua');
-select teste.ok(public.vault_link_take((select id from t_rot where nome = 'aprovado'))->>'code' = 'NOT_FOUND', 'pacote com a chave antiga foi apagado');
-
 -- ---------- B não é afetado pela troca de A ----------
 select set_config('request.jwt.claim.sub', 'bbbbbbbb-2222-4000-8000-000000000002', false);
 select teste.ok((public.vault_status()->>'key_version')::int = 1, 'B continua na versão 1');

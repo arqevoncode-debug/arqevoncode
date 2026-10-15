@@ -128,7 +128,7 @@ export default function Finance() {
         <ul>
           <li><strong>Guardados no seu aparelho.</strong> No plano grátis, seus lançamentos não saem do seu navegador ou computador.</li>
           <li><strong>Protegidos por senha.</strong> Ative a criptografia (AES-256) e só quem tem a senha abre os dados.</li>
-          <li><strong>Na nuvem, cifrados no seu aparelho.</strong> No Pro, os dados saem do aparelho já cifrados e nem a Arqevon consegue lê-los. <a href="/seguranca">Veja como funciona</a>.</li>
+          <li><strong>Na nuvem, cifrados no seu aparelho.</strong> No Pro, os dados saem do aparelho já cifrados e você os abre em qualquer aparelho só entrando com o seu e-mail. <a href="/seguranca">Veja como funciona</a>.</li>
           <li><strong>Sem venda de dados, sem anúncios.</strong> O produto é o app, não você.</li>
           <li><strong>Exporte quando quiser.</strong> Seus dados num arquivo, para guardar ou levar para onde quiser.</li>
         </ul>
@@ -163,7 +163,7 @@ export default function Finance() {
               <li>Relatórios completos, com CSV e PDF</li>
               <li>Projeção de 12 meses</li>
               <li>Qualquer aparelho, inclusive celular, com sincronização</li>
-              <li>Backup na nuvem com criptografia ponta a ponta</li>
+              <li>Backup na nuvem, cifrado</li>
             </ul>
             <a className="lp-botao" href={APP_URL}>Testar o Pro grátis</a>
           </article>
@@ -178,7 +178,7 @@ export default function Finance() {
           <details><summary>O plano grátis tem limite de tempo?<span>+</span></summary><p>Não, o Grátis não expira. Você lança sem limite e tem até 5 compras parceladas ativas, os últimos 6 meses na tela, projeção de 3 meses, 1 objetivo e limite em 2 categorias. Os dados ficam só no aparelho que estiver usando, e você exporta tudo quando quiser.</p></details>
           <details><summary>A Arqevon consegue ver minhas finanças?<span>+</span></summary><p>Não. No plano grátis os lançamentos ficam só no seu aparelho e nunca são enviados para nós.</p></details>
           <details><summary>E se eu esquecer a senha da criptografia?<span>+</span></summary><p>A senha nunca sai do seu aparelho, então ninguém consegue recuperá-la, nem a gente. Guarde-a bem e faça backups. Sem criptografia ativada, não há senha a esquecer.</p></details>
-          <details><summary>O que tem no Pro?<span>+</span></summary><p>Tudo sem limites (parcelados, histórico, objetivos e categorias), importação do extrato do banco, relatórios completos com CSV e PDF, projeção de 12 meses e acesso em qualquer aparelho, inclusive no celular, com sincronização e backup na nuvem criptografado de ponta a ponta. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
+          <details><summary>O que tem no Pro?<span>+</span></summary><p>Tudo sem limites (parcelados, histórico, objetivos e categorias), importação do extrato do banco, relatórios completos com CSV e PDF, projeção de 12 meses e acesso em qualquer aparelho, inclusive no celular, com sincronização e backup na nuvem cifrado. Custa R$ 14,90 por mês ou R$ 119 por ano, e toda conta nova ganha 30 dias de teste grátis, sem cartão. Para assinar, entre no app e abra Sua conta. Você cancela quando quiser e tem 7 dias para desistir com reembolso integral.</p></details>
         </div>
       </section>
 

@@ -77,46 +77,22 @@
     <p class="wl-nota"><a href="https://arqevoncode.com.br/seguranca" target="_blank" rel="noopener">Como protegemos seus dados</a></p>
 
     <form id="wnCriar" class="wc-form" hidden>
-      <p class="wl-sub">Seus dados são cifrados <b>antes</b> de saírem deste aparelho: nem a Arqevon consegue abri-los. Para usar em outro aparelho, você libera por aqui, sem senha.</p>
+      <p class="wl-sub">Guarde uma cópia cifrada dos seus dados na nuvem e use em qualquer aparelho: é só entrar com o seu e-mail.</p>
       <p class="wl-erro" id="wnErroCriar" hidden></p>
       <button class="wl-botao" type="submit" id="wnBotaoCriar">Ativar a nuvem</button>
     </form>
 
-    <form id="wnGuardar" class="wc-form" hidden>
-      <p class="wl-sub" id="wnGuardarTexto"><b>Guarde sua chave de recuperação.</b> Se você perder todos os aparelhos conectados, só ela abre seus dados. Anote em papel ou num gerenciador de senhas.</p>
-      <output class="wc-chave" id="wnChave"></output>
-      <button class="wl-secundario" type="button" id="wnCopiar">Copiar chave</button>
-      <label class="wc-check"><input type="checkbox" id="wnGuardei" required> Guardei a chave em um lugar seguro</label>
-      <p class="wl-erro" id="wnErroGuardar" hidden></p>
-      <button class="wl-botao" type="submit" id="wnBotaoGuardar">Ativar sincronização</button>
-      <button class="wl-link" type="button" id="wnCancelarGuardar" hidden>Cancelar</button>
-    </form>
-
-    <div id="wnAparelho" class="wc-form" hidden>
-      <p class="wl-sub"><b>Libere este aparelho pelo outro.</b> Abra o Arqevon Finance onde você já usa a nuvem (no computador, por exemplo). Vai aparecer um aviso: digite lá este código.</p>
-      <output class="wc-chave wc-codigo" id="wnCodigo">····-····</output>
-      <p class="wl-nota" id="wnAparelhoStatus"></p>
-      <p class="wl-erro" id="wnErroAparelho" hidden></p>
-      <button class="wl-secundario" type="button" id="wnNovoCodigo" hidden>Gerar outro código</button>
-      <button class="wl-link" type="button" id="wnUsarChave">Não tenho outro aparelho conectado</button>
-    </div>
-
-    <form id="wnRecuperar" class="wc-form" hidden>
-      <p class="wl-sub">Sem outro aparelho conectado, a <b>chave de recuperação</b> abre seus dados. Ela tem 32 letras e números e foi mostrada quando você ativou a nuvem.</p>
-      <label class="wl-campo"><span>Chave de recuperação</span><input id="wnChaveRec" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" required></label>
-      <p class="wl-erro" id="wnErroRec" hidden></p>
-      <button class="wl-botao" type="submit" id="wnBotaoRec">Abrir meus dados</button>
-      <button class="wl-link" type="button" id="wnVoltarAparelho">Voltar e liberar por outro aparelho</button>
+    <div id="wnEsperando" class="wc-form" hidden>
+      <p class="wl-sub">Abra o Arqevon Finance uma vez no aparelho onde você já usa a nuvem (o computador, por exemplo). Ele conclui uma atualização e, em seguida, seus dados aparecem aqui sozinhos.</p>
       <details class="wc-recomecar">
-        <summary>Não tenho a chave nem outro aparelho</summary>
-        <p class="wl-sub">Sem um aparelho conectado e sem a chave, ninguém consegue abrir os dados da nuvem, nem nós. Você pode apagá-los e ligar a nuvem de novo com os dados deste aparelho.</p>
+        <summary>Não tenho mais esse aparelho</summary>
+        <p class="wl-sub">Sem ele, os dados guardados na nuvem não podem ser abertos. Você pode apagá-los e ligar a nuvem de novo com os dados deste aparelho.</p>
         <button class="botao cancelar" type="button" id="wnRecomecar">Apagar a nuvem e começar de novo</button>
       </details>
-    </form>
+    </div>
 
     <div class="wc-nuvem-acoes" id="wnAtiva" hidden>
       <button class="botao" type="button" id="wnAgora">Sincronizar agora</button>
-      <button class="botao cancelar" type="button" id="wnNovaChave">Nova chave de recuperação</button>
       <button class="botao cancelar" type="button" id="wnEsquecer">Desligar neste aparelho</button>
     </div>
   </section>
@@ -157,23 +133,4 @@
     <button class="botao cancelar" type="button" id="wcFechar">Fechar</button>
     <button class="botao" type="button" id="wcSair">Sair</button>
   </div>
-</dialog>
-
-<dialog id="webAprovar" class="wc wc-aprovar" aria-labelledby="waTitulo">
-  <h2 id="waTitulo">Liberar um aparelho novo?</h2>
-  <p class="wl-sub" id="waTexto"></p>
-  <form id="waForm" class="wc-form" novalidate>
-    <label class="wl-campo"><span>Código que aparece no aparelho novo</span><input id="waCodigo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX" maxlength="12"></label>
-    <div class="wc-form" id="waTrocar" hidden>
-      <p class="wl-sub"><b>Uma vez só:</b> este aparelho foi conectado numa versão anterior e precisa trocar a chave da nuvem para liberar outros. Seus dados continuam iguais. Guarde a chave de recuperação nova:</p>
-      <output class="wc-chave" id="waChave"></output>
-      <button class="wl-secundario" type="button" id="waCopiar">Copiar chave</button>
-      <label class="wc-check"><input type="checkbox" id="waGuardei"> Guardei a chave nova em um lugar seguro</label>
-    </div>
-    <p class="wl-erro" id="waErro" hidden></p>
-    <p class="wc-ok" id="waOk" hidden>Pronto! O aparelho novo já está abrindo seus dados.</p>
-    <button class="wl-botao" type="submit" id="waLiberar">Liberar aparelho</button>
-    <button class="wl-link" type="button" id="waRecusar">Não fui eu: recusar</button>
-  </form>
-  <p class="wl-nota">Só libere se o pedido for seu. O código não passa pelo servidor.</p>
 </dialog>
