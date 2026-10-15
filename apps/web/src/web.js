@@ -90,7 +90,6 @@ function atualizarCartao() {
   const dias = soTeste ? diasAte(trial.ends_at) : 0;
   const rotuloTeste = `Pro grátis · ${dias === 1 ? "falta 1 dia" : `faltam ${dias} dias`}`;
   $("webPlano").textContent = local ? "Dados só neste navegador"
-    : nuvem.ativa() ? `${soTeste ? rotuloTeste : pro ? "Pro" : "Plano Grátis"} · ${nuvem.texto() || "nuvem ativa"}`
     : soTeste ? rotuloTeste
     : pro ? "Plano Pro" : "Plano Grátis";
 }
@@ -111,8 +110,7 @@ function atualizarConta() {
   atualizarCartao();
   $("wcEmail").textContent = local
     ? "Você está usando sem conta: os dados ficam só neste navegador."
-    : nuvem.ativa() ? `${estado.email} · seus dados estão na nuvem, criptografados.`
-    : `${estado.email} · seus lançamentos ficam neste navegador.`;
+    : estado.email;
   $("wcGratis").classList.toggle("wc-atual", !pro);
   $("wcPro").classList.toggle("wc-atual", pro);
   $("wcSair").textContent = local ? "Voltar ao login" : "Sair";
@@ -326,11 +324,6 @@ function verificarAvisos() {
   if (!lerNumero(PRIMEIRO_USO)) localStorage.setItem(PRIMEIRO_USO, String(agora));
   const { pro, trial, soTeste } = planoAtual();
 
-  if (estado.modo === "conta" && nuvem.esperandoChave()) {
-    avisoDaSessao = true;
-    avisar("Seus dados da nuvem vão aparecer aqui assim que você abrir o app uma vez no aparelho onde já usa a nuvem.", "Ver detalhes", abrirConta);
-    return;
-  }
   if (soTeste && diasAte(trial.ends_at) <= 3 && localStorage.getItem(AVISO_FIM_TESTE) !== trial.ends_at) {
     const dias = diasAte(trial.ends_at);
     localStorage.setItem(AVISO_FIM_TESTE, trial.ends_at);

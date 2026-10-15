@@ -145,10 +145,8 @@ test("conta: o Pro vem dos direitos da nuvem; sem eles, limites do grátis", asy
     await p.fechar();
     c.cloud = false;
     p = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
-    await espera(500);
-    assert.match(await texto(p, "#aba-painel"), /Bem-vindo/);
-    await p.evaluate(() => { dados.fixos.push({ id: "f", tipo: "despesa", descricao: "X", valor: 1, categoria: "outros", dia: 1, inicio: "2026-10" }); renderTudo(); });
-    assert.match(await texto(p, "#aba-painel"), /Projeção — próximos 3 meses/);
+    // sem o Pro, a nuvem continua legível (nunca refém): o fixo volta, com os limites do grátis
+    await p.waitForFunction(() => /Projeção — próximos 3 meses/.test(document.querySelector("#aba-painel").innerText), { timeout: 15000 });
     // "Conhecer o Pro" com conta abre os planos
     await p.click("#aba-painel [data-conhecer-pro]");
     await p.waitForFunction(() => document.querySelector("#webConta").open, { timeout: 5000 });

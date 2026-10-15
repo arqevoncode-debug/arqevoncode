@@ -55,18 +55,17 @@ test("computador conectado antes: o celular espera; ao abrir o computador, ele s
   await tornarAntigo(db, a);
   const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO(), vp: CELULAR });
   await b.bringToFront();
-  await b.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 8000 });
-  assert.match(await b.$eval("#webAvisoTexto", e => e.textContent), /abrir o app uma vez no aparelho onde já usa a nuvem/);
-  await abrirConta(b);
-  assert.ok(await visivel(b, "#wnEsperando"));
+  await b.waitForFunction(() => /Aguardando a chave/.test(document.querySelector("#wnStatus").textContent), { timeout: 8000 });
+  assert.ok(await b.$eval("#webAviso", e => e.hidden), "celular vazio espera em silêncio");
+  assert.equal(db.contas.get("uid-a").vault.key_version, 1, "celular sem dados não mexe na nuvem");
   // o computador abre a versão nova: troca a chave sozinho e entrega ao servidor
   await a.bringToFront(); await a.reload(); await a.waitForSelector("#formLanc");
   for (let i = 0; i < 80 && !db.contas.get("uid-a").vault.custodia; i++) await espera(150);
   const v = db.contas.get("uid-a").vault;
   assert.equal(v.key_version, 2, "chave trocada uma vez"); assert.ok(v.key_params.kid && v.custodia, "chave nova no servidor");
   assert.equal(db.vivos("uid-a"), 2, "dados reenviados sem duplicar");
-  await b.bringToFront(); await b.evaluate(() => document.querySelector("#webConta").close()); await abrirConta(b);
-  await sincronizado(b);
+  await b.bringToFront(); await b.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await abrirConta(b); await sincronizado(b);
   assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id).sort(), ["a1", "a2"]);
   for (const p of [a, b]) assert.deepEqual(p.erros, []);
   await b.fechar(); await a.fechar();
@@ -90,20 +89,37 @@ test("chave trocada em outro aparelho: este busca a chave nova sozinho e não pe
   await b.fechar(); await a.fechar();
 });
 
-test("sem o aparelho antigo: dá para apagar a nuvem e recomeçar", async () => {
+test("ninguém tem a chave (perdida): o aparelho com os lançamentos assume a nuvem sozinho e o celular entra", async () => {
   const db = banco();
   const a = await computadorComNuvem(db);
-  await tornarAntigo(db, a); await a.fechar();
+  // nuvem antiga sem chave no servidor e computador que perdeu as chaves (saiu e entrou de novo)
+  const v = db.contas.get("uid-a").vault;
+  v.key_params = { v: 1 }; v.custodia = null;
+  await a.evaluate(() => new Promise(ok => { const r = indexedDB.open("arqevon"); r.onsuccess = () => { const d = r.result.transaction("chaves", "readwrite").objectStore("chaves").delete("uid-a"); d.onsuccess = ok; }; }));
+  await a.reload(); await a.waitForSelector("#formLanc");
+  for (let i = 0; i < 80 && !db.contas.get("uid-a").vault.custodia; i++) await espera(150);
+  assert.equal(db.contas.get("uid-a").vault.key_version, 2, "assumiu com uma chave nova");
+  assert.ok(db.contas.get("uid-a").vault.custodia, "chave nova no servidor");
+  for (let i = 0; i < 40 && db.vivos("uid-a") < 2; i++) await espera(150);
+  assert.equal(db.vivos("uid-a"), 2, "reenviou os lançamentos do computador");
+  assert.ok(await a.$eval("#webAviso", e => e.hidden), "sem aviso nenhum");
+  const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO(), vp: CELULAR });
+  await b.bringToFront(); await sincronizado(b);
+  assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id).sort(), ["a1", "a2"]);
+  for (const p of [a, b]) assert.deepEqual(p.erros, []);
+  await b.fechar(); await a.fechar();
+});
+
+test("sessão com token vencido: o app renova e busca a chave sem mostrar erro", async () => {
+  const db = banco();
+  const a = await computadorComNuvem(db); await a.fechar();
+  db.tokenVencido = 1; db.renovarSessao = true;
   const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
-  await abrirConta(b);
-  await b.waitForFunction(() => !document.querySelector("#wnEsperando").hidden, { timeout: 8000 });
-  await b.click(".wc-recomecar summary");
-  b.respostas.push(false);
-  await b.click("#wnRecomecar"); await espera(300);
-  assert.ok(db.contas.get("uid-a").vault, "cancelar não apaga");
-  await b.click("#wnRecomecar");
-  await b.waitForFunction(() => !document.querySelector("#wnCriar").hidden, { timeout: 8000 });
-  assert.equal(db.contas.get("uid-a").vault, null);
+  await sincronizado(b);
+  assert.ok(b.chamadas.includes("refresh"), "renovou a sessão");
+  assert.equal(db.tokenVencido, 0, "o servidor recusou o token velho uma vez");
+  assert.equal((await lerLocal(b)).lancamentos.length, 2);
+  assert.deepEqual(b.erros.filter(e => !/status of 401/.test(e)), []);
   await b.fechar();
 });
 
