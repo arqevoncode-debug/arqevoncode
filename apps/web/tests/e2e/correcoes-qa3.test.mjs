@@ -23,7 +23,7 @@ test("trocar de conta no mesmo navegador não mostra nem apaga os dados da outra
   db.conta("uid-a", "ana@teste.com", { cloud: true });
   db.conta("uid-b", "bruno@teste.com", { cloud: false });
   const p = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [1, 2, 3, 4, 5].map(i => lanc("a" + i, "Gasto da Ana " + i)) } });
-  await criarNuvemUI(p);
+  const chave = await criarNuvemUI(p);
   assert.equal(db.vivos("uid-a"), 5);
 
   // Ana sai com a nuvem em dia: os lançamentos saem deste navegador (estão na nuvem)
@@ -41,7 +41,7 @@ test("trocar de conta no mesmo navegador não mostra nem apaga os dados da outra
 
   // Ana volta: a nuvem dela está intacta e nada do Bruno entra nela
   await entrarPorCodigo(p, "ana@teste.com");
-  await abrirNuvemUI(p);
+  await abrirNuvemUI(p, chave); // sem outro aparelho conectado: a chave de recuperação
   await espera(1500);
   assert.equal(db.vivos("uid-a"), 5, "nuvem da Ana com os 5 itens");
   const local = await lerLocal(p);
@@ -80,25 +80,25 @@ test("entrar com dados de outra conta no navegador pergunta antes de mostrar", a
   await p.fechar();
 });
 
-test("cancelar a recuperação não troca a senha da nuvem", async () => {
+test("recuperação cancelada (dados de outra conta) não guarda as chaves", async () => {
   const db = banco();
   db.conta("uid-a", "ana@teste.com", { cloud: true });
   const p1 = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [lanc("a1", "Ana 1")] } });
-  const chave = await criarNuvemUI(p1, "senha-original-1");
+  const chave = await criarNuvemUI(p1);
   await p1.fechar();
   const p2 = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
   await abrirConta(p2);
   await p2.waitForFunction(() => !document.querySelector("#wnAparelho").hidden);
-  await p2.click("#wnUsarSenha");
-  // simula um navegador com dados de outra conta no meio da sessão (proteção extra da recuperação)
+  await p2.click("#wnUsarChave");
+  // simula um navegador com dados de outra conta no meio da sessão
   await p2.evaluate(() => { localStorage.setItem("arqevon-sync-dono", "uid-z"); ArqevonFinanceBridge.substituirDados({ lancamentos: [{ id: "z", tipo: "despesa", descricao: "Z", valor: 1, categoria: "outros", data: "2026-10-01" }] }, { sync: true }); });
-  await p2.click("#wnEsqueci");
-  await p2.type("#wnChaveRec", chave); await p2.type("#wnNovaSenha", "senha-nova-2222");
+  await p2.type("#wnChaveRec", chave);
   p2.respostas.push(false);
   await p2.click("#wnBotaoRec");
   await p2.waitForFunction(() => !document.querySelector("#wnErroRec").hidden, { timeout: 20000 });
-  assert.match(await p2.$eval("#wnErroRec", e => e.textContent), /não foi alterada/);
-  assert.equal(db.contas.get("uid-a").vault.key_version, 1);
+  assert.match(await p2.$eval("#wnErroRec", e => e.textContent), /Cancelado/);
+  assert.equal(db.contas.get("uid-a").vault.key_version, 1, "nada mudou na nuvem");
+  assert.ok(await p2.evaluate(() => new Promise(ok => { const r = indexedDB.open("arqevon"); r.onsuccess = () => { const g = r.result.transaction("chaves").objectStore("chaves").get("uid-a"); g.onsuccess = () => ok(!g.result); }; })), "chaves não foram guardadas");
   await p2.fechar();
 });
 

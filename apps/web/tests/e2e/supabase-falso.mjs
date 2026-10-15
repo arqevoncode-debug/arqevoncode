@@ -51,7 +51,17 @@ export function banco() {
           if (args.p_expected_version !== v.key_version) return { ok: false, code: "KEY_VERSION_CONFLICT", message: "A senha foi alterada em outro dispositivo. Abra os dados com a senha nova." };
           Object.assign(v, { key_params: args.p_key_params, wrapped_key: args.p_wrapped_key, recovery_wrapped_key: args.p_recovery_wrapped_key, key_version: v.key_version + 1 });
           return { ok: true, key_version: v.key_version };
+        case "vault_rotate":
+          if (!v) return { ok: false, code: "VAULT_NOT_FOUND", message: "Esta conta ainda não tem dados na nuvem." };
+          if (!c.cloud) return { ok: false, code: "NOT_ENTITLED", message: "A sincronização exige uma assinatura ativa vinculada a esta conta." };
+          if (args.p_expected_version !== v.key_version) return { ok: false, code: "KEY_VERSION_CONFLICT", message: "A chave da nuvem foi trocada em outro aparelho." };
+          Object.assign(v, { key_params: args.p_key_params, wrapped_key: args.p_wrapped_key, recovery_wrapped_key: args.p_recovery_wrapped_key, key_version: v.key_version + 1, last_rev: 0 });
+          v.itens.clear();
+          for (const [id, l] of links) if (l.uid === uid && l.sealed) links.delete(id);
+          return { ok: true, key_version: v.key_version };
+        case "vault_delete": c.vault = null; return { ok: true, deleted: !!v };
         case "vault_push": {
+          if (v && args.p_key_version != null && args.p_key_version !== v.key_version) return { ok: false, code: "KEY_CHANGED", message: "A chave da nuvem foi trocada em outro aparelho. Libere este aparelho de novo." };
           if (!c.cloud) return { ok: false, code: "NOT_ENTITLED", message: "A sincronização exige uma assinatura ativa vinculada a esta conta." };
           if (!v) return { ok: false, code: "VAULT_NOT_FOUND", message: "x" };
           if (c.quota) return { ok: false, code: "QUOTA_EXCEEDED", message: "O limite de armazenamento na nuvem desta conta foi atingido." };
@@ -210,11 +220,10 @@ export async function abrirConta(p) {
   await espera(500);
 }
 
-/** Cria a nuvem pela interface; devolve a chave de recuperação mostrada. */
-export async function criarNuvemUI(p, senha = "senha-nuvem-123") {
+/** Liga a nuvem pela interface (sem senha); devolve a chave de recuperação mostrada. */
+export async function criarNuvemUI(p) {
   await abrirConta(p);
   await p.waitForFunction(() => !document.querySelector("#wnCriar").hidden, { timeout: 5000 });
-  await p.type("#wnSenha", senha); await p.type("#wnSenha2", senha);
   await p.click("#wnBotaoCriar");
   await p.waitForFunction(() => !document.querySelector("#wnGuardar").hidden);
   const chave = await p.$eval("#wnChave", e => e.textContent);
@@ -224,13 +233,14 @@ export async function criarNuvemUI(p, senha = "senha-nuvem-123") {
   return chave;
 }
 
-export async function abrirNuvemUI(p, senha = "senha-nuvem-123") {
+/** Abre a nuvem num aparelho sem chaves usando a chave de recuperação. */
+export async function abrirNuvemUI(p, chave) {
   await abrirConta(p);
-  await p.waitForFunction(() => !document.querySelector("#wnAparelho").hidden || !document.querySelector("#wnAbrir").hidden, { timeout: 5000 });
-  if (await p.$eval("#wnAbrir", e => e.hidden)) await p.click("#wnUsarSenha");
-  await p.type("#wnSenhaAbrir", senha);
-  await p.click("#wnBotaoAbrir");
-  await p.waitForFunction(() => /Sincronizado|incorreta|Cancelado|Não foi/.test(document.querySelector("#wnStatus").textContent + document.querySelector("#wnErroAbrir").textContent), { timeout: 20000 });
+  await p.waitForFunction(() => !document.querySelector("#wnAparelho").hidden || !document.querySelector("#wnRecuperar").hidden, { timeout: 5000 });
+  if (await p.$eval("#wnRecuperar", e => e.hidden)) await p.click("#wnUsarChave");
+  await p.type("#wnChaveRec", chave);
+  await p.click("#wnBotaoRec");
+  await p.waitForFunction(() => /Sincronizado|incorreta|Cancelado|Não foi/.test(document.querySelector("#wnStatus").textContent + document.querySelector("#wnErroRec").textContent), { timeout: 20000 });
 }
 
 export const lerLocal = p => p.evaluate(() => JSON.parse(localStorage.getItem("meu-financeiro-v1") || "null"));

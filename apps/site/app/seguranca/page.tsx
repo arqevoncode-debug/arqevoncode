@@ -32,11 +32,11 @@ export default function Seguranca() {
       <h2>Na nuvem (plano Pro)</h2>
       <ul>
         <li><strong>Cifrado antes de sair do aparelho.</strong> Cada lançamento, conta fixa, parcela, objetivo e limite é cifrado no seu aparelho com AES-256-GCM. O servidor recebe e guarda apenas o resultado cifrado.</li>
-        <li><strong>A chave é sua.</strong> Os dados são cifrados com uma chave aleatória criada no seu aparelho. Ela fica guardada na nuvem protegida duas vezes: pela sua <strong>senha da nuvem</strong> (PBKDF2-SHA256, 600 mil iterações) e pela <strong>chave de recuperação</strong> (160 bits) que você anota ao ativar a nuvem.</li>
-        <li><strong>A senha da nuvem nunca é enviada.</strong> Ela é usada só no seu aparelho para abrir a chave dos dados.</li>
-        <li><strong>Aparelho novo liberado pelo outro, sem senha.</strong> O aparelho novo mostra um código de 8 caracteres, que você digita num aparelho onde já usa a nuvem. Esse código não passa pelo servidor: ele confirma que o pedido veio mesmo do seu aparelho, e só então a chave dos dados é enviada, cifrada para aquele aparelho (ECDH P-256 e AES-256-GCM). O servidor apenas repassa um pacote que não consegue abrir. A senha da nuvem continua valendo como alternativa.</li>
+        <li><strong>A chave é sua.</strong> Os dados são cifrados com uma chave aleatória criada no seu aparelho. Ela fica nos seus aparelhos conectados e, na nuvem, só embrulhada pela <strong>chave de recuperação</strong> (160 bits, PBKDF2-SHA256 com 100 mil iterações) que você anota ao ativar a nuvem. Não existe senha da nuvem.</li>
+        <li><strong>Aparelho novo liberado pelo outro.</strong> O aparelho novo mostra um código de 8 caracteres, que você digita num aparelho onde já usa a nuvem. Esse código não passa pelo servidor: ele confirma que o pedido veio mesmo do seu aparelho, e só então a chave dos dados é enviada, cifrada para aquele aparelho (ECDH P-256 e AES-256-GCM). O servidor apenas repassa um pacote que não consegue abrir.</li>
+        <li><strong>A chave de recuperação nunca é enviada.</strong> Ela é usada só no aparelho, quando não há outro aparelho conectado para liberar. Em &quot;Sua conta&quot; dá para gerar uma chave nova a qualquer momento: a antiga deixa de valer.</li>
         <li><strong>Nem o tipo do registro aparece.</strong> Cada registro na nuvem tem um identificador opaco (HMAC-SHA256): o servidor não sabe se é uma despesa, uma receita ou um objetivo.</li>
-        <li><strong>Sem a senha e sem a chave de recuperação, ninguém recupera os dados</strong>, nem nós. É o preço da privacidade: guarde a chave de recuperação em lugar seguro.</li>
+        <li><strong>Sem um aparelho conectado e sem a chave de recuperação, ninguém recupera os dados da nuvem</strong>, nem nós. É o preço da privacidade: guarde a chave de recuperação em lugar seguro.</li>
       </ul>
 
       <h2>O que nós vemos</h2>

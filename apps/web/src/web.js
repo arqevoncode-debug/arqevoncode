@@ -466,6 +466,8 @@ $("wcFechar").addEventListener("click", () => $("webConta").close());
 $("wcSair").addEventListener("click", async () => {
   // Sair encerra a sessão. Com a nuvem em dia, os lançamentos saem deste navegador (estão na nuvem);
   // sem nuvem, a pessoa decide se ficam aqui. As chaves da nuvem sempre saem do aparelho.
+  // Sem senha da nuvem, voltar depende de outro aparelho conectado ou da chave de recuperação.
+  if (estado.modo === "conta" && nuvem.ativa() && !window.confirm("Ao sair, este aparelho deixa de abrir a nuvem. Para entrar de novo, você vai precisar liberar por outro aparelho conectado ou usar a chave de recuperação. Sair mesmo assim?")) return;
   if (estado.modo === "conta" && ponteMotor()?.temDados()) {
     const botao = $("wcSair");
     botao.disabled = true; botao.textContent = "Enviando para a nuvem…";

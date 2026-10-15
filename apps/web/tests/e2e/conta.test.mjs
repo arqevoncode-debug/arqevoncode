@@ -148,8 +148,9 @@ test("aparelho novo de quem já tem dados na nuvem: convite para abrir", async (
   await espera(300);
   assert.ok(await p.$eval("#wnAparelho", e => !e.hidden), "abre direto na liberação por outro aparelho");
   assert.match(await texto(p, "#wnCodigo"), /^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/, "mostra o código");
-  await p.click("#wnUsarSenha");
-  assert.ok(await p.$eval("#wnAbrir", e => !e.hidden), "a senha continua como alternativa");
+  await p.click("#wnUsarChave");
+  assert.ok(await p.$eval("#wnRecuperar", e => !e.hidden), "a chave de recuperação é a alternativa");
+  assert.equal(await p.$("#wnSenhaAbrir"), null, "não existe mais senha da nuvem");
   await p.fechar();
 });
 
