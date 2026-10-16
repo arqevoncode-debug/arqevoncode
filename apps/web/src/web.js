@@ -279,7 +279,7 @@ async function conferirDono() {
 async function liberarApp() {
   if (!(await conferirDono())) {
     // não quis apagar os dados da outra conta: volta ao login sem entrar
-    await supabase.auth.signOut().catch(() => {});
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
     estado = { ...estado, modo: null, email: null, uid: null, direitos: null };
     mostrarLogin();
     return;
@@ -480,7 +480,7 @@ $("wcSair").addEventListener("click", async () => {
   }
   await nuvem.sair();
   ponteMotor()?.definirPlano({ pro: false });
-  if (estado.modo === "conta") await supabase.auth.signOut().catch(() => {});
+  if (estado.modo === "conta") await supabase.auth.signOut({ scope: "local" }).catch(() => {});
   localStorage.removeItem(MODO_LOCAL);
   estado = { ...estado, modo: null, email: null, direitos: null };
   testePedido = false;
