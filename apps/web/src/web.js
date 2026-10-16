@@ -116,7 +116,8 @@ function atualizarConta() {
   $("wcSair").textContent = local ? "Voltar ao login" : "Sair";
 
   const mensal = planoMensal();
-  $("wcProPreco").innerHTML = mensal ? `${brl(mensal.price_cents)}<small>/mês</small>` : "—";
+  // sem conta (ou sem resposta do servidor) os planos não carregam: mostra o preço de referência
+  $("wcProPreco").innerHTML = `${brl(mensal ? mensal.price_cents : 1490)}<small>/mês</small>`;
 
   const status = $("wcProStatus");
   status.hidden = !pro && (!sub || sub.status === "pending");
@@ -196,7 +197,7 @@ async function carregarConta() {
     supabase.rpc("list_plans"),
     estado.modo === "conta" ? supabase.rpc("my_entitlements") : Promise.resolve({ data: null }),
   ]);
-  if (!planos.error) estado.planos = planos.data || [];
+  if (!planos.error) estado.planos = Array.isArray(planos.data) ? planos.data : [];
   if (!direitos.error) estado.direitos = direitos.data;
   atualizarConta();
 }
