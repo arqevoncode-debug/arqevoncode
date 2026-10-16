@@ -172,16 +172,3 @@ test("login: código colado com espaço, e-mail recusado e reenviar código", as
   await p.fechar();
 });
 
-test("convite inválido: o aviso explica o prazo normal e o endereço volta ao normal", async () => {
-  const db = banco();
-  db.conta("uid-a", "ana@teste.com", { cloud: false, extra: {
-    claim_referral: { ok: true, status: "invalid_code" },
-    claim_trial: { ok: true, status: "started", ends_at: emDias(30) },
-  } });
-  const p = await abrirApp(browser, srv.url, db, { uid: "uid-a", extra: { "arqevon-convite": "ABCD2345" } });
-  await p.waitForFunction(() => !document.querySelector("#webAviso").hidden, { timeout: 5000 });
-  assert.match(await p.$eval("#webAvisoTexto", e => e.textContent), /convite usado não era válido/);
-  await p.goto(srv.url + "?convite=abc"); await p.waitForSelector("#formLanc"); await espera(400);
-  assert.ok(!p.url().includes("convite"), "código mal formado também sai do endereço");
-  await p.fechar();
-});

@@ -172,60 +172,13 @@ let testePedido = false;
 async function pedirTeste() {
   if (testePedido || estado.modo !== "conta") return;
   testePedido = true;
-  await usarConvite(); // antes do teste: quem veio por indicação ganha 60 dias
   const { data, error } = await supabase.rpc("claim_trial");
   if (!error && data?.status === "started") {
     avisoDaSessao = true;
     const dias = diasAte(data.ends_at);
-    const nota = conviteRecusado ? " O convite usado não era válido para esta conta, então o teste ficou com o prazo normal." : "";
-    avisar(`Você ganhou ${dias} dias de Pro grátis, sem cartão.${nota} Ative a nuvem em "Sua conta" para usar seus dados em qualquer aparelho.`, "Ativar a nuvem", abrirConta);
+    avisar(`Você ganhou ${dias} dias de Pro grátis, sem cartão. Seus dados ficam na sua conta e aparecem em qualquer aparelho em que você entrar.`, "", abrirConta);
   }
 }
-
-// ---------- Indique e ganhe ----------
-const CONVITE = "arqevon-convite";
-const conviteDaUrl = new URLSearchParams(location.search).get("convite");
-if (conviteDaUrl !== null) {
-  if (/^[A-Za-z2-9]{8}$/.test(conviteDaUrl)) localStorage.setItem(CONVITE, conviteDaUrl.toUpperCase());
-  // o endereço volta ao normal mesmo com um código mal formado
-  const url = new URL(location.href); url.searchParams.delete("convite");
-  history.replaceState(null, "", url.pathname + url.search + url.hash);
-}
-let conviteRecusado = false; // o convite não valeu: o aviso do teste explica
-async function usarConvite() {
-  const codigo = localStorage.getItem(CONVITE);
-  if (!codigo) return;
-  const { data, error } = await supabase.rpc("claim_referral", { p_code: codigo });
-  if (error) return; // erro de rede: tenta na próxima
-  localStorage.removeItem(CONVITE);
-  conviteRecusado = data?.status !== "referred" && data?.status !== "already_referred";
-}
-function voltaRotulo(botao, temporario, normal) {
-  botao.textContent = temporario;
-  setTimeout(() => { botao.textContent = normal; }, 2500);
-}
-let indicacao = null;
-async function carregarIndicacao() {
-  const sec = $("wcIndique");
-  if (estado.modo !== "conta") { sec.hidden = true; return; }
-  const { data, error } = await supabase.rpc("my_referral");
-  if (error || !data?.ok) { sec.hidden = true; return; }
-  indicacao = data;
-  sec.hidden = false;
-  $("wcIndiqueLink").value = linkConvite();
-  $("wcIndiqueNumeros").textContent = data.convidados
-    ? `${data.convidados} ${data.convidados === 1 ? "amigo entrou" : "amigos entraram"} pelo seu convite · ${data.assinaram} ${data.assinaram === 1 ? "assinou" : "assinaram"}`
-    : "Ninguém entrou pelo seu convite ainda.";
-}
-const linkConvite = () => `https://app.arqevoncode.com.br/?convite=${indicacao?.code || ""}`;
-$("wcIndiqueCopiar").addEventListener("click", async () => {
-  try { await navigator.clipboard.writeText(linkConvite()); voltaRotulo($("wcIndiqueCopiar"), "Link copiado", "Copiar link"); }
-  catch { $("wcIndiqueLink").select(); }
-});
-$("wcIndiqueCompartilhar").hidden = !navigator.share;
-$("wcIndiqueCompartilhar").addEventListener("click", () => {
-  navigator.share?.({ title: "Arqevon Finance", text: "Organizo minhas contas no Arqevon Finance. Entrando por este link você ganha 60 dias de Pro grátis:", url: linkConvite() }).catch(() => {});
-});
 
 function avisar(texto, acao, aoClicar) {
   const el = $("webAviso");
@@ -251,7 +204,6 @@ async function carregarConta() {
 function abrirConta() {
   $("webConta").showModal();
   carregarConta();
-  carregarIndicacao();
   if (estado.modo === "conta") nuvem.atualizar(); else $("wcNuvem").hidden = true;
 }
 
@@ -290,7 +242,7 @@ async function liberarApp() {
     ponteMotor()?.definirPlano({ pro: cache === "pro" });
   }
   $("webLogin").hidden = true;
-  // "desktop-bloqueado" é o sinal que o motor espera para abrir o convite de criptografia.
+  // classes que escondem o app até o login (nome herdado do desktop)
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
   atualizarConta();
   // Os avisos esperam a conta e a nuvem: sem isso, quem já sincroniza ouviria "dados só aqui".
@@ -375,9 +327,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || ["localho
 }
 
 function mostrarLogin() {
-  const convidado = !!localStorage.getItem(CONVITE);
-  $("wlAviso").hidden = !convidado;
-  if (convidado) $("wlAviso").textContent = "Você foi convidado: crie sua conta e ganhe 60 dias de Pro grátis, sem cartão.";
+  $("wlAviso").hidden = true;
   $("wlPasso1").hidden = false;
   $("wlPasso2").hidden = true;
   $("wlErro").hidden = true;
