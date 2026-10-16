@@ -140,7 +140,7 @@ test("servidor da chave fora do ar: avisa e não quebra", async () => {
 test("sessão morta de vez: volta para a tela de entrar sem apagar os lançamentos; ao entrar, sincroniza", async () => {
   const db = banco();
   const a = await computadorComNuvem(db); await a.fechar();
-  db.tokenVencido = 2; db.renovarSessao = true; // recusa o token antigo e o renovado
+  db.tokenVencido = 1; db.renovarSessao = false; // token recusado e renovação recusada pelo Supabase
   const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: { ...VAZIO(), lancamentos: [lanc("b1", "Só neste aparelho")] } });
   await b.waitForFunction(() => !document.querySelector("#webLogin").hidden, { timeout: 15000 });
   assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id), ["b1"], "lançamentos do aparelho continuam");
@@ -149,6 +149,33 @@ test("sessão morta de vez: volta para a tela de entrar sem apagar os lançament
   assert.deepEqual((await lerLocal(b)).lancamentos.map(l => l.id).sort(), ["a1", "a2", "b1"], "nuvem + o que só existia aqui");
   for (let i = 0; i < 40 && db.vivos("uid-a") < 3; i++) await espera(150);
   assert.equal(db.vivos("uid-a"), 3);
-  assert.deepEqual(b.erros.filter(e => !/status of 401/.test(e)), []);
+  assert.deepEqual(b.erros.filter(e => !/status of (401|400)/.test(e)), [], "só as recusas simuladas no console");
+  await b.fechar();
+});
+
+test("sair num aparelho encerra só a sessão dele (os outros aparelhos continuam conectados)", async () => {
+  const db = banco();
+  const a = await computadorComNuvem(db);
+  await abrirConta(a);
+  await a.click("#wcSair");
+  await a.waitForFunction(() => !document.querySelector("#webLogin").hidden, { timeout: 8000 });
+  assert.ok(a.chamadas.includes("logout:local"), "sair usa escopo local");
+  assert.ok(!a.chamadas.includes("logout:global"), "nunca derruba os outros aparelhos");
+  await a.fechar();
+});
+
+test("recusa da rota da chave com sessão válida não desconecta ninguém", async () => {
+  const db = banco();
+  const a = await computadorComNuvem(db); await a.fechar();
+  db.tokenVencido = 5; db.renovarSessao = true; // a rota recusa várias vezes, mas o Supabase renova normalmente
+  const b = await abrirApp(browser, srv.url, db, { uid: "uid-a", dados: VAZIO() });
+  await espera(2500);
+  assert.ok(await b.$eval("#webLogin", e => e.hidden), "continua na conta");
+  assert.ok(!b.chamadas.some(c => c.startsWith("logout")), "não chamou logout");
+  db.tokenVencido = 0;
+  await b.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+  await abrirConta(b);
+  await sincronizado(b, 40000);
+  assert.equal((await lerLocal(b)).lancamentos.length, 2, "quando a rota volta, os dados chegam");
   await b.fechar();
 });

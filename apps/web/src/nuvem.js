@@ -108,11 +108,9 @@ export function criarNuvem({ supabase, aoMudar }) {
       const r = await fetch(`${LICENSE_API}/api/v1/vault/key`, {
         method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(corpo),
       });
-      if (r.status === 401) {
-        if (!renovou) return servidorChave(corpo, true);
-        supabase.auth.signOut({ scope: "local" }).catch(() => {});
-        return { ok: false, code: "AUTH" };
-      }
+      // recusa da rota: renova e tenta uma vez; se continuar, só tenta de novo mais tarde (quem
+      // decide que a sessão acabou é o Supabase, ao recusar a renovação, nunca esta rota)
+      if (r.status === 401) return renovou ? { ok: false, code: "AUTH" } : servidorChave(corpo, true);
       return await r.json().catch(() => ({ ok: false, code: "SERVER_ERROR" }));
     } catch {
       return { ok: false, code: "REDE" };

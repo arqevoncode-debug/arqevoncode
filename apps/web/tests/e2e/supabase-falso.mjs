@@ -134,7 +134,7 @@ export async function ligar(p, db) {
       if (!c || p.otp[corpo.email] !== corpo.token) return json(403, { code: 403, error_code: "otp_expired", msg: "Token has expired or is invalid" });
       return json(200, sessao(c.uid, c.email));
     }
-    if (u.pathname === "/auth/v1/logout") { p.chamadas.push("logout"); return req.respond({ status: 204, headers: cors }); }
+    if (u.pathname === "/auth/v1/logout") { p.chamadas.push("logout"); p.chamadas.push("logout:" + (u.searchParams.get("scope") || "global")); return req.respond({ status: 204, headers: cors }); }
     if (u.pathname === "/auth/v1/user") { const c = db.contas.get(uid); return json(200, { id: uid, email: c?.email, aud: "authenticated", role: "authenticated" }); }
     if (u.pathname === "/auth/v1/token") {
       // renovação de sessão (só quando o teste liga): o refresh_token é "r-<uid>"
