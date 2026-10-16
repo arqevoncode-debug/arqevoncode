@@ -222,6 +222,13 @@ td { padding: 9px 10px; border-bottom: 1px solid var(--grid); vertical-align: mi
 tr:last-child td { border-bottom: 0; }
 tbody tr:hover td { background: color-mix(in srgb, var(--accent) 4%, transparent); }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* No celular a projeção mostra só mês, total e saldo (o detalhe fica no toque sobre a barra). */
+@media (max-width: 360px) { .tabela-projecao table { font-size: 12.5px; } }
+@media (max-width: 560px) {
+  .tabela-projecao .detalhe { display: none; }
+  .tabela-projecao th { white-space: normal; }
+  .tabela-projecao th, .tabela-projecao td { padding: 8px 6px; }
+}
 /* No celular cada lançamento vira duas linhas, para o valor nunca ficar fora da tela. */
 @media (max-width: 560px) {
   #cardLista .tabela-wrap { overflow: visible; }
@@ -268,6 +275,11 @@ button.excluir, button.editar {
 button.excluir:hover { color: var(--bad); background: var(--bad-bg); }
 button.editar { font-size: 13px; }
 button.editar:hover { color: var(--accent); background: var(--accent-soft); }
+/* No celular, alvos de toque de pelo menos 40 px (editar, excluir e a troca de mês). */
+@media (max-width: 560px) {
+  button.excluir, button.editar { width: 40px; height: 40px; }
+  .mes-nav button { min-width: 40px; min-height: 40px; }
+}
 .vazio {
   text-align: center; color: var(--muted); font-size: 13.5px;
   padding: 28px 12px; border: 1px dashed var(--grid); border-radius: var(--radius);
@@ -391,7 +403,7 @@ dialog#modalConfirmacao h2 { margin: 0 0 4px; font-size: 17px; }
 .rel-topo .hint { margin: 4px 0 0; }
 .rel-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .rel-acoes select { font: inherit; font-size: 14px; color: var(--ink); background: var(--page); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; }
-.rel-barra { display: block; height: 8px; min-width: 2px; border-radius: 4px; background: var(--bad); opacity: .75; }
+.rel-barra { display: block; height: 8px; min-width: 2px; border-radius: 4px; background: var(--accent); opacity: .6; }
 .rel-matriz td.acima { color: var(--bad); font-weight: 700; }
 .rel-matriz th:first-child, .rel-matriz td:first-child { position: sticky; left: 0; background: var(--surface); z-index: 1; }
 .rel-variacao { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -581,7 +593,7 @@ dialog#modalGuia { max-width: 560px; }
       <input type="file" id="arqExtrato" accept=".ofx,.qfx,.csv,.txt,text/csv" hidden>
     </div>
     <div class="card">
-      <h2>Nova despesa</h2>
+      <h2 id="lTitulo">Nova despesa</h2>
       <p class="hint">Escolha se o gasto acontece <b>só este mês</b>, se <b>repete todo mês</b> (conta fixa) ou se foi <b>parcelado no cartão</b>. Ele entra no mês escolhido no topo.</p>
       <form class="linha" id="formLanc">
         <div class="campo grande">
@@ -617,7 +629,7 @@ dialog#modalGuia { max-width: 560px; }
       </form>
     </div>
     <div class="card card-entrada">
-      <h2>Nova entrada</h2>
+      <h2 id="eTitulo">Nova entrada</h2>
       <p class="hint">Dinheiro que entra: salário (escolha "Todo mês"), freelas, vendas, presentes… Entra no mês escolhido no topo.</p>
       <form class="linha" id="formEntrada">
         <div class="campo grande">
@@ -1096,8 +1108,28 @@ function graficoDonut(itens, total) {
   <\/svg>`;
 }
 
+// O SVG estica até a largura do cartão: desenhar numa largura parecida com a real mantém o texto
+// legível (nem minúsculo no celular nem enorme no cartão largo da projeção).
+const larguraGrafico = cheio => innerWidth < 760 ? 360 : cheio ? 1040 : 520;
+// Valor sobre a barra: completo se couber; senão "2,6 mil"; se nem isso couber, nada (a tabela tem).
+function rotuloValor(v, passo) {
+  const cabe = t => t.length * 6.4 <= passo * 0.92;
+  const cheio = dinheiro(v).replace(",00", "");
+  if (cabe(cheio)) return cheio;
+  const curto = v >= 1000 ? `${(v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mil` : String(Math.round(v));
+  return cabe(curto) ? curto : "";
+}
+// Mês sob a barra: "nov/26", ou só "nov" quando falta espaço.
+function rotuloMesBarra(texto, passo) {
+  return texto.length * 6.2 <= passo * 0.95 ? texto : texto.split("/")[0];
+}
+// Troca de faixa de largura (girar o celular, redimensionar): redesenha gráficos e a tabela da projeção.
+const faixaTela = () => innerWidth < 560 ? 0 : innerWidth < 760 ? 1 : 2;
+let faixaGrafico = faixaTela();
+addEventListener("resize", () => { const f = faixaTela(); if (f !== faixaGrafico) { faixaGrafico = f; renderTudo(); } });
+
 function graficoBarrasMeses(serie) {
-  const W = 640, H = 240, mL = 8, mR = 8, mT = 26, mB = 26;
+  const W = larguraGrafico(false), H = 240, mL = 8, mR = 8, mT = 26, mB = 26;
   const max = Math.max(...serie.map(s => s.valor), 1) * 1.15;
   const n = serie.length;
   const areaW = W - mL - mR, areaH = H - mT - mB;
@@ -1115,8 +1147,8 @@ function graficoBarrasMeses(serie) {
       fill="${s.atual ? "var(--accent)" : "var(--c1)"}" opacity="${s.atual ? 1 : 0.55}"
       data-tip="${s.tip}"></path>
     <text x="${x + larg / 2}" y="${y - 7}" text-anchor="middle" fill="var(--ink-2)" font-size="11"
-      font-weight="600" style="font-variant-numeric:tabular-nums">${s.valor > 0 ? dinheiro(s.valor).replace(",00", "") : ""}</text>
-    <text x="${x + larg / 2}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${s.rotulo}</text>`;
+      font-weight="600" style="font-variant-numeric:tabular-nums">${s.valor > 0 ? rotuloValor(s.valor, passo) : ""}</text>
+    <text x="${x + larg / 2}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${rotuloMesBarra(s.rotulo, passo)}</text>`;
   });
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Despesas por mês">
     ${grade}
@@ -1126,7 +1158,7 @@ function graficoBarrasMeses(serie) {
 }
 
 function graficoProjecao(meses) {
-  const W = 640, H = 260, mL = 8, mR = 8, mT = 26, mB = 26;
+  const W = larguraGrafico(true), H = 260, mL = 8, mR = 8, mT = 26, mB = 26;
   const max = Math.max(...meses.map(m => m.total), 1) * 1.15;
   const n = meses.length;
   const areaW = W - mL - mR, areaH = H - mT - mB;
@@ -1160,8 +1192,8 @@ function graficoProjecao(meses) {
         ? `<path d="M ${x} ${yBase + 4} q 0 -4 4 -4 h ${larg - 8} q 4 0 4 4 v ${Math.max(h - 6, 0)} h ${-larg} z" fill="${c.cor}" data-tip="${tip}"></path>`
         : `<rect x="${x}" y="${yBase}" width="${larg}" height="${Math.max(h - 2, 1)}" fill="${c.cor}" data-tip="${tip}"></rect>`;
     });
-    corpo += `<text x="${x + larg / 2}" y="${yBase - 7}" text-anchor="middle" fill="var(--ink-2)" font-size="11" font-weight="600" style="font-variant-numeric:tabular-nums">${dinheiro(m.total).replace(",00", "")}</text>
-      <text x="${x + larg / 2}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${rotuloCurto(m.m)}</text>`;
+    corpo += `<text x="${x + larg / 2}" y="${yBase - 7}" text-anchor="middle" fill="var(--ink-2)" font-size="11" font-weight="600" style="font-variant-numeric:tabular-nums">${rotuloValor(m.total, passo)}</text>
+      <text x="${x + larg / 2}" y="${H - 8}" text-anchor="middle" fill="var(--muted)" font-size="11">${rotuloMesBarra(rotuloCurto(m.m), passo)}</text>`;
   });
   const legenda = camadas.map(c =>
     `<span class="item"><span class="sw" style="background:${c.cor}"></span>${c.nome}</span>`).join("");
@@ -1288,15 +1320,15 @@ function renderPainel() {
         Lançamentos na categoria <b>Cartão de crédito</b> ficam de fora — as parcelas já representam o cartão.
         ${temRenda ? "" : ' 💡 Cadastre sua renda (receita "Todo mês") para ver o saldo previsto.'}</p>
       ${graficoProjecao(meses)}
-      <div class="tabela-wrap" style="margin-top:14px"><table>
-        <thead><tr><th>Mês</th><th class="num">Fixos</th><th class="num">Parcelas</th>
-          <th class="num">Variáveis (est.)</th><th class="num">Total previsto</th>
+      <div class="tabela-wrap tabela-projecao" style="margin-top:14px"><table>
+        <thead><tr><th>Mês</th><th class="num detalhe">Fixos</th><th class="num detalhe">Parcelas</th>
+          <th class="num detalhe">Variáveis (est.)</th><th class="num">Total previsto</th>
           ${temRenda ? '<th class="num">Saldo previsto</th>' : ""}</tr></thead>
         <tbody>${meses.map(m => `<tr>
-          <td>${MESES_NOME[m.m.mes][0].toUpperCase() + MESES_NOME[m.m.mes].slice(1)} de ${m.m.ano}</td>
-          <td class="num">${dinheiro(m.fixas)}</td>
-          <td class="num">${dinheiro(m.parcelas)}</td>
-          <td class="num">${dinheiro(m.variaveis)}</td>
+          <td>${innerWidth < 560 ? rotuloCurto(m.m) : `${MESES_NOME[m.m.mes][0].toUpperCase() + MESES_NOME[m.m.mes].slice(1)} de ${m.m.ano}`}</td>
+          <td class="num detalhe">${dinheiro(m.fixas)}</td>
+          <td class="num detalhe">${dinheiro(m.parcelas)}</td>
+          <td class="num detalhe">${dinheiro(m.variaveis)}</td>
           <td class="num" style="font-weight:700">${dinheiro(m.total)}</td>
           ${temRenda ? `<td class="num ${m.saldo >= 0 ? "pos" : "neg"}" style="font-weight:600">${dinheiro(m.saldo)}</td>` : ""}
         </tr>`).join("")}</tbody></table></div>
@@ -1307,7 +1339,13 @@ function renderPainel() {
 /* ================= Render: Lançamentos (lista única do mês) ================= */
 function renderLista() {
   const mk = chaveMes(mesAtual.ano, mesAtual.mes);
-  if (mesTravado(mk)) {
+  // mês fora do histórico do grátis: os formulários (e o extrato) não valem aqui, então não aparecem
+  const travado = mesTravado(mk);
+  for (const sel of [".card-importar", "#formLanc", "#formEntrada"]) {
+    const card = sel.startsWith(".") ? document.querySelector(sel) : $(sel).closest(".card");
+    if (card) card.style.display = travado ? "none" : "";
+  }
+  if (travado) {
     $("#cardLista").innerHTML = travaPro(`${maiuscula(rotuloMes(mesAtual))} está no histórico do Pro`,
       `No plano grátis, você vê e lança no mês atual e nos ${GRATIS.mesesHistorico - 1} anteriores. Nada foi apagado: os lançamentos continuam guardados e aparecem de novo ao assinar.`, true);
     return;
@@ -1520,14 +1558,14 @@ function iniciarEdicao(form) {
   document.querySelectorAll(".card.editando").forEach(c => c.classList.remove("editando"));
   const card = (form === "entrada" ? $("#formEntrada") : $("#formLanc")).closest(".card");
   card.classList.add("editando");
-  if (form === "entrada") { $("#eBtn").textContent = "Salvar alterações"; $("#eCancelar").hidden = false; }
-  else { $("#lBtn").textContent = "Salvar alterações"; $("#lCancelar").hidden = false; }
+  if (form === "entrada") { $("#eBtn").textContent = "Salvar alterações"; $("#eCancelar").hidden = false; $("#eTitulo").textContent = "Editar entrada"; }
+  else { $("#lBtn").textContent = "Salvar alterações"; $("#lCancelar").hidden = false; $("#lTitulo").textContent = "Editar despesa"; }
   card.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function limparEdicao() {
   edicao = null;
-  $("#lBtn").textContent = "Adicionar despesa"; $("#lCancelar").hidden = true;
-  $("#eBtn").textContent = "Adicionar entrada"; $("#eCancelar").hidden = true;
+  $("#lBtn").textContent = "Adicionar despesa"; $("#lCancelar").hidden = true; $("#lTitulo").textContent = "Nova despesa";
+  $("#eBtn").textContent = "Adicionar entrada"; $("#eCancelar").hidden = true; $("#eTitulo").textContent = "Nova entrada";
   document.querySelectorAll(".card.editando").forEach(c => c.classList.remove("editando"));
 }
 function removerOriginal(form) {
@@ -2000,7 +2038,7 @@ function renderRelatorios() {
     <div class="card">
       <h2>Mês a mês</h2>
       <div class="tabela-wrap"><table class="rel-meses">
-        <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th style="width:30%"></th></tr></thead>
+        <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th style="width:30%">Despesas comparadas</th></tr></thead>
         <tbody>${resumos.map(r => `<tr>
           <td>${rotuloMk(r.mk)}</td>
           <td class="num pos">${dinheiro(r.receitas)}</td>

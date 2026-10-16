@@ -63,11 +63,18 @@ test("histórico de 6 meses: meses antigos com cadeado, dados guardados", async 
   assert.match(await texto(p, "#cardLista"), /histórico do Pro/);
   assert.doesNotMatch(await texto(p, "#cardLista"), /Antigo/);
   assert.match(await texto(p, "#aba-painel"), /histórico do Pro/);
-  await p.type("#lDesc", "Tentativa"); await p.type("#lValor", "1000"); await p.click("#lBtn");
+  // no mês travado, os formulários e o extrato não aparecem (não valeriam ali)
+  assert.deepEqual(await p.evaluate(() => ["#formLanc", "#formEntrada"].map(s => getComputedStyle(document.querySelector(s).closest(".card")).display)
+    .concat(getComputedStyle(document.querySelector(".card-importar")).display)), ["none", "none", "none"]);
+  // a regra continua valendo se alguém chamar o envio direto
+  await p.evaluate(() => { document.querySelector("#lDesc").value = "Tentativa"; document.querySelector("#lValor").value = "10,00"; document.querySelector("#lBtn").click(); });
   await modal(p);
   assert.match(await texto(p, "#confirmacaoMensagem"), /mês atual e nos 5 anteriores/);
   await p.click("#confirmacaoCancelar");
   assert.equal((await lerDados(p)).lancamentos.length, 2, "nada apagado nem gravado");
+  // de volta a um mês liberado, os formulários voltam
+  await p.evaluate(() => { mesAtual = { ano: 2026, mes: 9 }; renderTudo(); });
+  assert.notEqual(await p.evaluate(() => getComputedStyle(document.querySelector("#formLanc").closest(".card")).display), "none");
   await p.evaluate(() => MyFinanceBridge.definirPlano({ pro: true }));
   await p.evaluate(() => { mesAtual = { ano: 2026, mes: 2 }; renderTudo(); });
   assert.match(await texto(p, "#cardLista"), /Antigo/, "no Pro o histórico volta");
