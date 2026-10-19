@@ -378,13 +378,13 @@ details.hist summary { cursor: pointer; color: var(--muted); font-weight: 600; }
 .hist-linha:last-child { border-bottom: 0; }
 
 /* ---------- Janelas ---------- */
-dialog#modalConfirmacao, dialog#modalGuia, dialog#modalExtrato, dialog#modalLimites {
+dialog#modalConfirmacao, dialog#modalGuia, dialog#modalExtrato, dialog#modalLimites, dialog#modalImportar {
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--surface); color: var(--ink);
   padding: 22px; max-width: 420px; width: calc(100vw - 48px);
   box-shadow: 0 20px 60px rgba(0,0,0,0.35);
 }
-dialog#modalConfirmacao::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop, dialog#modalLimites::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
+dialog#modalConfirmacao::backdrop, dialog#modalGuia::backdrop, dialog#modalExtrato::backdrop, dialog#modalLimites::backdrop, dialog#modalImportar::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(3px); }
 dialog#modalConfirmacao h2 { margin: 0 0 4px; font-size: 17px; }
 .botao.confirmar-perigo { background: var(--bad); box-shadow: none; }
 .sec-acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
@@ -447,7 +447,9 @@ dialog#modalConfirmacao h2 { margin: 0 0 4px; font-size: 17px; }
 .card-importar > div { flex: 1 1 320px; }
 .card-importar .hint { margin: 0; }
 dialog#modalExtrato { max-width: 760px; }
-#modalExtrato h2 { font-size: 18px; margin: 8px 0 4px; }
+#modalExtrato h2, #modalImportar h2 { font-size: 18px; margin: 8px 0 4px; }
+dialog#modalImportar { max-width: 460px; }
+#modalImportar .hint { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 #modalExtrato .hint { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
 .ext-opcoes { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 6px 0 10px; font-size: 13px; color: var(--ink-2); }
 .ext-opcoes label { display: flex; align-items: center; gap: 6px; }
@@ -773,6 +775,27 @@ dialog#modalGuia { max-width: 560px; }
   <div class="sec-acoes">
     <button class="botao cancelar" type="button" id="extCancelar">Cancelar</button>
     <button class="botao" type="button" id="extImportar">Importar</button>
+  </div>
+</dialog>
+<!-- Só pelo link /#importar (não aparece no app): traz o backup do app antigo para computador. -->
+<dialog id="modalImportar" aria-labelledby="impTitulo">
+  <div class="guia-topo"><span>Arqevon Finance para computador</span>
+    <button type="button" class="guia-fechar" id="impFechar" aria-label="Fechar">✕</button></div>
+  <h2 id="impTitulo">Trazer seus dados do app antigo</h2>
+  <p class="hint">Escolha o arquivo de backup exportado pelo Arqevon Finance para computador (.myfinance ou .json). Ele é lido aqui no aparelho.</p>
+  <div class="campo">
+    <button type="button" class="botao cancelar" id="impEscolher">Escolher arquivo</button>
+    <input type="file" id="arqBackup" accept=".myfinance,.json,application/json" hidden>
+    <p class="hint" id="impArquivo" hidden></p>
+  </div>
+  <div class="campo" id="impCampoSenha" hidden>
+    <label for="impSenha">Senha usada ao exportar o backup</label>
+    <input type="password" id="impSenha" autocomplete="off">
+  </div>
+  <p class="aviso-seg" id="impErro" role="alert" hidden></p>
+  <div class="sec-acoes">
+    <button class="botao cancelar" type="button" id="impCancelar">Cancelar</button>
+    <button class="botao" type="button" id="impImportar" disabled>Importar</button>
   </div>
 </dialog>
 
@@ -2464,6 +2487,66 @@ $("#extImportar").onclick = () => {
   $("#modalExtrato").close();
   mesAtual = deChave(ultimo.slice(0, 7));
   ativarAba("lancamentos");
+  renderTudo();
+};
+
+/* ================= Backup do app antigo (só pelo link /#importar) ================= */
+let impArquivo = null; // conteúdo do arquivo escolhido, já em objeto
+function abrirImportarBackup() {
+  impArquivo = null;
+  $("#impArquivo").hidden = true; $("#impCampoSenha").hidden = true; $("#impErro").hidden = true;
+  $("#impSenha").value = ""; $("#impImportar").disabled = true;
+  $("#modalImportar").showModal();
+}
+window.abrirImportarBackup = abrirImportarBackup;
+const erroImportar = msg => { $("#impErro").textContent = msg; $("#impErro").hidden = false; };
+const backupCifrado = o => !!o && ((o.format === "myfinance-backup" && o.ciphertext) || (o.enc === true && o.ct));
+$("#impEscolher").onclick = () => $("#arqBackup").click();
+$("#impFechar").onclick = $("#impCancelar").onclick = () => { impArquivo = null; $("#modalImportar").close(); };
+$("#arqBackup").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  $("#impErro").hidden = true;
+  impArquivo = null;
+  try { impArquivo = JSON.parse(await f.text()); } catch { /* tratado abaixo */ }
+  $("#impArquivo").textContent = f.name; $("#impArquivo").hidden = false;
+  const ok = backupCifrado(impArquivo) || (impArquivo && (impArquivo.format === "myfinance-data" || Array.isArray(impArquivo.lancamentos)));
+  if (!ok) { impArquivo = null; erroImportar("Este arquivo não é um backup do Arqevon Finance."); }
+  $("#impCampoSenha").hidden = !backupCifrado(impArquivo);
+  $("#impImportar").disabled = !impArquivo;
+  if (backupCifrado(impArquivo)) $("#impSenha").focus();
+});
+$("#impSenha").addEventListener("keydown", e => { if (e.key === "Enter") $("#impImportar").click(); });
+$("#impImportar").onclick = async () => {
+  let novo = impArquivo;
+  if (!novo) return;
+  $("#impErro").hidden = true;
+  if (backupCifrado(novo)) {
+    const senha = $("#impSenha").value;
+    if (!senha) { erroImportar("Digite a senha do backup."); return; }
+    $("#impImportar").disabled = true;
+    try {
+      if (novo.format === "myfinance-backup") {
+        const chave = await derivarChave(senha, novo.salt, Number(novo.iterations) || 250000);
+        novo = JSON.parse(await decifrar(chave, { iv: novo.iv, ct: novo.ciphertext })).data;
+      } else {
+        novo = JSON.parse(await decifrar(await derivarChave(senha, novo.salt), novo));
+      }
+    } catch { $("#impImportar").disabled = false; erroImportar("Senha incorreta. Confira e tente de novo."); return; }
+    $("#impImportar").disabled = false;
+  } else if (novo.format === "myfinance-data") novo = novo.data;
+  if (!novo || !Array.isArray(novo.lancamentos)) { erroImportar("Este arquivo não é um backup do Arqevon Finance."); return; }
+  $("#modalImportar").close();
+  if (window.MyFinanceBridge.temDados()) {
+    const r = await escolherNoApp("Substituir os dados atuais?",
+      "Os lançamentos que já estão no app serão trocados pelos do backup.", "Substituir", null, true);
+    if (r !== true && r !== "principal") { $("#modalImportar").showModal(); return; }
+  }
+  impArquivo = null;
+  window.MyFinanceBridge.substituirDados(novo);
+  mesAtual = { ano: hoje.getFullYear(), mes: hoje.getMonth() };
+  ativarAba("painel");
   renderTudo();
 };
 

@@ -246,9 +246,19 @@ async function liberarApp() {
   // classes que escondem o app até o login (nome herdado do desktop)
   raiz.classList.remove("web-bloqueado", "desktop-bloqueado");
   atualizarConta();
+  abrirImportarPedido();
   // Os avisos esperam a conta e a nuvem: sem isso, quem já sincroniza ouviria "dados só aqui".
   Promise.all([carregarConta(), estado.modo === "conta" && estado.uid ? nuvem.entrar(estado.uid) : null])
     .then(verificarAvisos).catch(() => {});
+}
+
+// Link /#importar (enviado aos clientes do app antigo para computador): abre a janela de trazer o
+// backup depois do login. O pedido fica guardado na aba enquanto a pessoa entra.
+const PEDIU_IMPORTAR = "arqevon-pediu-importar";
+function abrirImportarPedido() {
+  let pediu = false;
+  try { pediu = sessionStorage.getItem(PEDIU_IMPORTAR) === "1"; sessionStorage.removeItem(PEDIU_IMPORTAR); } catch { /* sem armazenamento */ }
+  if (pediu) window.abrirImportarBackup?.();
 }
 
 // ---------- Avisos no momento certo ----------
@@ -484,6 +494,10 @@ montarLayout();
 // Link "Ver um exemplo" do site (/#exemplo): abre o app com dados fictícios, sem pedir login.
 const pediuExemplo = location.hash === "#exemplo";
 if (pediuExemplo) history.replaceState(null, "", location.pathname + location.search);
+if (location.hash === "#importar") {
+  try { sessionStorage.setItem(PEDIU_IMPORTAR, "1"); } catch { /* sem armazenamento */ }
+  history.replaceState(null, "", location.pathname + location.search);
+}
 const { data: { session } } = await supabase.auth.getSession();
 if (session) {
   estado = { ...estado, modo: "conta", email: session.user.email, uid: session.user.id };
