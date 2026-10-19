@@ -77,8 +77,8 @@ test("fatura do cartão em CSV (Nubank): positivos são gastos", async () => {
   assert.deepEqual(l.map(x => x.valor), ["− R$ 152,30", "− R$ 23,90", "+ R$ 500,00", "− R$ 55,90", "− R$ 1.200,00"]);
   assert.equal(l[4].desc, "Loja, Centro", "vírgula dentro de aspas");
   assert.deepEqual(l.map(x => x.cat), ["alimentacao", "transporte", null, "assinaturas", "outros"]);
-  // desmarca o pagamento da fatura e muda a categoria da loja
-  await p.click('[data-ext="2"]');
+  // o pagamento da fatura já vem desmarcado (não é renda); muda a categoria da loja
+  assert.equal(l[2].marcado, false);
   await p.select('[data-ext-cat="4"]', "lazer");
   assert.equal(await texto(p, "#extImportar"), "Importar 4 lançamentos");
   await p.click("#extImportar");
@@ -136,5 +136,43 @@ test("importar extrato cabe no celular", async () => {
   const r = await p.evaluate(() => { const d = document.querySelector("#modalExtrato"); return [d.scrollWidth <= d.clientWidth, d.getBoundingClientRect().right <= innerWidth]; });
   assert.deepEqual(r, [true, true]);
   if (process.env.FOTOS) await p.screenshot({ path: `${process.env.FOTOS}/extrato-celular.png` });
+  await p.fechar();
+});
+
+test("fatura do cartão: parcela vira compra parcelada, pagamento da fatura fica de fora, categorias por loja", async () => {
+  const p = await amb.abrir({ dados: VAZIO() });
+  await abrirExtrato(p, "fatura-parcelas.csv");
+  assert.ok(await p.$eval("#extInverter", e => e.checked), "fatura em CSV inverte os sinais");
+  const l = await linhas(p);
+  const por = d => l.find(x => x.desc === d);
+  assert.equal(por("Pagamento recebido").marcado, false);
+  assert.equal(por("Pagamento recebido").aviso, "pagamento da fatura, não é renda");
+  assert.equal(por("Amazon - Parcela 2/10").aviso.replace(/\s/g, " "), "vira compra parcelada: 10x de R$ 129,90");
+  assert.deepEqual(["Supermercado Pão de Açúcar", "Plano de Saúde Bradesco", "Conta de luz", "Mercado Livre - Parcela 1/6"].map(d => por(d).cat),
+    ["alimentacao", "saude", "moradia", "outros"]);
+  assert.equal(await texto(p, "#extImportar"), "Importar 5 lançamentos");
+  await p.click("#extImportar");
+  await p.waitForFunction(() => !document.querySelector("#modalExtrato").open);
+  const d = await lerDados(p);
+  assert.deepEqual(d.parcelamentos.map(x => [x.descricao, x.valorTotal, x.numParcelas, x.inicio, x.categoria]), [
+    ["Amazon", 1299, 10, "2026-09", "outros"], ["Mercado Livre", 537, 6, "2026-10", "outros"]]);
+  assert.deepEqual(d.lancamentos.map(x => x.descricao), ["Supermercado Pão de Açúcar", "Plano de Saúde Bradesco", "Conta de luz"]);
+  assert.ok(!d.lancamentos.some(x => x.tipo === "receita"), "pagamento da fatura não virou renda");
+  // a parcela aparece na lista de outubro como 2/10
+  assert.match(await texto(p, "#cardLista"), /parcela 2\/10/i);
+
+  // a fatura do mês seguinte traz a parcela 3/10 da mesma compra: não duplica
+  await abrirExtrato(p, "fatura-parcelas.csv");
+  const de2 = await linhas(p);
+  assert.equal(de2.find(x => x.desc === "Amazon - Parcela 2/10").aviso, "compra parcelada já importada");
+  await p.click("#extCancelar");
+  const proxima = await p.evaluate(() => { const q = parcelaDoExtrato({ desc: "Amazon - Parcela 3/10", data: "2026-11-03", valor: 129.9 }); return [q.inicio, q.chave === dados.parcelamentos[0].imp]; });
+  assert.deepEqual(proxima, ["2026-09", true]);
+  // trocar para "não é fatura" volta a marcar o pagamento
+  await abrirExtrato(p, "fatura-parcelas.csv");
+  await p.click("#extInverter");
+  assert.equal((await linhas(p)).find(x => x.desc === "Pagamento recebido").marcado, true);
+  await p.click("#extCancelar");
+  assert.deepEqual(p.erros, []);
   await p.fechar();
 });

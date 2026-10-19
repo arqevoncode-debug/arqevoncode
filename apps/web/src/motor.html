@@ -462,6 +462,7 @@ dialog#modalExtrato { max-width: 760px; }
 .ext-item .ext-data { color: var(--muted); font-size: 13px; }
 .ext-item .ext-desc { min-width: 0; overflow-wrap: anywhere; }
 .ext-item .ext-desc small { display: block; color: var(--warn); font-size: 11.5px; font-weight: 600; }
+.ext-item .ext-desc small.info { color: var(--muted); font-weight: 500; }
 .ext-item .ext-valor { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ext-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); }
 @media (max-width: 560px) {
@@ -2270,14 +2271,16 @@ function transacoesCSV({ linhas }, mapa) {
 }
 
 const CATEGORIA_POR_PALAVRA = [
+  [/pagamento (de |da )?fatura|pgto fatura|fatura cartao/, "cartao"],
+  [/netflix|spotify|prime video|amazon prime|disney|hbo|max\b|youtube|globoplay|deezer|apple\.com|google one|icloud|assinatura/, "assinaturas"],
+  // lojas que vendem de tudo: "mercado" de Mercado Livre não é supermercado
+  [/mercado ?livre|mercado ?pago|shopee|amazon|magalu|magazine luiza|americanas|aliexpress|shein|casas bahia/, "outros"],
+  [/plano de saude|saude|farmac|drogar|droga raia|drogasil|pague menos|hospital|clinica|laborat|odonto|dentista|medic|unimed|amil|hapvida|sulamerica|notredame/, "saude"],
   [/mercado|supermerc|atacad|hortifruti|padaria|acougue|ifood|rappi|restaurante|lanchonete|burger|pizza|cafe\b|bar\b/, "alimentacao"],
   [/uber|\b99\b|99app|posto|combust|ipiranga|shell|petrobras|estacion|pedagio|metro|onibus|cabify|sem parar|veloe/, "transporte"],
-  [/farmac|drogar|droga raia|drogasil|pague menos|hospital|clinica|laborat|odonto|medic|unimed|amil|hapvida|bradesco saude/, "saude"],
-  [/netflix|spotify|prime video|amazon prime|disney|hbo|max\b|youtube|globoplay|deezer|apple\.com|google one|icloud|assinatura/, "assinaturas"],
-  [/aluguel|condominio|energia|enel|light\b|cemig|copel|celesc|sabesp|copasa|agua|esgoto|\bgas\b|comgas|internet|vivo|claro|\btim\b|oi fibra/, "moradia"],
+  [/aluguel|imobiliaria|condominio|iptu|\bluz\b|energia|eletropaulo|enel|light\b|cemig|copel|celesc|cpfl|equatorial|neoenergia|coelba|energisa|sabesp|copasa|agua|esgoto|\bgas\b|comgas|internet|vivo|claro|\btim\b|oi fibra/, "moradia"],
   [/escola|faculdade|universidade|curso|udemy|alura|livraria|material escolar|mensalidade/, "educacao"],
   [/cinema|ingresso|show|teatro|steam|playstation|xbox|viagem|hotel|airbnb|booking|decolar|latam|gol\b|azul\b/, "lazer"],
-  [/pagamento (de )?fatura|pgto fatura|fatura cartao/, "cartao"],
 ];
 function categoriaSugerida(desc) {
   const t = semAcento(desc);
@@ -2289,6 +2292,21 @@ function categoriaSugerida(desc) {
 function chaveExtrato(t) {
   return t.ref ? `ref:${t.ref}` : `${t.data}|${Math.round(Math.abs(t.valor) * 100)}|${semAcento(t.desc).replace(/\s+/g, " ").slice(0, 40)}`;
 }
+
+/** "Loja - Parcela 3/10" (ou "PARC 03/10"): a compra parcelada por trás da linha da fatura. */
+function parcelaDoExtrato(t) {
+  const m = String(t.desc).match(/^(.*?)[\s\-–:]*\b(?:parcela|parc)\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})\s*$/i);
+  if (!m) return null;
+  const n = +m[2], total = +m[3], base = m[1].trim() || "Compra parcelada";
+  if (total < 2 || total > 72 || n < 1 || n > total) return null;
+  const mk = t.data.slice(0, 7);
+  const ini = somaMes(+mk.slice(0, 4), +mk.slice(5, 7) - 1, -(n - 1));
+  const inicio = chaveMes(ini.ano, ini.mes);
+  const cents = Math.round(Math.abs(t.valor) * 100);
+  return { n, total, base, inicio, cents, chave: `parc:${semAcento(base).replace(/\s+/g, " ").slice(0, 40)}|${total}|${inicio}|${cents}` };
+}
+// Na fatura do cartão, o pagamento da fatura anterior aparece como crédito. Não é renda.
+const pagamentoDaFatura = t => $("#extInverter").checked && t.valor < 0 && /pagamento|pgto|pagto/.test(semAcento(t.desc));
 
 /* ================= Importar extrato: revisão antes de salvar ================= */
 let ext = null; // { nome, csv, mapa, itens: [{data, desc, valor, ref, chave, cat, marcado, aviso}] }
@@ -2355,7 +2373,16 @@ function prepararItens(brutas) {
   // Três cafés iguais no mesmo dia são três compras: a chave leva a ordem de aparição no arquivo,
   // e importar o mesmo arquivo de novo continua reconhecendo cada um.
   const vezes = new Map();
+  const parcImportadas = new Set(dados.parcelamentos.map(p => p.imp).filter(Boolean));
+  const parcIgual = q => dados.parcelamentos.some(p => !p.imp && p.inicio === q.inicio && p.numParcelas === q.total
+    && Math.abs(Math.round(p.valorTotal * 100 / p.numParcelas) - q.cents) <= 1);
   ext.itens = brutas.slice(0, LIMITE_EXTRATO).map(t => {
+    const parc = parcelaDoExtrato(t);
+    if (parc) {
+      const aviso = parcImportadas.has(parc.chave) ? "compra parcelada já importada"
+        : parcIgual(parc) ? "parece já lançada como parcelada" : "";
+      return { ...t, chave: parc.chave, parc, cat: categoriaSugerida(parc.base), marcado: !aviso, aviso };
+    }
     const base = chaveExtrato(t);
     const n = (vezes.get(base) || 0) + 1;
     vezes.set(base, n);
@@ -2373,10 +2400,14 @@ function renderExtrato() {
   const opcoesCat = CATEGORIAS.map(c => `<option value="${c.id}">${c.nome}</option>`).join("");
   $("#extLista").innerHTML = itens.length ? itens.map((t, i) => {
     const v = sinalExtrato(t);
-    return `<div class="ext-item${t.aviso ? " repetido" : ""}">
+    const pagto = pagamentoDaFatura(t);
+    if (!t.escolhido && !t.aviso) t.marcado = !pagto; // volta a marcar se deixar de ser fatura de cartão
+    const nota = t.aviso || (pagto ? "pagamento da fatura, não é renda" : "");
+    const info = !nota && t.parc && v < 0 ? `<small class="info">vira compra parcelada: ${t.parc.total}x de ${dinheiro(t.parc.cents / 100)}</small>` : "";
+    return `<div class="ext-item${nota ? " repetido" : ""}">
       <input type="checkbox" data-ext="${i}" ${t.marcado ? "checked" : ""} aria-label="Importar ${esc(t.desc)}">
       <span class="ext-data">${fmtDataCurta(t.data)}</span>
-      <span class="ext-desc">${esc(t.desc)}${t.aviso ? `<small>${t.aviso}</small>` : ""}</span>
+      <span class="ext-desc">${esc(t.desc)}${nota ? `<small>${nota}</small>` : info}</span>
       ${v < 0 ? `<select data-ext-cat="${i}" aria-label="Categoria">${opcoesCat}</select>` : `<span class="ext-entrada ext-data">Entrada</span>`}
       <span class="ext-valor ${v > 0 ? "pos" : ""}">${v > 0 ? "+" : "−"} ${dinheiro(Math.abs(v))}</span>
     </div>`;
@@ -2405,18 +2436,23 @@ function atualizarResumoExtrato() {
 $("#extLista").addEventListener("change", e => {
   const i = e.target.dataset.ext ?? e.target.dataset.extCat;
   if (i === undefined) return;
-  if (e.target.dataset.ext !== undefined) ext.itens[i].marcado = e.target.checked;
+  if (e.target.dataset.ext !== undefined) { ext.itens[i].marcado = e.target.checked; ext.itens[i].escolhido = true; }
   else ext.itens[i].cat = e.target.value;
   atualizarResumoExtrato();
 });
 $("#extInverter").addEventListener("change", () => { ext.inverterManual = true; renderExtrato(); });
-$("#extTodos").addEventListener("change", e => { ext.itens.forEach(t => { t.marcado = e.target.checked; }); renderExtrato(); });
+$("#extTodos").addEventListener("change", e => { ext.itens.forEach(t => { t.marcado = e.target.checked; t.escolhido = true; }); renderExtrato(); });
 $("#extFechar").onclick = $("#extCancelar").onclick = () => { ext = null; $("#modalExtrato").close(); };
 $("#extImportar").onclick = () => {
   const marcados = ext.itens.filter(t => t.marcado);
   if (!marcados.length) return;
   for (const t of marcados) {
     const v = sinalExtrato(t);
+    if (t.parc && v < 0) {
+      dados.parcelamentos.push({ id: uid(), descricao: t.parc.base.slice(0, 120), valorTotal: t.parc.cents * t.parc.total / 100,
+        numParcelas: t.parc.total, categoria: t.cat, inicio: t.parc.inicio, imp: t.chave });
+      continue;
+    }
     dados.lancamentos.push({
       id: uid(), tipo: v > 0 ? "receita" : "despesa", descricao: t.desc.slice(0, 120),
       valor: Math.round(Math.abs(v) * 100) / 100, categoria: v > 0 ? "outros" : t.cat, data: t.data, imp: t.chave,
