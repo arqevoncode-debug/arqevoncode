@@ -133,7 +133,7 @@ dialog.wc { max-height: calc(100vh - 32px); overflow-y: auto; }
 .web-aviso[hidden] { display: none; }
 .web-aviso p { margin: 0; flex: 1; font-size: 14px; line-height: 1.45; }
 .web-aviso .botao { white-space: nowrap; }
-.web-aviso-fechar { border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 6px; }
+.web-aviso-fechar { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; flex: none; }
 @media (max-width: 960px) {
   .web-aviso { bottom: calc(84px + env(safe-area-inset-bottom)); flex-wrap: wrap; }
   .web-aviso p { flex-basis: calc(100% - 40px); }

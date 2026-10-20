@@ -82,3 +82,35 @@ test("celular: editar, excluir e troca de mês com alvo de toque de pelo menos 4
   assert.equal(pequenos, 0);
   await p.fechar();
 });
+
+test("alinhamento: ícones de editar/excluir numa coluna só no celular, ícone centralizado no botão", async () => {
+  const p = await contaPro(CEL);
+  await p.evaluate(() => ativarAba("lancamentos")); await espera(200);
+  const r = await p.evaluate(() => {
+    const bs = [...document.querySelectorAll("#cardLista button.editar, #cardLista button.excluir")].filter(b => b.offsetParent);
+    const xs = cls => new Set(bs.filter(b => b.classList.contains(cls)).map(b => Math.round(b.getBoundingClientRect().left)));
+    const desc = bs.map(b => { const a = b.getBoundingClientRect(), s = b.querySelector("svg").getBoundingClientRect();
+      return Math.max(Math.abs(a.left + a.width / 2 - s.left - s.width / 2), Math.abs(a.top + a.height / 2 - s.top - s.height / 2)); });
+    return { editar: xs("editar").size, excluir: xs("excluir").size, desc: Math.max(...desc), texto: bs.some(b => b.textContent.trim()) };
+  });
+  assert.deepEqual([r.editar, r.excluir], [1, 1], "uma coluna para cada ícone, qualquer que seja o valor");
+  assert.ok(r.desc <= 1, `ícone fora do centro (${r.desc}px)`);
+  assert.equal(r.texto, false, "ícones desenhados, não caracteres");
+  await p.fechar();
+});
+
+test("alinhamento no computador: valores dos cartões na mesma linha, campos da mesma altura, espaço entre cartões do relatório", async () => {
+  const p = await contaPro({ width: 1440, height: 900 });
+  const topos = await p.$$eval("#aba-painel .tile .valor", vs => vs.map(v => Math.round(v.getBoundingClientRect().top)));
+  assert.equal(new Set(topos).size, 1, `valores desalinhados: ${topos}`);
+  await p.evaluate(() => ativarAba("lancamentos")); await espera(200);
+  const alturas = await p.$$eval("#formLanc .campo input, #formLanc .campo select", es => es.filter(e => e.offsetParent).map(e => e.getBoundingClientRect().height));
+  assert.equal(new Set(alturas).size, 1, `alturas diferentes: ${alturas}`);
+  await p.evaluate(() => ativarAba("relatorios")); await espera(300);
+  const vaos = await p.evaluate(() => {
+    const cs = [...document.querySelectorAll("#aba-relatorios > .card, #relConteudo > *")].filter(e => e.offsetParent).map(e => e.getBoundingClientRect());
+    return cs.slice(1).map((r, i) => Math.round(r.top - cs[i].bottom));
+  });
+  assert.ok(vaos.length >= 3 && vaos.every(v => v >= 12), `cartões grudados: ${vaos}`);
+  await p.fechar();
+});
