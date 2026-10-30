@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "npm run build && node --test tests/site.test.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 tests/site.test.mjs tests/calculadoras.test.mjs tests/calculadoras-navegador.test.mjs",
     "lint": "eslint . --ignore-pattern .next"
   },
   "dependencies": {
@@ -24,6 +24,7 @@
     "@types/react-dom": "19.2.3",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.12",
+    "puppeteer-core": "24.43.1",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3"
   },
