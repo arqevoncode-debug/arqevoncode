@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import Estrutura, { CALCULADORAS } from "./estrutura";
+import Estrutura, { ListaCalculadoras } from "./estrutura";
 
 export const metadata: Metadata = {
   title: "Calculadoras de finanças pessoais grátis — Arqevon Finance",
@@ -13,11 +12,9 @@ export default function Calculadoras() {
   return (
     <Estrutura atual="indice" titulo="Calculadoras de finanças pessoais" subtitulo="Grátis e sem cadastro. Os números ficam no seu navegador: nada é enviado."
       convite="Quando quiser ir além das contas de cabeça, o Arqevon Finance organiza receitas, contas fixas e parcelas e mostra como ficam os próximos meses.">
-      <div className="calc-lista calc-indice">
-        {CALCULADORAS.map(c => (
-          <Link key={c.slug} href={`/calculadoras/${c.slug}`}><strong>{c.titulo}</strong><span>{c.resumo}</span></Link>
-        ))}
-      </div>
+      <section className="calc-indice">
+        <ListaCalculadoras />
+      </section>
     </Estrutura>
   );
 }

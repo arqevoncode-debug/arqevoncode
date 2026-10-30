@@ -1,48 +1,49 @@
 "use client";
 import { useState } from "react";
-import { brl, CampoDinheiro, CampoNumero, lerDinheiro } from "../campos";
+import { AvisoExemplo, CampoDinheiro, CampoNumero } from "../campos";
+import { brl, EXEMPLOS, lerDinheiro, limitar, parcelasERenda, porcento } from "../contas";
 
-const MESES = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const COR = { bom: "#3fe7c0", atencao: "#ffc35a", ruim: "#ff6b7d" };
 
 export default function Calculadora() {
   const [renda, setRenda] = useState("");
   const [atuais, setAtuais] = useState("");
   const [nova, setNova] = useState("");
   const [vezes, setVezes] = useState("10");
-  const r = lerDinheiro(renda), a = lerDinheiro(atuais), n = lerDinheiro(nova);
-  const qtd = Math.min(Math.max(parseInt(vezes, 10) || 1, 1), 120);
-  const total = a + n;
-  const pct = r > 0 ? (total / r) * 100 : 0;
-  const classe = pct <= 20 ? "bom" : pct <= 30 ? "atencao" : "ruim";
-  // última parcela: a primeira cai no mês que vem
-  const hoje = new Date();
-  const fim = new Date(hoje.getFullYear(), hoje.getMonth() + qtd, 1);
+  // sem nada digitado, o resultado mostra um exemplo em vez de "—" e R$ 0,00
+  const exemplo = !renda && !atuais && !nova;
+  const x = EXEMPLOS.parcelas;
+  const r = exemplo ? x.renda : lerDinheiro(renda), a = exemplo ? x.atuais : lerDinheiro(atuais), n = exemplo ? x.nova : lerDinheiro(nova);
+  const conta = parcelasERenda({ renda: r, atuais: a, nova: n, vezes: exemplo ? x.vezes : limitar(vezes, 1, 120) });
+  const mostraClasse = r > 0 && conta.total > 0;
   return (
     <div className="calc-caixa">
       <div className="calc-form">
         <CampoDinheiro rotulo="Sua renda líquida por mês" valor={renda} mudar={setRenda} />
         <CampoDinheiro rotulo="Parcelas que você já paga por mês" valor={atuais} mudar={setAtuais} ajuda="Some cartão, empréstimos e financiamentos." />
         <CampoDinheiro rotulo="Nova parcela que está pensando em assumir (opcional)" valor={nova} mudar={setNova} />
-        {n > 0 && <CampoNumero rotulo="Em quantas vezes" valor={vezes} mudar={setVezes} max={120} />}
+        {lerDinheiro(nova) > 0 && <CampoNumero rotulo="Em quantas vezes" valor={vezes} mudar={setVezes} max={120} />}
       </div>
-      <div className="calc-resultado" aria-live="polite">
+      <div className={`calc-resultado${exemplo ? " exemplo" : ""}`} aria-live="polite">
+        {exemplo && <AvisoExemplo texto={`com renda de ${brl(r)}, ${brl(a)} em parcelas e uma compra nova de ${conta.qtd}x de ${brl(n)}.`} />}
         <h2>Da sua renda, as parcelas comprometem</h2>
-        <p className={`calc-grande ${r > 0 && total > 0 ? classe : ""}`}>{r > 0 ? `${pct.toFixed(1).replace(".", ",")}%` : "—"}</p>
+        <p className={`calc-grande ${mostraClasse ? conta.classe : ""}`}>{r > 0 ? porcento(conta.pct) : "—"}</p>
         <div className="calc-trilho" aria-hidden="true">
-          <span style={{ width: `${Math.min(pct, 100)}%`, background: classe === "bom" ? "#3fe7c0" : classe === "atencao" ? "#ffc35a" : "#ff6b7d" }} />
+          <span style={{ width: `${Math.min(conta.pct, 100)}%`, background: COR[conta.classe as keyof typeof COR] }} />
         </div>
         <div className="calc-blocos">
-          <div className="calc-bloco"><i style={{ background: "#526dff" }} /><span><strong>Parcelas por mês</strong>{n > 0 ? "as que você já paga mais a nova" : "o que já sai todo mês"}</span><b>{brl(total)}</b></div>
-          <div className="calc-bloco"><i style={{ background: "#3fe7c0" }} /><span><strong>Sobra para o resto</strong>contas da casa, mercado, lazer, futuro</span><b>{brl(Math.max(r - total, 0))}</b></div>
-          {n > 0 && <div className="calc-bloco"><i style={{ background: "#ffc35a" }} /><span><strong>Total da nova compra</strong>{qtd}x de {brl(n)}, até {MESES[fim.getMonth()]} de {fim.getFullYear()}</span><b>{brl(n * qtd)}</b></div>}
+          <div className="calc-bloco"><i style={{ background: "#526dff" }} /><span><strong>Parcelas por mês</strong>{n > 0 ? "as que você já paga mais a nova" : "o que já sai todo mês"}</span><b>{brl(conta.total)}</b></div>
+          <div className="calc-bloco"><i style={{ background: "#3fe7c0" }} /><span><strong>Sobra para o resto</strong>contas da casa, mercado, lazer, futuro</span><b>{brl(conta.sobra)}</b></div>
+          {n > 0 && <div className="calc-bloco"><i style={{ background: "#ffc35a" }} /><span><strong>Total da nova compra</strong>{conta.qtd}x de {brl(n)}, até {conta.ultima}</span><b>{brl(conta.totalNova)}</b></div>}
         </div>
-        {r > 0 && total > 0 && (
-          <p className="calc-nota">
-            {pct <= 20 ? "As parcelas cabem com folga na sua renda."
-              : pct <= 30 ? "Está perto do limite de 30% que costuma ser usado como referência. Antes de assumir outra parcela, vale olhar o resto do mês."
+        {mostraClasse && (
+          <p className={`calc-nota destaque ${conta.classe}`}>
+            {conta.classe === "bom" ? "As parcelas cabem com folga na sua renda."
+              : conta.classe === "atencao" ? "Está perto do limite de 30% que costuma ser usado como referência. Antes de assumir outra parcela, vale olhar o resto do mês."
               : "Passa dos 30% da renda, a referência mais usada para parcelas. Isso deixa pouco espaço para imprevistos."}
           </p>
         )}
+        {!exemplo && r === 0 && <p className="calc-nota">Preencha a renda para ver quanto ela fica comprometida.</p>}
       </div>
     </div>
   );

@@ -20,6 +20,14 @@ cd apps/license-manager  && npm ci && npm run build && npm test
 cd apps/web              && npm ci && npm run dev         # http://localhost:4300
 ```
 
+No `apps/site`, o `npm test` faz o build e roda, além das checagens de texto, as contas das
+calculadoras (`tests/calculadoras.test.mjs`, que importa `app/calculadoras/contas.js` direto no Node) e
+as páginas das calculadoras no Chrome (`tests/calculadoras-navegador.test.mjs`, que sobe `next start`
+numa porta livre): alinhamento em 6 larguras, celular, cada calculadora e a promessa de que nenhum
+valor digitado sai do navegador. As contas ficam em JS, e não em TS, para o Node importar sem build.
+Depois do deploy, `ARQEVON_SITE_URL=https://arqevoncode.com.br node --test
+tests/calculadoras-navegador.test.mjs` roda a mesma bateria na produção, com 2 s entre as páginas.
+
 No `apps/web`, `npm run test:e2e` abre o app no Chrome (puppeteer-core, com o Chrome do sistema ou
 `CHROME_PATH`) e testa lançamentos, cálculos, objetivos, criptografia, backup e celular, com a data
 fixada em 13/10/2026. `npm run test:regressao` roda o mesmo roteiro em `origin/main`
