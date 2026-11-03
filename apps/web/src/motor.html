@@ -38,7 +38,7 @@
   --warn: #b77900;
   --c1: #425ff5; --c2: #08a980; --c3: #d89200; --c4: #0a8d68;
   --c5: #7055d9; --c6: #d94d5c; --c7: #cb5e9a; --c8: #e26835;
-  --c9: #65748a;
+  --c9: #65748a; --c10: #0a8fb8;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(7,17,31,0.04), 0 10px 28px rgba(7,17,31,0.07);
 }
@@ -52,7 +52,7 @@
   --bad: #ff7a86; --bad-bg: rgba(255,122,134,0.14); --warn: #ffc65a;
   --c1: #6b84ff; --c2: #3fe7c0; --c3: #ffc65a; --c4: #49d7a4;
   --c5: #9d8cff; --c6: #ff7a86; --c7: #f080b7; --c8: #ff9363;
-  --c9: #9aa9bd;
+  --c9: #9aa9bd; --c10: #4fc8ef;
   --shadow: 0 1px 0 rgba(255,255,255,0.035) inset, 0 12px 30px rgba(0,0,0,0.32);
 }
 
@@ -336,6 +336,7 @@ button.editar:hover { color: var(--accent); background: var(--accent-soft); }
 .cor-lazer { --cat-color: var(--c5); }
 .cor-educacao { --cat-color: var(--c6); }
 .cor-assinaturas { --cat-color: var(--c7); }
+.cor-investimentos { --cat-color: var(--c10); }
 .cor-cartao { --cat-color: var(--c9); }
 .cor-outros { --cat-color: var(--c8); }
 .ponto[class*="cor-"] { background: var(--cat-color); }
@@ -863,11 +864,14 @@ const CATEGORIAS = [
   { id: "lazer",       nome: "Lazer",        cor: "var(--c5)" },
   { id: "educacao",    nome: "Educação",     cor: "var(--c6)" },
   { id: "assinaturas", nome: "Assinaturas",  cor: "var(--c7)" },
+  { id: "investimentos", nome: "Investimentos", cor: "var(--c10)" },
   { id: "cartao",      nome: "Cartão de crédito", cor: "var(--c9)" },
   { id: "outros",      nome: "Outros",       cor: "var(--c8)" },
 ];
 // Categoria "cartao" = pagamento de fatura (repasse): conta como despesa do mês,
 // mas fica fora da média de variáveis usada na projeção, para não duplicar com as parcelas.
+// Categoria "investimentos" = dinheiro guardado no mês (reserva, aplicação): sai do saldo como
+// despesa, para o mês fechar com o que sobrou de fato, e fica separada nos relatórios.
 const catPorId = id => CATEGORIAS.find(c => c.id === id) || CATEGORIAS.find(c => c.id === "outros");
 
 let blobPendente = null; // dados criptografados aguardando a senha
@@ -1655,7 +1659,8 @@ $("#eCancelar").onclick = () => {
 };
 
 /* ================= Limites por categoria ================= */
-const CATS_COM_LIMITE = CATEGORIAS.filter(c => c.id !== "cartao"); // pagamento de fatura já aparece nas parcelas
+// pagamento de fatura já aparece nas parcelas; dinheiro guardado não é gasto a conter
+const CATS_COM_LIMITE = CATEGORIAS.filter(c => c.id !== "cartao" && c.id !== "investimentos");
 window.abrirLimites = () => {
   sairExemplo();
   $("#limLista").innerHTML = CATS_COM_LIMITE.map(c => `<label><span><span class="ponto cor-${c.id}" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--cat-color);margin-right:8px"></span>${c.nome}</span>
@@ -2307,6 +2312,7 @@ function transacoesCSV({ linhas }, mapa) {
 
 const CATEGORIA_POR_PALAVRA = [
   [/pagamento (de |da )?fatura|pgto fatura|fatura cartao/, "cartao"],
+  [/aplicacao|\b(cdb|rdb|lci|lca)\b|tesouro direto|poupanca|caixinha|invest|previdencia privada/, "investimentos"],
   [/netflix|spotify|prime video|amazon prime|disney|hbo|max\b|youtube|globoplay|deezer|apple\.com|google one|icloud|assinatura/, "assinaturas"],
   // lojas que vendem de tudo: "mercado" de Mercado Livre não é supermercado
   [/mercado ?livre|mercado ?pago|shopee|amazon|magalu|magazine luiza|americanas|aliexpress|shein|casas bahia/, "outros"],
